@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, ErrorApi, mensajeDeError } from '../../lib/api'
 import type {
   Concepto,
-  ContextoMes,
   LecturaCaptura,
+  CintaMes,
   MesCompleto,
   MesPorAbrir,
   Movimiento,
@@ -22,6 +22,7 @@ import {
 import { Sheet } from '../../components/Sheet'
 import { cuantos, euros, hoyIso, NOMBRES_MESES } from '../../lib/formato'
 import { ResumenMes } from './ResumenMes'
+import { CintaDelMes } from './CintaDelMes'
 import { BarraComida } from './BarraComida'
 import { TablaFijos } from './TablaFijos'
 import { ListaVariables } from './ListaVariables'
@@ -53,6 +54,8 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onVerAnalisis, onImport
   const [altaAbierta, setAltaAbierta] = useState(false)
   const [aBorrar, setABorrar] = useState<Movimiento | null>(null)
   const [limites, setLimites] = useState<Limites | null>(null)
+  // El dibujo del mes: se pide aparte porque es lo único que recorre día a día.
+  const [cinta, setCinta] = useState<CintaMes | null>(null)
   // El mes al que se ha navegado y que todavía no existe: navegar no crea nada.
   const [porAbrir, setPorAbrir] = useState<(MesPorAbrir & { anio: number; mes: number }) | null>(
     null,
@@ -68,7 +71,6 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onVerAnalisis, onImport
   const selectorPdf = useRef<HTMLInputElement>(null)
   // Comparaciones con el año pasado y con la media. Se cargan aparte porque
   // recorren el histórico entero y no deben retrasar la pantalla del mes.
-  const [contexto, setContexto] = useState<ContextoMes | null>(null)
   // Evita que una respuesta lenta de un mes anterior pise a la del mes actual.
   const peticion = useRef(0)
 
@@ -95,6 +97,11 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onVerAnalisis, onImport
         if (mia !== peticion.current) return
         setMes(datos)
         setPorAbrir(null)
+        if (datos) {
+          void api<CintaMes>(`/meses/${datos.id}/cinta`)
+            .then((c) => mia === peticion.current && setCinta(c))
+            .catch(() => setCinta(null))
+        }
         return
       }
 
@@ -103,6 +110,9 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onVerAnalisis, onImport
         if (mia !== peticion.current) return
         setMes(datos)
         setPorAbrir(null)
+        void api<CintaMes>(`/meses/${datos.id}/cinta`)
+          .then((c) => mia === peticion.current && setCinta(c))
+          .catch(() => setCinta(null))
       } catch (causa) {
         if (mia !== peticion.current) return
         // Un 404 aqui no es un error: es un mes al que todavia no se ha entrado.
@@ -125,20 +135,6 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onVerAnalisis, onImport
   useEffect(() => {
     void cargar()
   }, [cargar])
-
-  useEffect(() => {
-    const id = mes?.id
-    if (!id) return
-    let vigente = true
-    setContexto(null)
-    api<ContextoMes>(`/analitica/contexto/${id}`)
-      .then((datos) => vigente && setContexto(datos))
-      // Sin contexto la pantalla funciona igual: solo pierde las flechas.
-      .catch(() => undefined)
-    return () => {
-      vigente = false
-    }
-  }, [mes?.id])
 
   /** Recarga solo el mes: tras cada apunte, el catalogo no ha cambiado. */
   const recargarMes = useCallback(async () => {
@@ -586,7 +582,9 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onVerAnalisis, onImport
       />
 
       <div className="limite limite-ancho">
-        <ResumenMes mes={mes} contexto={contexto} onCambiar={cambiarMes} />
+        {cinta ? <CintaDelMes cinta={cinta} /> : null}
+
+        <ResumenMes mes={mes} onCambiar={cambiarMes} onVerDetalle={onVerAnalisis} />
         <BarraComida
           resumen={mes.resumen}
           onCambiarPresupuesto={(valor) => cambiarMes({ presupuestoComida: valor ?? 0 })}

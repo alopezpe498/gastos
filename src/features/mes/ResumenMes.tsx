@@ -1,25 +1,29 @@
-import type { ContextoMes, MesCompleto } from '../../lib/tipos'
+import type { MesCompleto } from '../../lib/tipos'
 import { CampoImporte } from '../../components/Campos'
-import { Variacion } from '../analitica/Piezas'
-import { euros, porcentaje } from '../../lib/formato'
+import { euros } from '../../lib/formato'
 
 type Props = {
   mes: MesCompleto
-  contexto: ContextoMes | null
   onCambiar: (cambios: Record<string, unknown>) => Promise<void>
+  onVerDetalle?: () => void
 }
 
 /**
- * El cuadro resumen del mes, que es lo primero que se mira al entrar.
+ * La cabecera del mes: una sola pieza, no cuatro tarjetas.
  *
- * Cuatro cifras arriba (ingresos, gastos, sobrante y dinero en cuenta) y el
- * desglose debajo. Solo dos son editables, y son justo las dos que se copian a
- * mano cada mes: la nomina y lo que dice el banco. El resto son consecuencia de
- * los apuntes y no se tocan aqui.
+ * Lo primero que se mira al entrar es una sola cifra grande —lo que queda del
+ * mes— y debajo, en una línea, de dónde sale. Las cuatro cifras secundarias van
+ * seguidas, separadas por puntos, sin cajas: son un apoyo, no cuatro titulares
+ * compitiendo entre sí.
+ *
+ * Las comparativas con el año pasado y con la media de doce meses NO están
+ * aquí: con un solo año importado no significan nada y solo hacían ruido. Viven
+ * en Análisis, que es donde se va a comparar.
  */
-export function ResumenMes({ mes, contexto, onCambiar }: Props) {
+export function ResumenMes({ mes, onCambiar, onVerDetalle }: Props) {
   const { resumen } = mes
-  const sobranteNegativo = resumen.sobrante < 0
+  const queda = resumen.sobrante
+  const pasado = queda < 0
 
   // Lo que sobra tras cuadrar con el banco: si el dinero en cuenta no llega a
   // los fijos que faltan por cobrar, conviene verlo antes de que pase.
@@ -28,132 +32,82 @@ export function ResumenMes({ mes, contexto, onCambiar }: Props) {
       ? null
       : Math.round((resumen.dineroEnCuenta - resumen.fijosPendientes.importe) * 100) / 100
 
+  const comidaPasada = resumen.comida.gastado > resumen.comida.presupuesto
+
   return (
-    <div className="resumen">
-      <div className="resumen-rejilla">
-        <div className="resumen-celda">
-          <span className="resumen-etiqueta">Ingresos</span>
-          <CampoImporte
-            valor={mes.ingreso}
-            onGuardar={(valor) => onCambiar({ ingreso: valor })}
-            ariaLabel="Ingresos del mes"
-            className="dinero-titular resumen-cifra"
-          />
-        </div>
+    <div className="cabecera-mes">
+      <p className={`cabecera-mes-etiqueta${pasado ? ' rojo' : ''}`}>
+        {pasado ? 'Te has pasado' : 'Te queda'}
+      </p>
+      <p className={`protagonista${pasado ? ' rojo' : ''}`}>{euros(Math.abs(queda))}</p>
 
-        <div className="resumen-celda">
-          <span className="resumen-etiqueta">Gastos</span>
-          <span className="dinero-titular resumen-cifra">{euros(resumen.gastos)}</span>
-          <Comparaciones
-            variacionAnterior={contexto?.anioAnterior?.variacionGastos ?? null}
-            variacionMedia={contexto?.mediaDoceMeses?.variacionGastos ?? null}
-            subirEsBueno={false}
-          />
-        </div>
-
-        <div className="resumen-celda">
-          <span className="resumen-etiqueta">Sobrante</span>
-          <span
-            className={`dinero-titular resumen-cifra ${sobranteNegativo ? 'negativo' : 'positivo'}`}
-          >
-            {euros(resumen.sobrante)}
-          </span>
-          <span className="resumen-nota">
-            {porcentaje(mes.ingreso ? (resumen.sobrante / mes.ingreso) * 100 : null)} de los
-            ingresos
-          </span>
-          <Comparaciones
-            variacionAnterior={contexto?.anioAnterior?.variacionSobrante ?? null}
-            variacionMedia={contexto?.mediaDoceMeses?.variacionSobrante ?? null}
-            subirEsBueno
-          />
-        </div>
-
-        <div className="resumen-celda">
-          <span className="resumen-etiqueta">Dinero en cuenta</span>
-          <CampoImporte
-            valor={mes.dineroEnCuenta}
-            onGuardar={(valor) => onCambiar({ dineroEnCuenta: valor })}
-            admiteVacio
-            placeholder="Sin mirar"
-            ariaLabel="Dinero en cuenta"
-            className="dinero-titular resumen-cifra"
-          />
-          {descuadre !== null && resumen.fijosPendientes.cuantos > 0 ? (
-            <span className={`resumen-nota ${descuadre < 0 ? 'negativo' : ''}`}>
-              {descuadre < 0 ? 'faltan ' : 'quedan '}
-              {euros(Math.abs(descuadre))} tras los fijos pendientes
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="desglose">
-        <Trozo etiqueta="Fijos" importe={resumen.fijos} />
-        <Trozo etiqueta="Extras" importe={resumen.extras} />
-        <Trozo
-          etiqueta="Comida"
-          importe={resumen.comida.contada}
-          nota={resumen.comida.criterio === 'presupuesto' ? 'presupuesto' : 'gastado'}
+      <p className="cabecera-mes-cuenta">
+        <CampoImporte
+          valor={mes.ingreso}
+          onGuardar={(valor) => onCambiar({ ingreso: valor })}
+          ariaLabel="Ingresos del mes"
+          className="dinero campo-en-linea"
         />
-        <Trozo etiqueta="Ahorro" importe={resumen.objetivoAhorro} nota="objetivo" />
+        <span className="apagado"> ingresos − </span>
+        <button className="boton-texto dinero" onClick={onVerDetalle}>
+          {euros(resumen.gastos)}
+        </button>
+        <span className="apagado"> gastos</span>
+      </p>
+
+      <div className="cabecera-mes-secundarias">
+        <span>
+          <span className="apagado">Fijos </span>
+          <span className="dinero">{euros(resumen.fijos)}</span>
+        </span>
+        <span>
+          <span className="apagado">Extras </span>
+          <span className="dinero">{euros(resumen.extras)}</span>
+        </span>
+        <span>
+          <span className="apagado">Comida </span>
+          <span className={`dinero${comidaPasada ? ' rojo' : ''}`}>
+            {euros(resumen.comida.gastado)}
+          </span>
+          <span className="apagado"> / </span>
+          <span className="dinero apagado">{euros(resumen.comida.presupuesto)}</span>
+        </span>
+        <span>
+          <span className="apagado">Ahorro objetivo </span>
+          <span className="dinero">{euros(resumen.objetivoAhorro)}</span>
+        </span>
+
+        <span className="cabecera-mes-saldo">
+          {resumen.dineroEnCuenta === null ? (
+            <CampoImporte
+              valor={null}
+              admiteVacio
+              placeholder="Anotar el saldo del banco"
+              onGuardar={(valor) => onCambiar({ dineroEnCuenta: valor })}
+              ariaLabel="Dinero en cuenta"
+              className="campo-en-linea campo-enlace"
+            />
+          ) : (
+            <>
+              <span className="apagado">Saldo en cuenta </span>
+              <CampoImporte
+                valor={resumen.dineroEnCuenta}
+                admiteVacio
+                onGuardar={(valor) => onCambiar({ dineroEnCuenta: valor })}
+                ariaLabel="Dinero en cuenta"
+                className="dinero campo-en-linea"
+              />
+              {descuadre !== null ? (
+                <span className={`apagado${descuadre < 0 ? ' rojo' : ''}`}>
+                  {' '}
+                  ({descuadre < 0 ? '−' : '+'}
+                  {euros(Math.abs(descuadre))})
+                </span>
+              ) : null}
+            </>
+          )}
+        </span>
       </div>
-    </div>
-  )
-}
-
-/**
- * Las dos comparaciones que dan contexto a una cifra del mes: contra el mismo
- * mes del año pasado y contra la media del último año. Sin ellas, «3.317 € de
- * gastos» no dice si es mucho o poco.
- */
-function Comparaciones({
-  variacionAnterior,
-  variacionMedia,
-  subirEsBueno,
-}: {
-  variacionAnterior: number | null
-  variacionMedia: number | null
-  subirEsBueno: boolean
-}) {
-  if (variacionAnterior === null && variacionMedia === null) return null
-
-  return (
-    <span className="comparaciones">
-      {variacionAnterior !== null ? (
-        <span className="comparacion" title="Frente al mismo mes del año pasado">
-          <Variacion valor={variacionAnterior} subirEsBueno={subirEsBueno} />
-          <span className="comparacion-nota">año pasado</span>
-        </span>
-      ) : null}
-      {variacionMedia !== null ? (
-        <span className="comparacion" title="Frente a la media de los últimos doce meses">
-          <Variacion valor={variacionMedia} subirEsBueno={subirEsBueno} />
-          <span className="comparacion-nota">media 12 m</span>
-        </span>
-      ) : null}
-    </span>
-  )
-}
-
-function Trozo({
-  etiqueta,
-  importe,
-  nota,
-}: {
-  etiqueta: string
-  importe: number
-  nota?: string
-}) {
-  return (
-    <div className="desglose-trozo">
-      <span className="desglose-etiqueta">
-        {etiqueta}
-        {nota ? <span className="desglose-nota"> · {nota}</span> : null}
-      </span>
-      <span className={`dinero desglose-cifra${importe === 0 ? ' cero' : ''}`}>
-        {euros(importe)}
-      </span>
     </div>
   )
 }

@@ -1,6 +1,9 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+// LA LIBRETA. tokens.css primero (las variables) y base.css al final, para que
+// sus reglas ganen a las del diseño anterior mientras queda CSS por retirar.
+import './styles/tokens.css'
 import './styles/global.css'
 import './styles/base-pantallas.css'
 import './styles/dinero.css'
@@ -14,6 +17,7 @@ import './styles/graficos.css'
 import './styles/analitica.css'
 import './styles/informe.css'
 import './styles/escritorio.css'
+import './styles/base.css'
 
 const raiz = document.getElementById('root')
 if (raiz) createRoot(raiz).render(<StrictMode><App /></StrictMode>)

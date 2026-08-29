@@ -4,17 +4,15 @@ import { Cargando } from './components/Basicos'
 import { ProveedorAvisos } from './components/Avisos'
 import {
   IconoAjustes,
-  IconoBarras,
+  IconoCandado,
   IconoCalendario,
   IconoEtiquetas,
-  IconoPanelIzquierdo,
   IconoSubir,
   IconoTabla,
   IconoTarta,
   IconoTendencia,
 } from './components/Iconos'
 import { useEsEscritorio } from './lib/tamano'
-import { useLateralColapsada } from './lib/lateral'
 import { PantallaPin } from './features/auth/PantallaPin'
 import { PantallaMes } from './features/mes/PantallaMes'
 import { PantallaAnalisis } from './features/analisis/PantallaAnalisis'
@@ -23,6 +21,7 @@ import { PantallaAnalitica } from './features/analitica/PantallaAnalitica'
 import { PantallaConceptos } from './features/conceptos/PantallaConceptos'
 import { PantallaAjustes, type PestanaAjustes } from './features/ajustes/PantallaAjustes'
 import { PantallaImportar, type PestanaImportar } from './features/importar/PantallaImportar'
+import { BarraSuperior, BarraInferior } from './components/Navegacion'
 
 type Pestana = 'mes' | 'analisis' | 'anual' | 'analitica' | 'conceptos' | 'importar' | 'ajustes'
 type Sesion = 'comprobando' | 'bloqueada' | 'abierta'
@@ -38,7 +37,6 @@ const PESTANAS = [
 ]
 
 export default function App() {
-  const [lateralColapsada, alternarLateral] = useLateralColapsada()
   const [sesion, setSesion] = useState<Sesion>('comprobando')
   const [protegido, setProtegido] = useState(false)
   const [pestana, setPestana] = useState<Pestana>('mes')
@@ -120,61 +118,20 @@ export default function App() {
     <ProveedorAvisos>
       <div className={`app${escritorio ? ' app-escritorio' : ''}`}>
         {escritorio ? (
-          <nav className={`lateral${lateralColapsada ? ' iconos' : ''}`} aria-label="Navegación">
-            {/*
-              En modo iconos las barras dejan de ser un adorno y pasan a ser el
-              boton de abrir; en modo completo vuelve la marca con su boton de
-              plegar al lado.
-            */}
-            {lateralColapsada ? (
+          <BarraSuperior
+            secciones={PESTANAS}
+            activa={pestana}
+            onIr={setPestana}
+            extra={
               <button
-                className="lateral-boton lateral-marca-boton"
-                onClick={alternarLateral}
-                aria-label="Expandir el menú"
-                aria-expanded={false}
-                data-nombre="Expandir el menú"
+                className="boton-icono"
+                aria-label="Bloquear la aplicación"
+                onClick={() => setSesion('bloqueada')}
               >
-                <span className="lateral-icono" aria-hidden="true">
-                  <IconoBarras size={20} />
-                </span>
+                <IconoCandado size={18} />
               </button>
-            ) : (
-              <div className="lateral-marca">
-                <span className="lateral-icono" aria-hidden="true">
-                  <IconoBarras size={20} />
-                </span>
-                <span className="lateral-nombre">Gastos</span>
-                <button
-                  className="lateral-plegar"
-                  onClick={alternarLateral}
-                  aria-label="Contraer el menú"
-                  aria-expanded
-                >
-                  <IconoPanelIzquierdo size={18} />
-                </button>
-              </div>
-            )}
-
-            {PESTANAS.map(({ id, nombre, icono: Icono }) => (
-              <button
-                key={id}
-                className={`lateral-boton${pestana === id ? ' activa' : ''}`}
-                onClick={() => setPestana(id)}
-                aria-current={pestana === id ? 'page' : undefined}
-                data-nombre={nombre}
-              >
-                <Icono size={20} />
-                {/*
-                  El nombre no se quita del DOM al colapsar: se oculta a la
-                  vista pero sigue ahi, que es lo que lee el lector de pantalla
-                  y lo que da nombre accesible al boton.
-                */}
-                <span className={lateralColapsada ? 'solo-lectores' : 'lateral-texto'}>
-                  {nombre}
-                </span>
-              </button>
-            ))}
-          </nav>
+            }
+          />
         ) : null}
 
         <main className="contenido">
@@ -238,6 +195,10 @@ export default function App() {
             />
           ) : null}
         </main>
+
+        {escritorio ? null : (
+          <BarraInferior secciones={PESTANAS} activa={pestana} onIr={setPestana} />
+        )}
 
         {escritorio ? null : (
           <nav className="barra">

@@ -8,36 +8,30 @@ type Props = {
 }
 
 /**
- * El sobre de la comida.
+ * El sobre de la comida: una sola barra fina.
  *
- * No es un recibo: es un presupuesto del que se va tirando durante el mes, asi
- * que lo que importa no es cuanto se ha gastado sino cuanto queda. La barra
- * pasa a ambar al acercarse al limite y a rojo al pasarse, que es cuando hace
- * falta enterarse.
+ * Antes era un panel con su título, su campo y su barra gorda, y ocupaba tanto
+ * como el resumen del mes entero para decir una cosa. Ahora es una línea: la
+ * etiqueta, la barra y las dos cifras.
  *
- * Y pasarse cuenta: el exceso suma en los gastos del mes. Por eso al pasarse
- * pone "Te has pasado 120 €" y no "Queda 0 €", que sonaria a que da igual.
+ * Cuando se pasa NO se pinta la barra entera de rojo por veintinueve céntimos:
+ * la parte del presupuesto sigue en sello y el exceso se dibuja a continuación
+ * en rojo, proporcional. Así se ve de un vistazo si te has pasado por poco o
+ * por mucho.
  */
 export function BarraComida({ resumen, onCambiarPresupuesto }: Props) {
-  const { presupuesto, gastado, queda } = resumen.comida
-  const proporcion = presupuesto > 0 ? gastado / presupuesto : 0
-  const estado = queda < 0 ? 'pasado' : proporcion >= 0.85 ? 'justo' : 'bien'
+  const { presupuesto, gastado } = resumen.comida
+  const exceso = Math.max(0, gastado - presupuesto)
+  const pasado = exceso > 0
+
+  // Los dos tramos, sobre el total que hay que dibujar.
+  const total = Math.max(presupuesto, gastado, 1)
+  const anchoDentro = (Math.min(gastado, presupuesto) / total) * 100
+  const anchoExceso = (exceso / total) * 100
 
   return (
-    <section className="sobre">
-      <div className="sobre-cabecera">
-        <h2 className="seccion-titulo">Comida</h2>
-        <div className="sobre-presupuesto">
-          <label className="sobre-etiqueta" htmlFor="presupuesto-comida">
-            Presupuesto
-          </label>
-          <CampoImporte
-            valor={presupuesto}
-            onGuardar={onCambiarPresupuesto}
-            ariaLabel="Presupuesto de comida"
-          />
-        </div>
-      </div>
+    <div className="sobre">
+      <span className="sobre-etiqueta">Comida</span>
 
       <div
         className="sobre-barra"
@@ -45,27 +39,30 @@ export function BarraComida({ resumen, onCambiarPresupuesto }: Props) {
         aria-valuemin={0}
         aria-valuemax={presupuesto}
         aria-valuenow={gastado}
-        aria-label={`Gastado en comida: ${euros(gastado)} de ${euros(presupuesto)}`}
+        aria-label={`Comida: ${euros(gastado)} de ${euros(presupuesto)}`}
       >
-        <div
-          className={`sobre-relleno ${estado}`}
-          // Por encima del 100% la barra se llena del todo y es el color, no el
-          // ancho, el que dice que se ha pasado.
-          style={{ width: `${Math.min(100, Math.max(0, proporcion * 100))}%` }}
-        />
+        <div className="sobre-dentro" style={{ width: `${anchoDentro}%` }} />
+        {pasado ? <div className="sobre-exceso" style={{ width: `${anchoExceso}%` }} /> : null}
       </div>
 
-      <div className="sobre-cifras">
-        <span>
-          Gastado <strong className="dinero">{euros(gastado)}</strong>
-        </span>
-        <span className={queda < 0 ? 'negativo' : ''}>
-          {/* Pasarse es un gasto de verdad: el exceso SI suma en el mes, asi
-              que aqui no puede poner "Queda 0". */}
-          {queda < 0 ? 'Te has pasado ' : 'Queda '}
-          <strong className="dinero">{euros(Math.abs(queda))}</strong>
-        </span>
-      </div>
-    </section>
+      <span className="sobre-cifras">
+        {pasado ? (
+          <span className="rojo">
+            Pasado <span className="dinero">{euros(exceso)}</span>
+          </span>
+        ) : (
+          <span className="dinero">{euros(gastado)}</span>
+        )}
+        <span className="apagado"> / </span>
+      </span>
+
+      {/* El presupuesto se edita escribiendo encima, como todo lo demás. */}
+      <CampoImporte
+        valor={presupuesto}
+        onGuardar={onCambiarPresupuesto}
+        ariaLabel="Presupuesto de comida"
+        className="dinero sobre-presupuesto"
+      />
+    </div>
   )
 }

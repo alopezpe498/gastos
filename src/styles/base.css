@@ -1,0 +1,1133 @@
+/*
+ * La base de "La libreta": reinicio, tipografía, superficies y controles.
+ *
+ * Todo lo de aquí sale de tokens.css. Si algún día hay que cambiar el papel o
+ * el sello, se cambia allí y esto no se toca.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: var(--texto);
+  font-size: var(--t-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+blockquote {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--sello);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* El foco se ve siempre: se navega con teclado por todas las listas. */
+:focus-visible {
+  outline: 2px solid var(--sello);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+::selection {
+  background: var(--sello-suave);
+}
+
+/* ---------------------------------------------------------------------------
+ * Tipografía
+ * ------------------------------------------------------------------------- */
+
+/*
+ * La firma de la casa. TODA cifra y TODA fecha llevan esto: es lo que hace que
+ * una columna de importes se lea como un extracto impreso y no como una web.
+ */
+.cifra,
+.dinero,
+.fecha {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Los decimales, un tono más flojos: los enteros se leen primero. */
+.decimales {
+  color: var(--tinta-2);
+}
+
+.titulo-pantalla {
+  font-family: var(--display);
+  font-size: var(--t-pantalla);
+  font-weight: 500;
+  font-variation-settings: 'opsz' 40;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.titulo-seccion {
+  font-family: var(--texto);
+  font-size: var(--t-seccion);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.protagonista {
+  font-family: var(--display);
+  font-size: var(--t-cifra);
+  font-weight: 400;
+  font-variation-settings: 'opsz' 60;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.secundario {
+  font-size: var(--t-secundario);
+  color: var(--tinta-2);
+}
+
+.meta {
+  font-size: var(--t-meta);
+  color: var(--tinta-3);
+}
+
+.rojo {
+  color: var(--rojo);
+}
+.verde {
+  color: var(--verde);
+}
+.apagado {
+  color: var(--tinta-3);
+}
+
+/* ---------------------------------------------------------------------------
+ * Estructura de página
+ * ------------------------------------------------------------------------- */
+
+.limite {
+  width: 100%;
+  max-width: var(--ancho);
+  margin: 0 auto;
+  padding: 0 var(--margen);
+}
+
+.pagina {
+  padding-bottom: var(--e8);
+}
+
+/* Cabecera de pantalla: título, acciones y una línea. Sin tarjeta. */
+.cabecera-pantalla {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--e4);
+  flex-wrap: wrap;
+  padding: var(--e6) 0 var(--e3);
+  border-bottom: var(--borde);
+  margin-bottom: var(--e5);
+}
+
+.cabecera-acciones {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+}
+
+.seccion {
+  margin-bottom: var(--e6);
+}
+
+.seccion-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e3);
+  margin-bottom: var(--e3);
+}
+
+.ayuda {
+  font-size: var(--t-secundario);
+  color: var(--tinta-2);
+  max-width: 62ch;
+}
+
+/* ---------------------------------------------------------------------------
+ * Superficies: papel y líneas, nunca sombras
+ * ------------------------------------------------------------------------- */
+
+.panel {
+  background: var(--papel-2);
+  border: var(--borde);
+  border-radius: var(--radio-panel);
+}
+
+/* Las listas densas son filas separadas por línea, no tarjetas. */
+.lista > * + * {
+  border-top: var(--borde);
+}
+
+.fila {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  padding: var(--e3) 0;
+  min-height: 44px;
+}
+
+.fila-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fila-titulo {
+  font-size: var(--t-base);
+}
+
+.fila-detalle {
+  font-size: var(--t-secundario);
+  color: var(--tinta-2);
+}
+
+.separador-fecha {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  padding: var(--e4) 0 var(--e2);
+  font-size: var(--t-secundario);
+  color: var(--tinta-3);
+}
+
+.separador-fecha::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--linea);
+}
+
+/* ---------------------------------------------------------------------------
+ * Controles
+ * ------------------------------------------------------------------------- */
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e2);
+  height: 36px;
+  padding: 0 var(--e3);
+  border-radius: var(--radio);
+  font-size: var(--t-base);
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background var(--rapido) var(--curva),
+    border-color var(--rapido) var(--curva),
+    color var(--rapido) var(--curva);
+}
+
+/* Uno por pantalla como mucho: es lo que se quiere que se pulse. */
+.boton-principal {
+  background: var(--sello);
+  color: #fff;
+  border: 1px solid var(--sello);
+}
+
+.boton-principal:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--sello) 88%, black);
+}
+
+.boton-secundario {
+  border: var(--borde);
+  background: transparent;
+  color: var(--tinta);
+}
+
+.boton-secundario:hover:not(:disabled) {
+  border-color: var(--tinta-3);
+}
+
+.boton-texto {
+  height: auto;
+  padding: 0;
+  color: var(--sello);
+  font-weight: 400;
+}
+
+.boton-texto:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+/* Lo destructivo nunca es un botón principal: es texto, dentro de un menú. */
+.boton-peligro {
+  color: var(--rojo);
+}
+
+.boton-pequeno {
+  height: 28px;
+  padding: 0 var(--e2);
+  font-size: var(--t-secundario);
+}
+
+.boton-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radio);
+  color: var(--tinta-2);
+  transition: background var(--rapido) var(--curva);
+}
+
+.boton-icono:hover:not(:disabled) {
+  background: var(--sello-suave);
+  color: var(--sello);
+}
+
+/*
+ * Los campos SOLO se ven cuando se están editando. En una lista, un valor es
+ * texto hasta que lo tocas; entonces se convierte en campo. Un formulario
+ * siempre a la vista convierte esto en una hoja de alta de datos.
+ */
+.campo {
+  width: 100%;
+  height: 34px;
+  padding: 0 var(--e2);
+  border: 1px solid transparent;
+  border-radius: var(--radio);
+  background: transparent;
+  transition:
+    background var(--rapido) var(--curva),
+    border-color var(--rapido) var(--curva);
+}
+
+.campo:hover {
+  border-color: var(--linea);
+}
+
+.campo:focus {
+  outline: none;
+  background: var(--papel-2);
+  border-color: var(--sello);
+}
+
+.campo.dinero,
+.campo.cifra {
+  text-align: right;
+}
+
+.campo-visible {
+  border-color: var(--linea);
+  background: var(--papel-2);
+}
+
+textarea.campo {
+  height: auto;
+  padding: var(--e2);
+  resize: vertical;
+  line-height: 1.5;
+}
+
+select.campo {
+  height: 34px;
+  appearance: none;
+  padding-right: var(--e5);
+  background-image: linear-gradient(45deg, transparent 50%, var(--tinta-3) 50%),
+    linear-gradient(135deg, var(--tinta-3) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 15px,
+    calc(100% - 9px) 15px;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* ---------------------------------------------------------------------------
+ * Etiquetas
+ * ------------------------------------------------------------------------- */
+
+/*
+ * Una sola forma de etiqueta para todo: el concepto de un movimiento, el origen
+ * de una clasificación, el estado de un fijo. Cambia la intensidad, no el color.
+ */
+.etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--sello-suave);
+  color: var(--sello);
+  font-size: var(--t-meta);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.etiqueta.tenue {
+  background: color-mix(in srgb, var(--sello-suave) 55%, var(--papel));
+  color: var(--tinta-2);
+}
+
+.etiqueta.comida {
+  background: var(--verde-suave);
+  color: var(--verde);
+}
+
+.etiqueta.aviso {
+  background: var(--rojo-suave);
+  color: var(--rojo);
+}
+
+/* ---------------------------------------------------------------------------
+ * Estados
+ * ------------------------------------------------------------------------- */
+
+.vacio {
+  padding: var(--e7) 0;
+  text-align: center;
+  color: var(--tinta-2);
+}
+
+.vacio p {
+  margin-bottom: var(--e2);
+}
+
+.cargando {
+  padding: var(--e7) 0;
+  text-align: center;
+  color: var(--tinta-3);
+}
+
+/* Un esqueleto de papel: una línea que respira, sin brillos ni degradados. */
+.esqueleto {
+  height: 14px;
+  border-radius: 3px;
+  background: var(--linea);
+  animation: respirar 1.4s ease-in-out infinite;
+}
+
+@keyframes respirar {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Impresión: blanco y negro puro, sin fondos
+ * ------------------------------------------------------------------------- */
+
+@media print {
+  :root {
+    --papel: #fff;
+    --papel-2: #fff;
+    --linea: #999;
+    --tinta: #000;
+    --tinta-2: #333;
+    --tinta-3: #555;
+    --sello: #000;
+    --sello-suave: #fff;
+    --rojo: #000;
+    --verde: #000;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .barra-superior,
+  .barra-inferior,
+  .cabecera-acciones,
+  .boton {
+    display: none !important;
+  }
+}
+
+
+/* ---------------------------------------------------------------------------
+ * Navegación
+ * ------------------------------------------------------------------------- */
+
+.barra-superior {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--papel);
+  border-bottom: var(--borde);
+}
+
+.barra-superior-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--e5);
+  height: 52px;
+}
+
+.marca {
+  font-family: var(--display);
+  font-size: var(--t-destacado);
+  font-weight: 500;
+  font-variation-settings: 'opsz' 30;
+  letter-spacing: -0.01em;
+}
+
+.barra-secciones {
+  display: flex;
+  align-items: center;
+  gap: var(--e4);
+  flex: 1;
+}
+
+/* La sección activa se marca con una línea de sello, no con un fondo. */
+.barra-seccion {
+  position: relative;
+  padding: 15px 0;
+  color: var(--tinta-2);
+  font-size: var(--t-base);
+  transition: color var(--rapido) var(--curva);
+}
+
+.barra-seccion:hover {
+  color: var(--tinta);
+}
+
+.barra-seccion.activa {
+  color: var(--tinta);
+}
+
+.barra-seccion.activa::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--sello);
+}
+
+.barra-extra {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+}
+
+.barra-inferior {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .barra-superior {
+    display: none;
+  }
+
+  .barra-inferior {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    background: var(--papel);
+    border-top: var(--borde);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .barra-inferior-boton {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: var(--e2) 0;
+    color: var(--tinta-3);
+    font-size: 0.6875rem;
+  }
+
+  .barra-inferior-boton.activa {
+    color: var(--sello);
+  }
+
+  .pagina {
+    padding-bottom: 76px;
+  }
+
+  :root {
+    --margen: var(--e4);
+  }
+
+  .protagonista {
+    font-size: 2.75rem;
+  }
+}
+
+
+/* ---------------------------------------------------------------------------
+ * La cinta del mes
+ * ------------------------------------------------------------------------- */
+
+.cinta {
+  position: relative;
+  margin: var(--e5) 0 var(--e4);
+}
+
+.cinta-dibujo {
+  display: block;
+  width: 100%;
+  height: 92px;
+  overflow: visible;
+}
+
+/* El área del gasto: se dibuja de izquierda a derecha al abrir el mes. */
+.cinta-area {
+  fill: var(--sello-area);
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 400ms var(--curva);
+}
+
+.cinta-dibujo.dibujada .cinta-area {
+  clip-path: inset(0 0 0 0);
+}
+
+.cinta-linea-gasto {
+  fill: none;
+  stroke: var(--sello);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.5;
+}
+
+/* El ritmo ideal. Si el área lo pasa, el mes se está yendo rápido. */
+.cinta-ideal {
+  fill: none;
+  stroke: var(--tinta-3);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.cinta-eje {
+  stroke: var(--linea);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.cinta-dia {
+  stroke: var(--linea);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Los recibos, clavados en su día: relleno si está cobrado, hueco si no. */
+.cinta-fijo {
+  stroke: var(--tinta);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+}
+
+.cinta-fijo.pendiente {
+  stroke: var(--tinta-3);
+  stroke-dasharray: 2 2;
+}
+
+/* Pendiente y su día ya pasó: lo único rojo que puede salir aquí. */
+.cinta-fijo.pasado {
+  stroke: var(--rojo);
+}
+
+.cinta-fijo:hover {
+  stroke-width: 3;
+}
+
+.cinta-hoy {
+  fill: var(--sello);
+}
+
+.cinta-pie {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--t-meta);
+  color: var(--tinta-3);
+}
+
+.cinta-etiqueta-hoy {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: var(--t-meta);
+  color: var(--sello);
+}
+
+.cinta-aviso {
+  margin-top: var(--e2);
+  font-size: var(--t-secundario);
+  color: var(--tinta-2);
+}
+
+@media (max-width: 760px) {
+  .cinta-dibujo {
+    height: 76px;
+  }
+}
+
+
+/* ---------------------------------------------------------------------------
+ * La cabecera del mes: una pieza, no cuatro tarjetas
+ * ------------------------------------------------------------------------- */
+
+.cabecera-mes {
+  padding: var(--e5) 0 var(--e4);
+}
+
+.cabecera-mes-etiqueta {
+  font-size: var(--t-secundario);
+  color: var(--tinta-2);
+}
+
+.cabecera-mes-cuenta {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin-top: var(--e2);
+  font-family: var(--mono);
+  font-size: var(--t-base);
+}
+
+/* Un campo que vive dentro de una frase: sin caja hasta que se toca. */
+.campo-en-linea {
+  width: auto;
+  min-width: 5ch;
+  height: auto;
+  padding: 0 2px;
+  text-align: left;
+}
+
+.campo-enlace {
+  color: var(--sello);
+  min-width: 22ch;
+}
+
+.cabecera-mes-secundarias {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e4);
+  flex-wrap: wrap;
+  margin-top: var(--e4);
+  font-family: var(--mono);
+  font-size: var(--t-secundario);
+}
+
+.cabecera-mes-secundarias > span {
+  white-space: nowrap;
+}
+
+.cabecera-mes-saldo {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+/* ---------------------------------------------------------------------------
+ * El sobre de la comida: una línea
+ * ------------------------------------------------------------------------- */
+
+.sobre {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  padding: var(--e3) 0;
+  border-top: var(--borde);
+  border-bottom: var(--borde);
+  font-size: var(--t-secundario);
+}
+
+.sobre-etiqueta {
+  color: var(--tinta-2);
+  white-space: nowrap;
+}
+
+.sobre-barra {
+  flex: 1;
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--linea);
+  overflow: hidden;
+}
+
+.sobre-dentro {
+  background: var(--sello);
+  transition: width var(--entrada) var(--curva);
+}
+
+/* El exceso se dibuja A CONTINUACIÓN, proporcional: no se pinta la barra
+   entera de rojo por veintinueve céntimos. */
+.sobre-exceso {
+  background: var(--rojo);
+  transition: width var(--entrada) var(--curva);
+}
+
+.sobre-cifras {
+  white-space: nowrap;
+}
+
+.sobre-presupuesto {
+  width: 8ch;
+  text-align: right;
+  font-size: var(--t-secundario);
+}
+
+/* ---------------------------------------------------------------------------
+ * Las dos columnas del mes
+ * ------------------------------------------------------------------------- */
+
+@media (min-width: 940px) {
+  .mes-columnas {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: var(--e7);
+    align-items: start;
+  }
+}
+
+
+/* Las marcas de la cinta, en HTML sobre el SVG: dentro se deformaban. */
+.cinta {
+  position: relative;
+}
+
+.cinta-marcas {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 92px;
+  pointer-events: none;
+}
+
+.cinta-marca {
+  position: absolute;
+  top: 26px;
+  width: 2px;
+  height: 12px;
+  margin-left: -1px;
+  background: var(--tinta);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.cinta-marca.pendiente {
+  background: transparent;
+  border: 1px solid var(--tinta-3);
+  width: 3px;
+  margin-left: -1.5px;
+}
+
+/* Pendiente y su día ya pasó: lo único rojo que sale aquí. */
+.cinta-marca.pasado {
+  background: var(--rojo);
+}
+
+.cinta-marca:hover {
+  width: 3px;
+  margin-left: -1.5px;
+}
+
+.cinta-punto-hoy {
+  position: absolute;
+  top: 36px;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 50%;
+  background: var(--sello);
+}
+
+
+/* ---------------------------------------------------------------------------
+ * Barrido del diseño anterior
+ *
+ * Mientras quede CSS viejo por retirar, estas reglas lo neutralizan: ni una
+ * sombra, ni una etiqueta en mayúsculas, ni un fondo amarillo, ni una tarjeta
+ * blanca flotando. Al terminar la migración, los ficheros antiguos se borran y
+ * esto se puede quitar.
+ * ------------------------------------------------------------------------- */
+
+.app,
+.contenido,
+.tarjeta,
+.panel,
+.bloque,
+.sheet,
+.marcador,
+.probador,
+.lateral {
+  box-shadow: none !important;
+}
+
+.tarjeta,
+.bloque,
+.panel {
+  background: var(--papel-2);
+  border: var(--borde);
+  border-radius: var(--radio-panel);
+}
+
+/* Nunca mayúsculas en etiquetas: sentence case siempre. */
+.seccion-titulo,
+.subseccion,
+.etiqueta-campo,
+.resumen-etiqueta,
+.panel-nota,
+.fijo-fila.cabecera,
+.regla-fila.cabecera,
+.plantilla-fila.cabecera,
+.conciliacion-fila.cabecera,
+.anual-cabecera,
+th {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+/* El amarillo de los fijos pendientes se va: el día en rojo basta. */
+.fijo-fila.pendiente,
+.fila.pendiente,
+.pendiente {
+  background: transparent !important;
+}
+
+.fijo-fila.pendiente {
+  border-left: 0 !important;
+}
+
+/* Toda cifra y toda fecha, en la monoespaciada. */
+.dinero,
+.dinero-titular,
+.resumen-cifra,
+.anual-valor,
+.fijo-dia,
+.linea-fecha,
+.cinta-pie {
+  font-family: var(--mono) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-escritorio {
+  display: block !important;
+}
+
+.contenido {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.cabecera {
+  background: transparent !important;
+  border-bottom: var(--borde) !important;
+}
+
+.titulo-grande {
+  font-family: var(--display) !important;
+  font-size: var(--t-pantalla) !important;
+  font-weight: 500 !important;
+}
+
+.segmentado {
+  background: transparent !important;
+  padding: 0 !important;
+  gap: var(--e4) !important;
+  border-bottom: var(--borde);
+}
+
+.segmentado button {
+  flex: 0 0 auto !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: var(--e2) 0 !important;
+  color: var(--tinta-2) !important;
+  font-weight: 400 !important;
+  border-bottom: 2px solid transparent;
+}
+
+.segmentado button.activo {
+  color: var(--tinta) !important;
+  border-bottom-color: var(--sello);
+  font-weight: 500 !important;
+}
+
+
+/* ---------------------------------------------------------------------------
+ * Los últimos restos del diseño anterior
+ * ------------------------------------------------------------------------- */
+
+/*
+ * El amarillo de "pendiente" se va del todo. Un recibo sin cobrar no es un
+ * aviso: es lo normal a mitad de mes. Lo que sí avisa es que su día ya haya
+ * pasado, y para eso basta con el día en rojo.
+ */
+:root {
+  --pendiente: var(--tinta-3);
+  --pendiente-suave: transparent;
+  --pendiente-borde: var(--linea);
+  /* Los viejos nombres de color, redirigidos a los tokens de la libreta. */
+  --fondo: var(--papel);
+  --fondo-elevado: var(--papel-2);
+  --tarjeta: var(--papel-2);
+  --tarjeta-hundida: var(--papel);
+  --separador: var(--linea);
+  --texto: var(--tinta);
+  --texto-2: var(--tinta-2);
+  --texto-3: var(--tinta-3);
+  --acento: var(--sello);
+  --acento-suave: var(--sello-suave);
+  --acento-texto: var(--sello);
+  --pildora: var(--sello-suave);
+  --peligro: var(--rojo);
+  --peligro-suave: var(--rojo-suave);
+  --especial-suave: var(--sello-suave);
+  --radio-s: var(--radio);
+  --radio-m: var(--radio-panel);
+  --radio-l: var(--radio-panel);
+}
+
+/* Las tarjetas dejan de flotar: papel y línea. */
+.tarjeta,
+.bloque,
+.panel,
+.resumen,
+.sobre,
+.alta-rapida {
+  background: var(--papel-2) !important;
+  border: var(--borde) !important;
+  border-radius: var(--radio-panel) !important;
+  box-shadow: none !important;
+}
+
+/* El sobre no es una tarjeta: es una línea. */
+.sobre {
+  background: transparent !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* Las listas densas, sin fondo por fila. */
+.fijo-fila,
+.fila,
+.linea-extracto,
+.plantilla-fila,
+.regla-fila {
+  background: transparent !important;
+}
+
+.fijo-fila.cabecera,
+.plantilla-fila.cabecera,
+.regla-fila.cabecera,
+.conciliacion-fila.cabecera {
+  background: transparent !important;
+  color: var(--tinta-3) !important;
+  font-weight: 400 !important;
+  font-size: var(--t-meta) !important;
+}
+
+/* El día de un fijo pendiente cuyo día ya pasó: lo único que avisa. */
+.fijo-fila.pendiente .fijo-dia {
+  color: var(--rojo);
+}
+
+/* La cifra grande no lleva el símbolo pegado ni compite con el euro. */
+.protagonista {
+  letter-spacing: -0.02em;
+}
+
+/* La frase de "ingresos − gastos" necesita aire entre las palabras. */
+.cabecera-mes-cuenta > * {
+  margin-right: 4px;
+}
+
+.cabecera-mes-secundarias {
+  row-gap: var(--e2);
+}
+
+.cabecera-mes-saldo {
+  margin-left: 0;
+}
+
+@media (min-width: 940px) {
+  .cabecera-mes-saldo {
+    margin-left: auto;
+  }
+}
+
+
+/* El saldo se salía por la derecha en pantallas medias. */
+.cabecera-mes-secundarias {
+  max-width: 100%;
+}
+
+.cabecera-mes-saldo .campo-enlace {
+  min-width: 0;
+  width: auto;
+}
+
+/* La línea del mes tiene que verse: es el eje del dibujo. */
+.cinta-eje {
+  stroke: var(--tinta-3);
+  stroke-width: 1;
+  opacity: 0.6;
+}

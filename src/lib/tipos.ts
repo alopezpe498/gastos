@@ -553,6 +553,27 @@ export type ReglaNueva = {
   coincidencia: 'empieza' | 'exacta' | 'regex'
 }
 
+/** Los datos del dibujo que preside la pantalla del mes. */
+export type CintaMes = {
+  desde: string
+  hasta: string
+  dias: number
+  hoy: string | null
+  diaActual: number | null
+  /** true si el periodo sale de un extracto; false si es el mes del calendario. */
+  esDelExtracto: boolean
+  puntos: { dia: string; gasto: number; acumulado: number | null }[]
+  marcas: {
+    movimientoId: number
+    concepto: string
+    importe: number
+    dia: string
+    estado: 'cobrado' | 'pendiente' | 'pasado'
+  }[]
+  total: number
+  ingreso: number
+}
+
 // ---------- Analítica ----------
 
 export type Rango = { desde: string; hasta: string }
