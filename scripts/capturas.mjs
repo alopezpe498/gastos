@@ -16,7 +16,6 @@ const CARPETA = process.argv[3] ?? 'capturas'
 
 const PANTALLAS = [
   { id: 'mes', nombre: 'Mes' },
-  { id: 'analisis', nombre: 'Análisis' },
   { id: 'anual', nombre: 'Año' },
   { id: 'analitica', nombre: 'Analítica' },
   { id: 'conceptos', nombre: 'Conceptos' },
@@ -25,7 +24,7 @@ const PANTALLAS = [
 ]
 
 const TAMANOS = [
-  { nombre: 'escritorio', width: 1280, height: 900 },
+  { nombre: 'escritorio', width: 1120, height: 900 },
   { nombre: 'movil', width: 390, height: 844 },
 ]
 

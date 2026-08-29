@@ -4,6 +4,12 @@ import { ahora } from '../lib/fechas.js'
 export const TIPOS = ['fijo', 'variable', 'sobre']
 export const CLASIFICACIONES = ['necesario', 'prescindible', 'ahorro']
 
+/*
+ * Los colores que se pueden elegir a mano. Son los mismos que reparte sola la
+ * aplicacion: aqui no se inventan tintas nuevas, solo se cambia cual toca.
+ */
+export const COLORES = ['lavanda', 'ambar', 'verde', 'gris', 'coral', 'azul']
+
 function aConcepto(c) {
   return {
     id: c.id,
@@ -13,6 +19,8 @@ function aConcepto(c) {
     activo: !!c.activo,
     orden: c.orden,
     esObjetivo: !!c.es_objetivo,
+    // null = el que le toque por su id. Solo se guarda si se cambia a mano.
+    color: c.color ?? null,
   }
 }
 
@@ -108,7 +116,8 @@ export function actualizar(id, cambios) {
        tipo = @tipo,
        clasificacion = @clasificacion,
        activo = @activo,
-       es_objetivo = @esObjetivo
+       es_objetivo = @esObjetivo,
+       color = @color
      WHERE id = @id`,
   ).run({
     id,
@@ -118,6 +127,7 @@ export function actualizar(id, cambios) {
     clasificacion: cambios.clasificacion ?? actual.clasificacion,
     activo: (cambios.activo ?? actual.activo) ? 1 : 0,
     esObjetivo: (cambios.esObjetivo ?? actual.esObjetivo) ? 1 : 0,
+    color: cambios.color === undefined ? actual.color : cambios.color || null,
   })
   return obtener(id)
 }

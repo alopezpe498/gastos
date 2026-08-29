@@ -1,149 +1,95 @@
 /*
- * LA LIBRETA — la única fuente de verdad del diseño.
+ * BENTO CLARO — la única fuente de verdad del diseño.
  *
- * Esta aplicación sustituye una hoja de cuentas llevada a mano durante años, y
- * su materia prima es el extracto del banco. De ahí sale todo lo de aquí abajo:
- * papel ligeramente cálido, tinta oscura, importes impresos en una máquina de
- * escribir perfectamente alineados, y un sello de tinta azul para lo que
- * importa.
+ * Los valores están copiados literalmente de referencia-mes.html, que es la
+ * especificación aprobada. Si algo aquí no coincide con ese archivo, manda el
+ * archivo.
  *
- * Tres reglas que no se rompen:
+ * Cuatro reglas que no se rompen:
  *
- *   1. NO HAY SOMBRAS. Las superficies se distinguen por el color del papel y
- *      por líneas de 1 px. Una sombra convierte esto en un panel de control.
- *   2. EL ROJO SOLO CUANDO EL DINERO NO CUADRA. Si en una pantalla hay algo
- *      rojo, es que hay que actuar. Nunca decora.
- *   3. TODA CIFRA Y TODA FECHA VAN EN MONOESPACIADA TABULAR. Es la firma de la
- *      casa —el extracto impreso— y además deja las columnas al milímetro.
+ *   1. NO HAY SOMBRAS. La profundidad la dan los bloques de color sobre el
+ *      fondo cálido, no las sombras.
+ *   2. CADA CATEGORÍA TIENE SU COLOR, y se repite en todas partes: en el
+ *      bloque, en la etiqueta del apunte, en los gráficos. Se reconoce Comida
+ *      por el coral antes de leer la palabra.
+ *   3. UN SOLO BOTÓN NEGRO por pantalla. El resto son chips blancos.
+ *   4. LA APP TE HABLA: cada bloque lleva una frase corta, en segunda persona,
+ *      con datos. Sin exclamaciones, sin emojis, sin mayúsculas.
  */
 
-/* ---------- fuentes ---------- */
-
-/* Fraunces: solo para el nombre del mes, la cifra protagonista y los títulos. */
+/* Inter Tight variable: 500, 600 y 800 salen del mismo archivo. */
 @font-face {
-  font-family: 'Fraunces';
-  src: url('/fonts/fraunces-latin.woff2') format('woff2');
-  font-weight: 300 700;
-  font-display: swap;
-  font-style: normal;
-}
-
-/* Instrument Sans: todo el texto de la interfaz. */
-@font-face {
-  font-family: 'Instrument Sans';
-  src: url('/fonts/instrument-sans.woff2') format('woff2');
-  font-weight: 400 700;
-  font-display: swap;
-  font-style: normal;
-}
-
-/* IBM Plex Mono: importes y fechas, sin excepción. */
-@font-face {
-  font-family: 'Plex Mono';
-  src: url('/fonts/plex-mono-400.woff2') format('woff2');
-  font-weight: 400;
-  font-display: swap;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'Plex Mono';
-  src: url('/fonts/plex-mono-500.woff2') format('woff2');
-  font-weight: 500;
+  font-family: 'Inter Tight';
+  src: url('/fonts/inter-tight.woff2') format('woff2');
+  font-weight: 100 900;
   font-display: swap;
   font-style: normal;
 }
 
 :root {
-  /* ---------- color ---------- */
-  --papel: #f5f3ee;
-  --papel-2: #fcfbf8;
-  --linea: #ddd9cf;
-  --tinta: #1c1c1a;
-  --tinta-2: #6b6860;
-  --tinta-3: #a6a299;
-  --sello: #23479a;
-  --sello-suave: #e4eaf7;
-  --rojo: #b8321a;
-  --verde: #2e6b3a;
+  /* ---------- superficies ---------- */
+  --fondo: #f4f3ef;
+  --blanco: #fff;
+  --tinta: #141414;
+  --tinta-2: #7a7a76;
+  --linea: #efeee9;
+  --hueco: #e3e2dc;
 
-  /* Derivados. No se inventan colores nuevos: se mezclan estos. */
-  --sello-linea: color-mix(in srgb, var(--sello) 30%, var(--linea));
-  --sello-area: color-mix(in srgb, var(--sello) 12%, transparent);
-  --rojo-suave: color-mix(in srgb, var(--rojo) 12%, var(--papel));
-  --verde-suave: color-mix(in srgb, var(--verde) 12%, var(--papel));
+  /* ---------- colores de categoría ---------- */
+  --lima: #dcf56a;
+  --lima-tinta: #1f2a05;
+
+  --coral: #ff6b4a;
+  --coral-suave: #ffd9cf;
+  --coral-tinta: #4a1b0c;
+  --coral-texto: #8a3a22;
+
+  --lavanda: #6c5ce7;
+  --lavanda-suave: #c9c3ff;
+  --lavanda-chip: #eeebff;
+  --lavanda-texto: #4b3bc4;
+
+  --azul-suave: #d7e8ff;
+  --azul-tinta: #0c2c6e;
+  --azul-texto: #1f4c99;
+
+  --verde: #2fbf71;
+  --verde-suave: #dff5e7;
+  --verde-texto: #1e6b3a;
+
+  --ambar: #f5a623;
+  --ambar-suave: #fff1d6;
+  --ambar-texto: #8a5a00;
+
+  /* El gris de los conceptos sin color propio. */
+  --gris: #999;
+  --gris-suave: #f1f1f1;
+  --gris-texto: #444;
 
   /* ---------- tipografía ---------- */
-  --display: 'Fraunces', Georgia, 'Iowan Old Style', serif;
-  --fuente: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --mono: 'Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --fuente: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  --t-meta: 0.75rem; /* 12 · metadatos */
-  --t-secundario: 0.8125rem; /* 13 · secundario */
-  --t-base: 0.9375rem; /* 15 · base */
-  --t-destacado: 1.0625rem; /* 17 · destacado */
-  --t-seccion: 1.375rem; /* 22 · título de sección */
-  --t-pantalla: 2.125rem; /* 34 · título de pantalla */
-  --t-cifra: 3.5rem; /* 56 · la cifra protagonista */
-
-  /* ---------- espacio ---------- */
-  --e1: 4px;
-  --e2: 8px;
-  --e3: 12px;
-  --e4: 16px;
-  --e5: 24px;
-  --e6: 32px;
-  --e7: 48px;
-  --e8: 64px;
-
-  --ancho: 1180px;
-  --margen: var(--e5);
+  --t11: 11px;
+  --t12: 12px;
+  --t14: 14px;
+  --t16: 16px;
+  --t26: 26px;
+  --t58: 58px;
 
   /* ---------- formas ---------- */
-  --radio: 6px;
-  --radio-panel: 10px;
-  --borde: 1px solid var(--linea);
+  --radio: 18px;
+  --radio-chico: 12px;
+  --radio-pastilla: 999px;
+
+  --ancho: 1120px;
 
   /* ---------- movimiento ---------- */
   --rapido: 160ms;
-  --entrada: 240ms;
   --curva: cubic-bezier(0.2, 0, 0.2, 1);
-}
-
-/*
- * Modo oscuro: los MISMOS tokens con otros valores. Ni un color suelto fuera de
- * aquí, para que la app entera cambie de piel sin tocar una sola pantalla.
- */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-tema='claro']) {
-    --papel: #171716;
-    --papel-2: #1f1f1d;
-    --linea: #34332f;
-    --tinta: #eceae3;
-    --tinta-2: #9d9a91;
-    --tinta-3: #706d66;
-    --sello: #8fa9e8;
-    --sello-suave: #24304a;
-    --rojo: #e4785f;
-    --verde: #7fbb8c;
-  }
-}
-
-:root[data-tema='oscuro'] {
-  --papel: #171716;
-  --papel-2: #1f1f1d;
-  --linea: #34332f;
-  --tinta: #eceae3;
-  --tinta-2: #9d9a91;
-  --tinta-3: #706d66;
-  --sello: #8fa9e8;
-  --sello-suave: #24304a;
-  --rojo: #e4785f;
-  --verde: #7fbb8c;
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
     --rapido: 0ms;
-    --entrada: 0ms;
   }
 }

@@ -1,134 +1,78 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api, ErrorApi, mensajeDeError } from '../../lib/api'
-import type {
-  Concepto,
-  LecturaCaptura,
-  CintaMes,
-  MesCompleto,
-  MesPorAbrir,
-  Movimiento,
-} from '../../lib/tipos'
-import { Cabecera, Confirmar, ErrorLinea, EstadoVacio } from '../../components/Basicos'
-import { EsqueletoLista, EsqueletoResumen } from '../../components/Esqueleto'
+import type { Concepto, MesCompleto, MesPorAbrir, Movimiento, PanelMes } from '../../lib/tipos'
+import { Confirmar } from '../../components/Basicos'
 import { useAvisos } from '../../components/Avisos'
-import { useEsEscritorio } from '../../lib/tamano'
-import {
-  IconoAjustes,
-  IconoCamara,
-  IconoDocumento,
-  IconoMas,
-  IconoPortapapeles,
-} from '../../components/Iconos'
-import { Sheet } from '../../components/Sheet'
-import { cuantos, euros, hoyIso, NOMBRES_MESES } from '../../lib/formato'
-import { ResumenMes } from './ResumenMes'
-import { CintaDelMes } from './CintaDelMes'
-import { BarraComida } from './BarraComida'
-import { TablaFijos } from './TablaFijos'
-import { ListaVariables } from './ListaVariables'
-import { AltaRapida } from './AltaRapida'
-import { NavegacionMes, type Limites } from './NavegacionMes'
+import { cuantos, hoyIso, NOMBRES_MESES } from '../../lib/formato'
+import { BloquePrincipal, BloqueFijos, BloqueComida, BloqueExtras, BloqueAhorro } from './Bloques'
+import { ListaMovimientos, ListaFijos } from './Listas'
+import { Analisis } from './Analisis'
 import { MenuMes } from './MenuMes'
-import { RevisionCaptura } from './RevisionCaptura'
-import { SheetPegar } from '../../components/SheetPegar'
-import { comprimirImagen } from '../../lib/imagen'
+import { Acciones } from '../../components/Navegacion'
+import { IconoCandado } from '../../components/Iconos'
+
+/**
+ * La pantalla Mes.
+ *
+ * Arriba, cinco bloques que responden a «¿cómo voy?» sin leer una sola tabla:
+ * lo que queda, los fijos, la comida, los extras y el ahorro. Abajo, las dos
+ * listas con las que se trabaja. El análisis del mes vive aquí dentro, como una
+ * sección desplegable: era una pantalla entera para algo que se mira de vez en
+ * cuando.
+ */
 
 type Props = {
   mesElegido: { anio: number; mes: number } | null
   onCambioDeMes: (mes: { anio: number; mes: number } | null) => void
-  onVerAnalisis: () => void
-  /** Lleva a Ajustes con el importador de extracto abierto en este mes. */
   onImportarExtracto: (mesId: number) => void
+  onBloquear: () => void
 }
 
-type Pestana = 'fijos' | 'variables' | 'resumen'
-
-export function PantallaMes({ mesElegido, onCambioDeMes, onVerAnalisis, onImportarExtracto }: Props) {
+export function PantallaMes({
+  mesElegido,
+  onCambioDeMes,
+  onImportarExtracto,
+  onBloquear,
+}: Props) {
   const { avisar, avisarError } = useAvisos()
-  const escritorio = useEsEscritorio()
   const [mes, setMes] = useState<MesCompleto | null>(null)
+  const [panel, setPanel] = useState<PanelMes | null>(null)
   const [conceptos, setConceptos] = useState<Concepto[]>([])
-  const [cargando, setCargando] = useState(true)
+  const [porAbrir, setPorAbrir] = useState<(MesPorAbrir & { anio: number; mes: number }) | null>(null)
   const [error, setError] = useState('')
-  const [pestana, setPestana] = useState<Pestana>('fijos')
-  const [altaAbierta, setAltaAbierta] = useState(false)
-  const [aBorrar, setABorrar] = useState<Movimiento | null>(null)
-  const [limites, setLimites] = useState<Limites | null>(null)
-  // El dibujo del mes: se pide aparte porque es lo único que recorre día a día.
-  const [cinta, setCinta] = useState<CintaMes | null>(null)
-  // El mes al que se ha navegado y que todavía no existe: navegar no crea nada.
-  const [porAbrir, setPorAbrir] = useState<(MesPorAbrir & { anio: number; mes: number }) | null>(
-    null,
-  )
   const [abriendo, setAbriendo] = useState(false)
   const [menuAbierto, setMenuAbierto] = useState(false)
-  // Captura por foto o portapapeles: la lectura de la IA, pendiente de revisar.
-  const [pegarAbierto, setPegarAbierto] = useState(false)
-  const [leyendo, setLeyendo] = useState(false)
-  const [captura, setCaptura] = useState<LecturaCaptura | null>(null)
-  const [origenCaptura, setOrigenCaptura] = useState<'foto' | 'portapapeles'>('portapapeles')
-  const camara = useRef<HTMLInputElement>(null)
-  const selectorPdf = useRef<HTMLInputElement>(null)
-  // Comparaciones con el año pasado y con la media. Se cargan aparte porque
-  // recorren el histórico entero y no deben retrasar la pantalla del mes.
-  // Evita que una respuesta lenta de un mes anterior pise a la del mes actual.
-  const peticion = useRef(0)
+  const [aBorrar, setABorrar] = useState<Movimiento | null>(null)
+  // Sube cada vez que se pulsa «Apuntar»: la lista lo mira para poner el foco
+  // en su línea. Un número y no un booleano, porque hay que poder pulsarlo dos
+  // veces seguidas.
+  const [pedirApunte, setPedirApunte] = useState(0)
 
   const cargar = useCallback(async () => {
-    const mia = ++peticion.current
-    setCargando(true)
     setError('')
     try {
-      /*
-       * Navegar NO crea nada: se pide el mes y, si no existe, la pantalla lo
-       * dice y ofrece abrirlo. Crear un mes es siempre un acto explicito.
-       */
-      const [catalogo, topes] = await Promise.all([
-        api<Concepto[]>('/conceptos?activos=1'),
-        api<Limites>('/meses/limites'),
-      ])
-      if (mia !== peticion.current) return
+      const catalogo = await api<Concepto[]>('/conceptos?activos=1')
       setConceptos(catalogo)
-      setLimites(topes)
 
-      if (!mesElegido) {
-        // Sin mes pedido, el que toca: el de hoy si existe, y si no el ultimo.
-        const datos = await api<MesCompleto | null>('/meses/actual')
-        if (mia !== peticion.current) return
-        setMes(datos)
-        setPorAbrir(null)
-        if (datos) {
-          void api<CintaMes>(`/meses/${datos.id}/cinta`)
-            .then((c) => mia === peticion.current && setCinta(c))
-            .catch(() => setCinta(null))
-        }
-        return
-      }
+      // Navegar no crea nada: si el mes no existe, se ofrece abrirlo.
+      const datos = mesElegido
+        ? await api<MesCompleto>(`/meses/${mesElegido.anio}/${mesElegido.mes}`).catch(async (causa) => {
+            if (!(causa instanceof ErrorApi) || causa.estado !== 404) throw causa
+            const info = await api<MesPorAbrir>(
+              `/meses/por-abrir/${mesElegido.anio}/${mesElegido.mes}`,
+            )
+            setPorAbrir({ ...info, anio: mesElegido.anio, mes: mesElegido.mes })
+            return null
+          })
+        : await api<MesCompleto | null>('/meses/actual')
 
-      try {
-        const datos = await api<MesCompleto>(`/meses/${mesElegido.anio}/${mesElegido.mes}`)
-        if (mia !== peticion.current) return
-        setMes(datos)
+      setMes(datos)
+      if (datos) {
         setPorAbrir(null)
-        void api<CintaMes>(`/meses/${datos.id}/cinta`)
-          .then((c) => mia === peticion.current && setCinta(c))
-          .catch(() => setCinta(null))
-      } catch (causa) {
-        if (mia !== peticion.current) return
-        // Un 404 aqui no es un error: es un mes al que todavia no se ha entrado.
-        if (!(causa instanceof ErrorApi) || causa.estado !== 404) throw causa
-        const info = await api<MesPorAbrir>(
-          `/meses/por-abrir/${mesElegido.anio}/${mesElegido.mes}`,
-        )
-        if (mia !== peticion.current) return
-        setMes(null)
-        setPorAbrir({ ...info, anio: mesElegido.anio, mes: mesElegido.mes })
+        setPanel(await api<PanelMes>(`/meses/${datos.id}/panel`))
       }
     } catch (causa) {
-      if (mia !== peticion.current) return
       setError(mensajeDeError(causa))
-    } finally {
-      if (mia === peticion.current) setCargando(false)
     }
   }, [mesElegido])
 
@@ -136,144 +80,72 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onVerAnalisis, onImport
     void cargar()
   }, [cargar])
 
-  /** Recarga solo el mes: tras cada apunte, el catalogo no ha cambiado. */
-  const recargarMes = useCallback(async () => {
+  const recargar = useCallback(async () => {
     if (!mes) return
-    try {
-      setMes(await api<MesCompleto>(`/meses/${mes.anio}/${mes.mes}`))
-    } catch (causa) {
-      avisarError(mensajeDeError(causa))
-    }
-  }, [mes, avisarError])
-
-  const conceptosVariables = useMemo(
-    () => conceptos.filter((c) => c.tipo === 'variable' || c.tipo === 'sobre'),
-    [conceptos],
-  )
-
-  // ---------- acciones ----------
+    const datos = await api<MesCompleto>(`/meses/${mes.anio}/${mes.mes}`)
+    setMes(datos)
+    setPanel(await api<PanelMes>(`/meses/${datos.id}/panel`))
+  }, [mes])
 
   const cambiarMes = async (cambios: Record<string, unknown>) => {
     if (!mes) return
     try {
       setMes(await api<MesCompleto>(`/meses/${mes.id}`, { metodo: 'PATCH', cuerpo: cambios }))
+      setPanel(await api<PanelMes>(`/meses/${mes.id}/panel`))
     } catch (causa) {
       avisarError(mensajeDeError(causa))
-      await recargarMes()
     }
   }
 
   const cambiarMovimiento = async (id: number, cambios: Record<string, unknown>) => {
     try {
       await api(`/movimientos/${id}`, { metodo: 'PATCH', cuerpo: cambios })
-      await recargarMes()
-    } catch (causa) {
-      avisarError(mensajeDeError(causa))
-      await recargarMes()
-    }
-  }
-
-  const alternarCobro = async (movimiento: Movimiento) => {
-    try {
-      if (movimiento.cobrado) {
-        await api(`/movimientos/${movimiento.id}/cobro`, { metodo: 'DELETE' })
-      } else {
-        await api(`/movimientos/${movimiento.id}/cobro`, { metodo: 'POST', cuerpo: {} })
-      }
-      await recargarMes()
+      await recargar()
     } catch (causa) {
       avisarError(mensajeDeError(causa))
     }
   }
 
-  const apuntar = async (datos: {
-    conceptoId: number
-    importe: number
-    fechaCobro: string
-    descripcion: string
-  }) => {
+  const alternarCobro = async (movimientoId: number) => {
+    const fijo = panel?.fijos.find((f) => f.movimientoId === movimientoId)
+    if (!fijo) return
+    await cambiarMovimiento(movimientoId, { fechaCobro: fijo.cobrado ? null : hoyIso() })
+  }
+
+  const apuntar = async (datos: { conceptoId: number; importe: number; descripcion: string }) => {
     if (!mes) return
     try {
-      await api('/movimientos', { metodo: 'POST', cuerpo: { mesId: mes.id, ...datos } })
-      await recargarMes()
-    } catch (causa) {
-      avisarError(mensajeDeError(causa))
-    }
-  }
-
-  /**
-   * Manda a la IA lo que se haya pegado o fotografiado. Lo que vuelve NO se
-   * guarda: se abre la pantalla de revision.
-   */
-  const leerCaptura = async (
-    cuerpo: Record<string, unknown>,
-    origen: 'foto' | 'portapapeles',
-  ) => {
-    if (!mes) return
-    setPegarAbierto(false)
-    setLeyendo(true)
-    setOrigenCaptura(origen)
-    try {
-      setCaptura(
-        await api<LecturaCaptura>('/importar/captura', {
-          metodo: 'POST',
-          cuerpo: { mesId: mes.id, ...cuerpo },
-        }),
-      )
-    } catch (causa) {
-      avisarError(mensajeDeError(causa))
-    } finally {
-      setLeyendo(false)
-    }
-  }
-
-  /**
-   * Una factura en PDF (la del comedor, la de la luz). El servidor le saca el
-   * texto y la manda a la IA como texto: sale mas exacto que fotografiarla.
-   */
-  const leerPdf = async (archivo: File) => {
-    setLeyendo(true)
-    try {
-      const base64 = await new Promise<string>((resolver, rechazar) => {
-        const lector = new FileReader()
-        lector.onload = () => resolver(String(lector.result).split(',')[1] ?? '')
-        lector.onerror = () => rechazar(new Error('No se ha podido leer el PDF.'))
-        lector.readAsDataURL(archivo)
+      await api('/movimientos', {
+        metodo: 'POST',
+        cuerpo: { mesId: mes.id, ...datos, fechaCobro: hoyIso() },
       })
-      await leerCaptura({ pdf: base64, pista: `El archivo se llama "${archivo.name}".` }, 'foto')
+      await recargar()
     } catch (causa) {
       avisarError(mensajeDeError(causa))
-      setLeyendo(false)
     }
   }
 
-  const leerImagen = async (imagen: Blob, origen: 'foto' | 'portapapeles') => {
-    setLeyendo(true)
+  const borrar = async () => {
+    if (!aBorrar) return
+    const cual = aBorrar
+    setABorrar(null)
     try {
-      // Se comprime en el navegador: una foto de movil son varios MB y lo que
-      // necesita el modelo cabe de sobra en 1500 px.
-      const { base64, tipo } = await comprimirImagen(imagen)
-      await leerCaptura({ imagen: base64, tipoImagen: tipo }, origen)
+      await api(`/movimientos/${cual.id}`, { metodo: 'DELETE' })
+      avisar(`"${cual.concepto}" borrado`)
+      await recargar()
     } catch (causa) {
       avisarError(mensajeDeError(causa))
-      setLeyendo(false)
     }
   }
 
-  /** Abre el mes al que se ha navegado, con los que queden por medio. */
-  const abrirEsteMes = async (anio: number, numeroMes: number) => {
+  const abrir = async (anio: number, numeroMes: number) => {
     setAbriendo(true)
     try {
       const nuevo = await api<MesCompleto>('/meses/asegurar', {
         metodo: 'POST',
         cuerpo: { anio, mes: numeroMes },
       })
-      const creados = nuevo.creados ?? []
-      avisar(
-        creados.length > 0
-          ? `${nuevo.nombreMes} abierto, y también ${creados.map((c) => c.nombre).join(', ')}.`
-          : `${nuevo.nombreMes} de ${nuevo.anio} abierto con ${cuantos(nuevo.fijos.length, 'fijo')}.`,
-      )
+      avisar(`${nuevo.nombreMes} abierto con ${cuantos(nuevo.fijos.length, 'fijo')}`)
       onCambioDeMes({ anio: nuevo.anio, mes: nuevo.mes })
     } catch (causa) {
       avisarError(mensajeDeError(causa))
@@ -282,456 +154,131 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onVerAnalisis, onImport
     }
   }
 
-  /**
-   * Atajo de la cabecera: abre el mes que va detras del que se esta viendo.
-   *
-   * Va por su propia ruta y no por "asegurar" a proposito: asegurar es
-   * idempotente y se callaria si el mes ya existiera. Aqui interesa lo
-   * contrario, que avise, porque el boton solo se pulsa para crear algo.
-   */
-  const abrirSiguiente = async () => {
+  const irA = (delta: number) => {
     if (!mes) return
-    setAbriendo(true)
-    try {
-      const nuevo = await api<MesCompleto>(`/meses/${mes.id}/siguiente`, { metodo: 'POST' })
-      avisar(
-        `${nuevo.nombreMes} de ${nuevo.anio} abierto con ${cuantos(nuevo.fijos.length, 'fijo')} y ` +
-          `${euros(nuevo.ingreso)} de ingreso.`,
-      )
-      onCambioDeMes({ anio: nuevo.anio, mes: nuevo.mes })
-    } catch (causa) {
-      avisarError(mensajeDeError(causa))
-    } finally {
-      setAbriendo(false)
-    }
+    const n = mes.anio * 12 + (mes.mes - 1) + delta
+    onCambioDeMes({ anio: Math.floor(n / 12), mes: (n % 12) + 1 })
   }
 
-  const borrar = async () => {
-    if (!aBorrar) return
-    const movimiento = aBorrar
-    setABorrar(null)
-    try {
-      await api(`/movimientos/${movimiento.id}`, { metodo: 'DELETE' })
-      avisar(`"${movimiento.concepto}" borrado.`)
-      await recargarMes()
-    } catch (causa) {
-      avisarError(mensajeDeError(causa))
-    }
-  }
-
-  // ---------- estados de carga ----------
+  // ---- estados que no son el mes ----
 
   if (error) {
     return (
-      <>
-        <Cabecera titulo="Mes" />
-        <div className="limite">
-          <ErrorLinea mensaje={error} onReintentar={() => void cargar()} />
-        </div>
-      </>
+      <div className="vacio">
+        <p>{error}</p>
+        <button className="boton-texto" onClick={() => void cargar()}>
+          Reintentar
+        </button>
+      </div>
     )
   }
 
-  if (cargando && !mes) {
-    return (
-      <>
-        <Cabecera titulo="Mes" />
-        <div className="limite">
-          <EsqueletoResumen />
-          <EsqueletoLista filas={8} />
-        </div>
-      </>
-    )
-  }
-
-  // Un mes al que se ha navegado y que todavía no se ha abierto. Se puede
-  // mirar, pero no hay nada que mirar: lo que hay es un botón para abrirlo.
   if (porAbrir) {
     const nombre = NOMBRES_MESES[porAbrir.mes - 1]
     return (
-      <>
-        <Cabecera
-          titulo={`${nombre} ${porAbrir.anio}`}
-          subtitulo="Sin abrir"
-          debajo={
-            <NavegacionMes
-              anio={porAbrir.anio}
-              mes={porAbrir.mes}
-              limites={limites}
-              onIr={(anio, numeroMes) => onCambioDeMes({ anio, mes: numeroMes })}
-            />
-          }
-          anchaEnEscritorio
-        />
-
-        <div className="limite">
-          <EstadoVacio
-            icono="€"
-            titulo={`${nombre} todavía no está abierto`}
-            texto={
-              porAbrir.intermedios.length > 0
-                ? `Al abrirlo se crearán también ${porAbrir.intermedios
-                    .map((m) => m.nombre.toLowerCase())
-                    .join(', ')}: esos meses pasaron y sus recibos se cobraron.`
-                : 'Al abrirlo se generan todos los gastos fijos activos, pendientes de cobro, con su importe previsto.'
-            }
-            accion={
-              <button
-                className="boton boton-principal"
-                disabled={abriendo}
-                onClick={() => void abrirEsteMes(porAbrir.anio, porAbrir.mes)}
-              >
-                {abriendo ? 'Abriendo…' : 'Abrir este mes'}
-              </button>
-            }
-          />
-        </div>
-      </>
-    )
-  }
-
-  if (!mes) {
-    return (
-      <>
-        <Cabecera titulo="Mes" />
-        <div className="limite">
-          <EstadoVacio
-            icono="€"
-            titulo="Todavía no hay ningún mes"
-            texto="Abre el mes en curso y se generarán solos todos los gastos fijos, pendientes de cobro."
-            accion={
-              <button
-                className="boton boton-principal"
-                disabled={abriendo}
-                onClick={() => {
-                  const ahora = new Date()
-                  void abrirEsteMes(ahora.getFullYear(), ahora.getMonth() + 1)
-                }}
-              >
-                {abriendo ? 'Abriendo…' : `Abrir ${NOMBRES_MESES[new Date().getMonth()].toLowerCase()}`}
-              </button>
-            }
-          />
-        </div>
-      </>
-    )
-  }
-
-  // ---------- navegacion entre meses ----------
-
-  const navegacion = (
-    <NavegacionMes
-      anio={mes.anio}
-      mes={mes.mes}
-      limites={limites}
-      onIr={(anio, numeroMes) => onCambioDeMes({ anio, mes: numeroMes })}
-    />
-  )
-
-  // El atajo solo tiene sentido si el mes siguiente no existe todavía.
-  const mesSiguiente =
-    mes.mes === 12 ? { anio: mes.anio + 1, mes: 1 } : { anio: mes.anio, mes: mes.mes + 1 }
-  const siguienteExiste = limites
-    ? mesSiguiente.anio * 12 + mesSiguiente.mes - 1 <=
-      limites.ultimo!.anio * 12 + limites.ultimo!.mes - 1
-    : false
-
-  const acciones = (
-    <div className="cabecera-acciones">
-      {escritorio ? (
-        <button className="boton boton-secundario boton-compacto" onClick={onVerAnalisis}>
-          Análisis
-        </button>
-      ) : null}
-      <button
-        className="boton boton-secundario boton-compacto"
-        onClick={() => onImportarExtracto(mes.id)}
-      >
-        Importar extracto
-      </button>
-      {!siguienteExiste ? (
+      <div className="bloque vacio">
+        <p style={{ fontWeight: 600 }}>
+          {nombre} de {porAbrir.anio} todavía no está abierto
+        </p>
+        <p className="t12">
+          {porAbrir.intermedios.length > 0
+            ? `Al abrirlo se crearán también ${porAbrir.intermedios.map((m) => m.nombre.toLowerCase()).join(', ')}.`
+            : 'Al abrirlo se generan los fijos activos, pendientes de cobro.'}
+        </p>
         <button
-          className="boton boton-secundario boton-compacto"
+          className="boton boton-negro"
+          style={{ marginTop: 12 }}
           disabled={abriendo}
-          onClick={() => void abrirSiguiente()}
+          onClick={() => void abrir(porAbrir.anio, porAbrir.mes)}
         >
-          {abriendo ? 'Abriendo…' : 'Abrir mes siguiente'}
+          {abriendo ? 'Abriendo…' : 'Abrir este mes'}
         </button>
-      ) : null}
-      <button
-        className="icono-boton"
-        aria-label="Más acciones de este mes"
-        onClick={() => setMenuAbierto(true)}
-      >
-        <IconoAjustes size={20} />
-      </button>
-    </div>
-  )
-
-  // El alta propone el ultimo dia del mes que se ve: apuntando en un mes pasado,
-  // la fecha de hoy caeria fuera de ese mes.
-  const hoy = hoyIso()
-  const dentroDelMes = hoy.startsWith(mes.clave)
-  const fechaPorDefecto = dentroDelMes
-    ? hoy
-    : `${mes.clave}-${String(new Date(mes.anio, mes.mes, 0).getDate()).padStart(2, '0')}`
-
-  /**
-   * Las dos entradas que no son teclear: una foto y el portapapeles. Van
-   * pegadas al alta rapida porque son la misma accion —apuntar un gasto— por
-   * otro camino.
-   */
-  const botonesCaptura = (
-    <div className="captura-acciones">
-      <button
-        className="boton boton-secundario boton-compacto"
-        disabled={leyendo}
-        onClick={() => camara.current?.click()}
-      >
-        <IconoCamara size={18} />
-        {leyendo ? 'Leyendo…' : 'Foto de un ticket'}
-      </button>
-      <button
-        className="boton boton-secundario boton-compacto"
-        disabled={leyendo}
-        onClick={() => selectorPdf.current?.click()}
-      >
-        <IconoDocumento size={18} />
-        Factura en PDF
-      </button>
-      <button
-        className="boton boton-secundario boton-compacto"
-        disabled={leyendo}
-        onClick={() => setPegarAbierto(true)}
-      >
-        <IconoPortapapeles size={18} />
-        Pegar
-      </button>
-      <input
-        ref={camara}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="solo-lectores"
-        onChange={(e) => {
-          const archivo = e.target.files?.[0]
-          if (archivo) void leerImagen(archivo, 'foto')
-          e.target.value = ''
-        }}
-      />
-      <input
-        ref={selectorPdf}
-        type="file"
-        accept="application/pdf,.pdf"
-        className="solo-lectores"
-        onChange={(e) => {
-          const archivo = e.target.files?.[0]
-          if (archivo) void leerPdf(archivo)
-          e.target.value = ''
-        }}
-      />
-    </div>
-  )
-
-  const paneles = {
-    fijos: (
-      <TablaFijos
-        onRegenerar={() => setMenuAbierto(true)}
-        fijos={mes.fijos}
-        onCambiarImporte={(id, importe) => cambiarMovimiento(id, { importe })}
-        onAlternarCobro={alternarCobro}
-        onCambiarFecha={(id, fechaCobro) => cambiarMovimiento(id, { fechaCobro })}
-        mesReferencia={mes.clave}
-      />
-    ),
-    variables: (
-      <>
-        {escritorio ? (
-          <>
-            <AltaRapida
-              conceptos={conceptosVariables}
-              onApuntar={apuntar}
-              fechaPorDefecto={fechaPorDefecto}
-            />
-            {botonesCaptura}
-          </>
-        ) : null}
-        <ListaVariables
-          variables={mes.variables}
-          conceptos={conceptosVariables}
-          onCambiar={cambiarMovimiento}
-          onBorrar={setABorrar}
-          mesReferencia={mes.clave}
-          onImportar={() => onImportarExtracto(mes.id)}
-        />
-      </>
-    ),
+      </div>
+    )
   }
+
+  if (!mes || !panel) {
+    return <div className="cargando">Un momento…</div>
+  }
+
+  const variables = mes.variables
+  const conceptosVariables = conceptos.filter((c) => c.tipo !== 'fijo' || c.esObjetivo === false)
 
   return (
     <>
-      <Cabecera
-        titulo={`${mes.nombreMes} ${mes.anio}`}
-        subtitulo={
-          (mes.estado === 'cerrado' ? 'Cerrado · ' : '') +
-          (mes.resumen.fijosPendientes.cuantos > 0
-            ? `${cuantos(mes.resumen.fijosPendientes.cuantos, 'fijo')} sin cobrar`
-            : 'todos los fijos cobrados')
-        }
-        acciones={acciones}
-        debajo={navegacion}
-        anchaEnEscritorio
-      />
+      <Acciones>
+        <button className="boton" onClick={() => onImportarExtracto(mes.id)}>
+          Importar extracto
+        </button>
+        <button className="boton boton-negro" onClick={() => setPedirApunte((n) => n + 1)}>
+          + Apuntar
+        </button>
+        <button
+          className="boton-icono"
+          aria-label="Más cosas de este mes"
+          onClick={() => setMenuAbierto(true)}
+        >
+          ···
+        </button>
+        <button className="boton-icono" aria-label="Bloquear la aplicación" onClick={onBloquear}>
+          <IconoCandado size={18} />
+        </button>
+      </Acciones>
 
-      <div className="limite limite-ancho">
-        {cinta ? <CintaDelMes cinta={cinta} /> : null}
-
-        <ResumenMes mes={mes} onCambiar={cambiarMes} onVerDetalle={onVerAnalisis} />
-        <BarraComida
-          resumen={mes.resumen}
-          onCambiarPresupuesto={(valor) => cambiarMes({ presupuestoComida: valor ?? 0 })}
+      <div className="rejilla-arriba">
+        <BloquePrincipal
+          mes={mes}
+          panel={panel}
+          onMesAnterior={() => irA(-1)}
+          onMesSiguiente={() => irA(1)}
+          onCambiarSaldo={(valor) => cambiarMes({ dineroEnCuenta: valor })}
         />
-
-        {escritorio ? (
-          <div className="mes-columnas">
-            {/*
-              Los movimientos mandan y ocupan el ancho; los fijos son una lista
-              de comprobación en una columna estrecha a la derecha. Al revés, lo
-              primero que se leía era una tabla que casi nunca se toca.
-            */}
-            <div className="mes-columna">{paneles.variables}</div>
-            <div className="mes-columna">{paneles.fijos}</div>
-          </div>
-        ) : (
-          <>
-            <div className="segmentado">
-              <button
-                className={pestana === 'fijos' ? 'activo' : ''}
-                onClick={() => setPestana('fijos')}
-              >
-                Fijos
-              </button>
-              <button
-                className={pestana === 'variables' ? 'activo' : ''}
-                onClick={() => setPestana('variables')}
-              >
-                Variables
-              </button>
-              <button
-                className={pestana === 'resumen' ? 'activo' : ''}
-                onClick={() => setPestana('resumen')}
-              >
-                Resumen
-              </button>
-            </div>
-
-            {pestana === 'fijos' ? paneles.fijos : null}
-            {pestana === 'variables' ? paneles.variables : null}
-            {pestana === 'resumen' ? <NotasMes mes={mes} onCambiar={cambiarMes} /> : null}
-          </>
-        )}
-
-        {escritorio ? <NotasMes mes={mes} onCambiar={cambiarMes} /> : null}
+        <BloqueFijos panel={panel} />
+        <BloqueComida mes={mes} />
+        <BloqueExtras panel={panel} />
+        <BloqueAhorro mes={mes} />
       </div>
 
-      {/* En movil el alta vive en un boton flotante, accesible desde cualquier
-          pestaña: apuntar un gasto no puede depender de en que pestaña estes. */}
-      {escritorio ? null : (
-        <button
-          className="flotante"
-          onClick={() => setAltaAbierta(true)}
-          aria-label="Apuntar un gasto"
-        >
-          <IconoMas size={26} />
-        </button>
-      )}
-
-      <Sheet abierta={altaAbierta} titulo="Apuntar gasto" onCerrar={() => setAltaAbierta(false)}>
-        <AltaRapida
+      <div className="rejilla-abajo">
+        <ListaMovimientos
+          variables={variables}
           conceptos={conceptosVariables}
-          fechaPorDefecto={fechaPorDefecto}
-          onApuntar={async (datos) => {
-            await apuntar(datos)
-            setAltaAbierta(false)
-          }}
+          mesReferencia={mes.clave}
+          onCambiar={cambiarMovimiento}
+          onBorrar={setABorrar}
+          onCrear={apuntar}
+          onImportar={() => onImportarExtracto(mes.id)}
+          pedirApunte={pedirApunte}
         />
-        {botonesCaptura}
-      </Sheet>
+        <ListaFijos
+          panel={panel}
+          onAlternarCobro={alternarCobro}
+          onCambiarImporte={(id, importe) => cambiarMovimiento(id, { importe })}
+        />
+      </div>
 
-      <SheetPegar
-        abierta={pegarAbierto}
-        onCerrar={() => setPegarAbierto(false)}
-        onImagen={(imagen) => void leerImagen(imagen, 'portapapeles')}
-        onTexto={(texto) => void leerCaptura({ texto }, 'portapapeles')}
-        onPdf={(archivo) => {
-          setPegarAbierto(false)
-          void leerPdf(archivo)
-        }}
-      />
-
-      <RevisionCaptura
-        lectura={captura}
-        conceptos={conceptos}
-        mesId={mes.id}
-        mesClave={mes.clave}
-        origen={origenCaptura}
-        onCerrar={() => setCaptura(null)}
-        onAplicarMes={cambiarMes}
-        onGuardado={(cuantosApuntes) => {
-          setCaptura(null)
-          setAltaAbierta(false)
-          avisar(`${cuantos(cuantosApuntes, 'apunte')} guardados.`)
-          void recargarMes()
-        }}
-      />
+      <Analisis mesId={mes.id} conceptos={conceptos} />
 
       <MenuMes
         mes={mes}
         abierto={menuAbierto}
         onCerrar={() => setMenuAbierto(false)}
-        onCambiado={recargarMes}
+        onCambiado={recargar}
         onCambiarEstado={async (estado) => {
           await cambiarMes({ estado })
-          avisar(estado === 'cerrado' ? 'Mes cerrado.' : 'Mes reabierto.')
+          avisar(estado === 'cerrado' ? 'Mes cerrado' : 'Mes reabierto')
         }}
       />
 
       <Confirmar
         abierto={!!aBorrar}
         titulo="¿Borrar el apunte?"
-        mensaje={`${aBorrar?.concepto ?? ''} · ${aBorrar?.importe ?? 0} €`}
+        mensaje={`Se va "${aBorrar?.concepto}" de ${mes.nombreMes.toLowerCase()}.`}
         textoConfirmar="Borrar"
         peligroso
         onConfirmar={() => void borrar()}
         onCancelar={() => setABorrar(null)}
       />
     </>
-  )
-}
-
-function NotasMes({
-  mes,
-  onCambiar,
-}: {
-  mes: MesCompleto
-  onCambiar: (cambios: Record<string, unknown>) => Promise<void>
-}) {
-  return (
-    <section className="bloque">
-      <label className="seccion-titulo" htmlFor="notas-mes">
-        Notas
-      </label>
-      <textarea
-        id="notas-mes"
-        className="campo"
-        rows={3}
-        maxLength={4000}
-        placeholder="Lo que haya que recordar de este mes."
-        defaultValue={mes.notas}
-        onBlur={(e) => {
-          if (e.target.value !== mes.notas) void onCambiar({ notas: e.target.value })
-        }}
-      />
-    </section>
   )
 }

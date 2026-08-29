@@ -1,15 +1,17 @@
-import { useState, type ComponentType } from 'react'
+import { useEffect, useState, type ComponentType, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 /**
- * La navegación de «La libreta».
+ * La navegación.
  *
- * Fuera el menú lateral de iconos: ocupaba una columna entera para decir seis
- * palabras, y hacía que la app pareciera un panel de administración. Aquí es
- * una línea fina sobre el papel, con las secciones en texto y la activa
- * subrayada con el sello.
+ * En pantalla grande es una sola línea sobre el fondo: la marca, las secciones
+ * en texto con la activa subrayada, y a la derecha las acciones de la pantalla
+ * en la que estás. No hay columna lateral ni cabecera con fondo propio; el
+ * contenido empieza catorce píxeles más abajo y ya está.
  *
- * En móvil baja abajo, que es donde llega el pulgar, y ahí sí lleva iconos
- * porque no cabe otra cosa.
+ * En móvil la línea baja al pulgar y ahí sí lleva iconos, porque no cabe otra
+ * cosa. Las dos se pintan siempre: quién se ve lo decide el CSS, no el
+ * JavaScript, y así no hay un salto al cargar.
  */
 
 export type Seccion<T extends string> = {
@@ -24,33 +26,52 @@ type Props<T extends string> = {
   secciones: Seccion<T>[]
   activa: T
   onIr: (id: T) => void
-  /** A la derecha de la barra: ajustes, bloquear. */
-  extra?: React.ReactNode
 }
 
-export function BarraSuperior<T extends string>({ secciones, activa, onIr, extra }: Props<T>) {
+/** Dónde aterrizan las acciones de cada pantalla. */
+const HUECO_ACCIONES = 'acciones-de-la-pantalla'
+
+export function BarraSuperior<T extends string>({ secciones, activa, onIr }: Props<T>) {
   return (
-    <header className="barra-superior">
-      <div className="limite barra-superior-fila">
-        <span className="marca">Gastos</span>
+    <nav className="barra" aria-label="Secciones">
+      <span className="marca">
+        gastos<span>.</span>
+      </span>
 
-        <nav className="barra-secciones" aria-label="Secciones">
-          {secciones.map((s) => (
-            <button
-              key={s.id}
-              className={`barra-seccion${activa === s.id ? ' activa' : ''}`}
-              aria-current={activa === s.id ? 'page' : undefined}
-              onClick={() => onIr(s.id)}
-            >
-              {s.nombre}
-            </button>
-          ))}
-        </nav>
-
-        <div className="barra-extra">{extra}</div>
+      <div className="barra-secciones">
+        {secciones.map((s) => (
+          <button
+            key={s.id}
+            className={`barra-seccion${activa === s.id ? ' activa' : ''}`}
+            aria-current={activa === s.id ? 'page' : undefined}
+            onClick={() => onIr(s.id)}
+          >
+            {s.nombre}
+          </button>
+        ))}
       </div>
-    </header>
+      <div className="barra-acciones" id={HUECO_ACCIONES} />
+    </nav>
   )
+}
+
+/**
+ * Las acciones de la pantalla activa, pintadas arriba a la derecha.
+ *
+ * Van por portal y no por props porque quien sabe qué se puede hacer con un
+ * mes es la pantalla Mes, no la aplicación. Pasarlo hacia arriba obligaría a
+ * `App` a conocer el mes abierto, y eso es justo lo que no queremos.
+ */
+export function Acciones({ children }: { children: ReactNode }) {
+  const [hueco, setHueco] = useState<HTMLElement | null>(null)
+
+  // El hueco lo pinta la barra, así que no existe hasta después del primer
+  // render: se busca en el efecto, no durante el render.
+  useEffect(() => {
+    setHueco(document.getElementById(HUECO_ACCIONES))
+  }, [])
+
+  return hueco ? createPortal(children, hueco) : null
 }
 
 export function BarraInferior<T extends string>({ secciones, activa, onIr }: Props<T>) {
@@ -88,7 +109,7 @@ export function BarraInferior<T extends string>({ secciones, activa, onIr }: Pro
       ) : null}
 
       {mas ? (
-        <div className="barra-mas">
+        <div className="menu menu-abajo">
           {enElMenu.map((s) => (
             <button
               key={s.id}

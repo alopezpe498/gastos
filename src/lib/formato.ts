@@ -44,6 +44,15 @@ export function euros(valor: number | null | undefined, { redondo = false } = {}
   return redondo ? MONEDA_REDONDA.format(valor) : MONEDA.format(valor)
 }
 
+/**
+ * Sin decimales: "1.250 €". Es como se leen las cifras grandes de los bloques,
+ * donde los céntimos solo estorban. Los importes de una lista sí los llevan.
+ */
+export function redondo(valor: number | null | undefined): string {
+  if (valor === null || valor === undefined || !Number.isFinite(valor)) return '—'
+  return MONEDA_REDONDA.format(valor)
+}
+
 /** Sin el simbolo: para las celdas de una tabla donde el € se repetiria. */
 export function numero(valor: number | null | undefined): string {
   if (valor === null || valor === undefined || !Number.isFinite(valor)) return ''

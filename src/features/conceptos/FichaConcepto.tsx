@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Clasificacion, ConceptoDetalle, MesAbierto, Tipo } from '../../lib/tipos'
+import { NOMBRES_COLOR, PALETAS } from '../../lib/colores'
 import { Sheet } from '../../components/Sheet'
 import { useAvisos } from '../../components/Avisos'
 import { Interruptor, SelectorMes } from '../../components/Campos'
@@ -104,6 +105,31 @@ export function FichaConcepto({ concepto, onCerrar, onCambio, onBorrar, onIrAMes
             {ETIQUETAS_CLASIFICACION[valor]}
           </button>
         ))}
+      </div>
+
+      <p className="campo-etiqueta">Color</p>
+      <p className="pista">
+        Es por lo que reconoces el concepto en las listas antes de leer su nombre. Si no eliges
+        ninguno le toca uno solo, siempre el mismo.
+      </p>
+      <div className="colores">
+        {NOMBRES_COLOR.map((nombre) => {
+          const paleta = PALETAS[nombre]
+          const elegido = concepto.color === nombre
+          return (
+            <button
+              key={nombre}
+              className={`color${elegido ? ' elegido' : ''}`}
+              style={{ background: paleta.suave, color: paleta.texto }}
+              aria-pressed={elegido}
+              aria-label={`Color ${nombre}`}
+              // Volver a pulsar el elegido lo devuelve al que le toca solo.
+              onClick={() => void cambiar({ color: elegido ? null : nombre })}
+            >
+              <span className="punto" style={{ background: paleta.color }} />
+            </button>
+          )
+        })}
       </div>
 
       <div className="fila fila-ajuste">

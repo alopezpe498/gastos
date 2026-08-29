@@ -8,6 +8,7 @@ export const rutasConceptos = express.Router()
 
 const TIPOS = new Set(conceptosBd.TIPOS)
 const CLASIFICACIONES = new Set(conceptosBd.CLASIFICACIONES)
+const COLORES = new Set(conceptosBd.COLORES)
 
 /** Un concepto con su previsto actual y sus alias: lo que pinta la pantalla. */
 function conDetalle(concepto) {
@@ -105,6 +106,18 @@ rutasConceptos.patch(
         return fallo(res, 400, `No existe la clasificacion "${req.body.clasificacion}".`)
       }
       cambios.clasificacion = req.body.clasificacion
+    }
+
+    /*
+     * El color. Nulo o cadena vacia lo devuelve a «el que le toque», que es lo
+     * que hay que poder hacer si te arrepientes: no hay un boton de reiniciar.
+     */
+    if (req.body?.color !== undefined) {
+      const color = req.body.color === null || req.body.color === '' ? null : req.body.color
+      if (color !== null && !COLORES.has(color)) {
+        return fallo(res, 400, `No existe el color "${color}".`)
+      }
+      cambios.color = color
     }
 
     if (req.body?.activo !== undefined) cambios.activo = !!req.body.activo

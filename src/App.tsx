@@ -4,18 +4,14 @@ import { Cargando } from './components/Basicos'
 import { ProveedorAvisos } from './components/Avisos'
 import {
   IconoAjustes,
-  IconoCandado,
   IconoCalendario,
   IconoEtiquetas,
   IconoSubir,
   IconoTabla,
-  IconoTarta,
   IconoTendencia,
 } from './components/Iconos'
-import { useEsEscritorio } from './lib/tamano'
 import { PantallaPin } from './features/auth/PantallaPin'
 import { PantallaMes } from './features/mes/PantallaMes'
-import { PantallaAnalisis } from './features/analisis/PantallaAnalisis'
 import { PantallaAnual } from './features/anual/PantallaAnual'
 import { PantallaAnalitica } from './features/analitica/PantallaAnalitica'
 import { PantallaConceptos } from './features/conceptos/PantallaConceptos'
@@ -23,12 +19,16 @@ import { PantallaAjustes, type PestanaAjustes } from './features/ajustes/Pantall
 import { PantallaImportar, type PestanaImportar } from './features/importar/PantallaImportar'
 import { BarraSuperior, BarraInferior } from './components/Navegacion'
 
-type Pestana = 'mes' | 'analisis' | 'anual' | 'analitica' | 'conceptos' | 'importar' | 'ajustes'
+type Pestana = 'mes' | 'anual' | 'analitica' | 'conceptos' | 'importar' | 'ajustes'
 type Sesion = 'comprobando' | 'bloqueada' | 'abierta'
 
+/*
+ * Análisis ya no es una sección: vive plegado dentro de Mes. Tenerlo aquí
+ * mentía sobre su importancia —se mira de vez en cuando, no cada día— y
+ * obligaba a salir del mes para entender el mes.
+ */
 const PESTANAS = [
   { id: 'mes' as const, nombre: 'Mes', icono: IconoCalendario },
-  { id: 'analisis' as const, nombre: 'Análisis', icono: IconoTarta },
   { id: 'anual' as const, nombre: 'Año', icono: IconoTabla },
   { id: 'analitica' as const, nombre: 'Analítica', icono: IconoTendencia, enMovil: false },
   { id: 'conceptos' as const, nombre: 'Conceptos', icono: IconoEtiquetas },
@@ -44,7 +44,7 @@ export default function App() {
   // catalogo, los ajustes, una importacion) para que todas recarguen.
   const [version, setVersion] = useState(0)
   // Mes al que hay que saltar desde otra pantalla: al pulsar una celda de la
-  // vision anual, o al abrir el analisis del mes que se esta viendo.
+  // vision anual, o al volver de la analitica.
   const [mesElegido, setMesElegido] = useState<{ anio: number; mes: number } | null>(null)
   // Año al que saltar desde la analítica.
   const [anioElegido, setAnioElegido] = useState<number | null>(null)
@@ -60,7 +60,6 @@ export default function App() {
     pedirArchivo: boolean
   }>({ pestana: 'extracto', mesId: null, pedirArchivo: false })
   const [pestanaAjustes, setPestanaAjustes] = useState<PestanaAjustes>('general')
-  const escritorio = useEsEscritorio()
 
   const refrescarTodo = useCallback(() => setVersion((v) => v + 1), [])
 
@@ -98,13 +97,7 @@ export default function App() {
     setPestana('mes')
   }, [])
 
-  if (sesion === 'comprobando') {
-    return (
-      <div className="app">
-        <Cargando />
-      </div>
-    )
-  }
+  if (sesion === 'comprobando') return <Cargando />
 
   if (sesion === 'bloqueada') {
     return (
@@ -116,104 +109,66 @@ export default function App() {
 
   return (
     <ProveedorAvisos>
-      <div className={`app${escritorio ? ' app-escritorio' : ''}`}>
-        {escritorio ? (
-          <BarraSuperior
-            secciones={PESTANAS}
-            activa={pestana}
-            onIr={setPestana}
-            extra={
-              <button
-                className="boton-icono"
-                aria-label="Bloquear la aplicación"
-                onClick={() => setSesion('bloqueada')}
-              >
-                <IconoCandado size={18} />
-              </button>
-            }
+      <div className="pagina">
+        <BarraSuperior secciones={PESTANAS} activa={pestana} onIr={setPestana} />
+
+        {pestana === 'mes' ? (
+          <PantallaMes
+            key={version}
+            mesElegido={mesElegido}
+            onCambioDeMes={setMesElegido}
+            onBloquear={() => setSesion('bloqueada')}
+            onImportarExtracto={(mesId) => {
+              setDestinoImportar({ pestana: 'extracto', mesId, pedirArchivo: true })
+              setPestana('importar')
+            }}
+          />
+        ) : null}
+        {pestana === 'anual' ? (
+          <PantallaAnual key={version} onAbrirMes={irAlMes} anioElegido={anioElegido} />
+        ) : null}
+        {pestana === 'analitica' ? (
+          <PantallaAnalitica
+            key={version}
+            onAbrirMes={irAlMes}
+            onAbrirAnio={(anio) => {
+              setAnioElegido(anio)
+              setPestana('anual')
+            }}
+          />
+        ) : null}
+        {/*
+          Conceptos no lleva key={version}: se recarga sola y es ella la que
+          llama a refrescarTodo. Remontarla cerraria la ficha que acabas de
+          guardar, y con ella el aviso de los meses que hay que regenerar.
+        */}
+        {pestana === 'conceptos' ? (
+          <PantallaConceptos onCambioGlobal={refrescarTodo} onIrAMes={irAlMes} />
+        ) : null}
+        {pestana === 'importar' ? (
+          <PantallaImportar
+            key={version}
+            pestanaInicial={destinoImportar.pestana}
+            mesInicial={destinoImportar.mesId}
+            pedirArchivo={destinoImportar.pedirArchivo}
+            onCambioGlobal={refrescarTodo}
+            onVerReglas={() => {
+              setPestanaAjustes('reglas')
+              setPestana('ajustes')
+            }}
+          />
+        ) : null}
+        {pestana === 'ajustes' ? (
+          <PantallaAjustes
+            key={version}
+            pestanaInicial={pestanaAjustes}
+            protegido={protegido}
+            onBloquear={() => setSesion('bloqueada')}
+            onCambioGlobal={refrescarTodo}
           />
         ) : null}
 
-        <main className="contenido">
-          {pestana === 'mes' ? (
-            <PantallaMes
-              key={version}
-              mesElegido={mesElegido}
-              onCambioDeMes={setMesElegido}
-              onVerAnalisis={() => setPestana('analisis')}
-              onImportarExtracto={(mesId) => {
-                setDestinoImportar({ pestana: 'extracto', mesId, pedirArchivo: true })
-                setPestana('importar')
-              }}
-            />
-          ) : null}
-          {pestana === 'analisis' ? (
-            <PantallaAnalisis key={version} mesElegido={mesElegido} onCambioDeMes={setMesElegido} />
-          ) : null}
-          {pestana === 'anual' ? (
-            <PantallaAnual key={version} onAbrirMes={irAlMes} anioElegido={anioElegido} />
-          ) : null}
-          {pestana === 'analitica' ? (
-            <PantallaAnalitica
-              key={version}
-              onAbrirMes={irAlMes}
-              onAbrirAnio={(anio) => {
-                setAnioElegido(anio)
-                setPestana('anual')
-              }}
-            />
-          ) : null}
-          {/*
-            Conceptos no lleva key={version}: se recarga sola y es ella la que
-            llama a refrescarTodo. Remontarla cerraria la ficha que acabas de
-            guardar, y con ella el aviso de los meses que hay que regenerar.
-          */}
-          {pestana === 'conceptos' ? (
-            <PantallaConceptos onCambioGlobal={refrescarTodo} onIrAMes={irAlMes} />
-          ) : null}
-          {pestana === 'importar' ? (
-            <PantallaImportar
-              key={version}
-              pestanaInicial={destinoImportar.pestana}
-              mesInicial={destinoImportar.mesId}
-              pedirArchivo={destinoImportar.pedirArchivo}
-              onCambioGlobal={refrescarTodo}
-              onVerReglas={() => {
-                setPestanaAjustes('reglas')
-                setPestana('ajustes')
-              }}
-            />
-          ) : null}
-
-          {pestana === 'ajustes' ? (
-            <PantallaAjustes
-              key={version}
-              pestanaInicial={pestanaAjustes}
-              protegido={protegido}
-              onBloquear={() => setSesion('bloqueada')}
-              onCambioGlobal={refrescarTodo}
-            />
-          ) : null}
-        </main>
-
-        {escritorio ? null : (
-          <BarraInferior secciones={PESTANAS} activa={pestana} onIr={setPestana} />
-        )}
-
-        {escritorio ? null : (
-          <nav className="barra">
-            {PESTANAS.map(({ id, nombre, icono: Icono }) => (
-              <button
-                key={id}
-                className={pestana === id ? 'activa' : ''}
-                onClick={() => setPestana(id)}
-              >
-                <Icono size={24} />
-                {nombre}
-              </button>
-            ))}
-          </nav>
-        )}
+        <BarraInferior secciones={PESTANAS} activa={pestana} onIr={setPestana} />
       </div>
     </ProveedorAvisos>
   )

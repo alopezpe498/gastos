@@ -328,5 +328,11 @@ if (defRegla && !defRegla.sql.includes('regex')) {
     CREATE INDEX IF NOT EXISTS idx_reglas_orden ON reglas_clasificacion(prioridad);
   `)
 }
+/*
+ * El color de un concepto. Nulo quiere decir «el que le toque»: la aplicacion
+ * reparte una paleta por id, y esto solo guarda las veces que se cambia a mano.
+ */
+anadirColumnaSiFalta('conceptos', 'color', 'TEXT')
+
 anadirColumnaSiFalta('meses', 'fecha_inicio', 'TEXT')
 anadirColumnaSiFalta('meses', 'fecha_fin', 'TEXT')

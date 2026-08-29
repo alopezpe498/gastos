@@ -6,6 +6,7 @@ import { EsqueletoLista } from '../../components/Esqueleto'
 import { useAvisos } from '../../components/Avisos'
 import { IconoArrastrar, IconoMas } from '../../components/Iconos'
 import { cuantos, euros } from '../../lib/formato'
+import { paletaDe } from '../../lib/colores'
 import { FichaConcepto } from './FichaConcepto'
 import { SheetNuevoConcepto } from './SheetNuevoConcepto'
 import { PantallaPlantilla } from './Plantilla'
@@ -318,6 +319,7 @@ function FilaConcepto({
       </span>
 
       <button className="fila-cuerpo fila-boton" onClick={onAbrir}>
+        <span className="punto" style={{ background: paletaDe(concepto).color }} />
         <span className="fila-titulo">
           {concepto.nombre}
           {concepto.esObjetivo ? <span className="etiqueta-mini">objetivo</span> : null}

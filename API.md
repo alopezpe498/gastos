@@ -70,11 +70,16 @@ Su `clasificacion` (`necesario` | `prescindible` | `ahorro`) es lo que usa la
 regla 50/30/20. `esObjetivo` marca el concepto de ahorro: no es un gasto, es lo
 que se querría apartar.
 
+`color` es el color con el que se reconoce el concepto en las listas, y vale
+uno de `lavanda`, `ambar`, `verde`, `gris`, `coral` o `azul`. Es opcional: con
+`null` la aplicación reparte una paleta por el `id` del concepto, que no cambia
+nunca. Solo se guarda cuando se elige a mano.
+
 | Método | Ruta | Notas |
 | --- | --- | --- |
 | `GET` | `/conceptos` | Parámetros: `?tipo=fijo\|variable\|sobre`, `?activos=1`, `?detalle=1`. Con `detalle=1` añade `plantilla`, `previstoActual`, `alias` y el número de `movimientos`. |
 | `POST` | `/conceptos` | `{ nombre, tipo, clasificacion, diaPrevisto?, importePrevisto?, vigenteDesde? }`. Los fijos y los sobres crean su entrada de plantilla. |
-| `PATCH` | `/conceptos/:id` | `{ nombre?, tipo?, clasificacion?, activo?, esObjetivo? }`. Marcar `esObjetivo` desmarca el anterior. |
+| `PATCH` | `/conceptos/:id` | `{ nombre?, tipo?, clasificacion?, activo?, esObjetivo?, color? }`. Marcar `esObjetivo` desmarca el anterior. `color: null` lo devuelve al que le toca por su `id`. |
 | `DELETE` | `/conceptos/:id` | `409` si tiene apuntes: en ese caso hay que desactivarlo, no borrarlo. |
 | `PUT` | `/conceptos/orden` | `{ ids: [...] }` con **todos** los conceptos en el orden nuevo. |
 
@@ -182,6 +187,7 @@ anteriores. `GET /conceptos/:id/plantilla` devuelve el histórico y `DELETE
 | `GET` | `/meses/abiertos` | Los meses en estado `abierto`, del más reciente al más antiguo. Es lo que avisa en Conceptos al tocar una plantilla. |
 | `GET` | `/meses/por-abrir/:anio/:mes` | Qué pasaría al abrir ese mes, **sin crear nada**: `{ existe, intermedios }`. |
 | `GET` | `/meses/:id/analisis` | La tarta, el peso de los fijos, el 50/30/20 y el ranking. |
+| `GET` | `/meses/:id/panel` | Solo lectura: lo que pintan los bloques de la pantalla Mes. No calcula nada nuevo, reordena lo que ya hay. |
 | `GET` | `/meses/:id/regeneracion` | Vista previa de la regeneración: qué se añadiría, qué se actualizaría y qué se deja en paz. |
 | `GET` | `/meses/:anio/:mes` | El mes completo con `fijos` y `variables`. `404` si no existe (no lo crea). |
 | `POST` | `/meses` | `{ anio, mes }`. Creación explícita. `409` si ya existía. |
@@ -291,7 +297,7 @@ que pertenecían ya no está.
 apunte a apunte, pero no se puede regenerar ni reiniciar (`409`). Se reabre con
 `PATCH /meses/:id` y `{ estado: 'abierto' }`.
 
-> **El orden de las rutas importa.** `/meses/:id/analisis` y
+> **El orden de las rutas importa.** `/meses/:id/panel`, `/meses/:id/analisis` y
 > `/meses/:id/regeneracion` están declaradas antes que `/meses/:anio/:mes`; al
 > revés, Express haría casar `/meses/17/analisis` con la segunda y respondería
 > 404.
@@ -403,6 +409,45 @@ los distingue es el tipo de su concepto.
 ---
 
 ## Análisis del mes
+
+`GET /meses/:id/panel` devuelve lo que necesitan los bloques de Mes, y **solo
+lee**: el gasto de cada día sale de los mismos movimientos que el resumen, y la
+comida sigue la misma regla que el resto de la aplicación.
+
+```json
+{
+  "periodo": {
+    "desde": "2026-07-29",
+    "hasta": "2026-08-26",
+    "dias": 29,
+    "diaActual": 12,
+    "diasQueQuedan": 17,
+    "hoy": "2026-08-09",
+    "delExtracto": true
+  },
+  "puntos": [{ "dia": "2026-07-29", "extras": 0, "acumulado": 600 }],
+  "gastado": 1873.42,
+  "fijos": [
+    {
+      "movimientoId": 812,
+      "concepto": "Hipoteca",
+      "importe": 622.53,
+      "diaPrevisto": "31",
+      "cobrado": true,
+      "tarde": false
+    }
+  ],
+  "pendientes": 6,
+  "nombresPendientes": ["comunidad", "luz"],
+  "extras": { "total": 2772.1, "mayor": { "concepto": "Amazon", "porcentaje": 64 } },
+  "comida": { "presupuesto": 600, "gastado": 960.29, "contada": 960.29, "sobreId": 9 }
+}
+```
+
+`periodo.delExtracto` dice si las fechas vienen de un extracto (de nómina a
+nómina) o son el mes del calendario, que es lo único que se sabe si todavía no
+se ha importado nada. `tarde` es un fijo pendiente cuyo día previsto ya pasó:
+es el único aviso de la lista.
 
 `GET /meses/:id/analisis` devuelve:
 

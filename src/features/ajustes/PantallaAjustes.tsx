@@ -8,7 +8,6 @@ import { SeccionCalculo } from './SeccionCalculo'
 import { SeccionIa } from './SeccionIa'
 import { SeccionReglas } from './SeccionReglas'
 import { SeccionFormatoBanco } from './SeccionFormatoBanco'
-import { useTema, type Tema } from '../../lib/tema'
 
 /**
  * Ajustes: SOLO lo que se configura.
@@ -43,7 +42,6 @@ export function PantallaAjustes({
   pestanaInicial = 'general',
 }: Props) {
   const [pestana, setPestana] = useState<PestanaAjustes>(pestanaInicial)
-  const [tema, setTema] = useTema()
   const [ajustes, setAjustes] = useState<Ajustes | null>(null)
   const [conceptos, setConceptos] = useState<Concepto[]>([])
   const [configIa, setConfigIa] = useState<ConfigIa | null>(null)
@@ -125,32 +123,7 @@ export function PantallaAjustes({
               }}
             />
 
-            <section className="seccion">
-              <h3 className="seccion-titulo">Aspecto</h3>
-              <p className="ayuda">
-                El papel de la aplicación. La preferencia es de este aparato, no de la familia: el
-                móvil puede ir en oscuro y el portátil en claro.
-              </p>
-              <div className="segmentado">
-                {(
-                  [
-                    ['sistema', 'Como el sistema'],
-                    ['claro', 'Claro'],
-                    ['oscuro', 'Oscuro'],
-                  ] as [Tema, string][]
-                ).map(([id, nombre]) => (
-                  <button
-                    key={id}
-                    className={tema === id ? 'activo' : ''}
-                    onClick={() => setTema(id)}
-                  >
-                    {nombre}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="seccion">
+            <section className="seccion tarjeta">
               <h3 className="seccion-titulo">PIN de la familia</h3>
               {protegido ? (
                 <>

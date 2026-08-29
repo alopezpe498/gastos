@@ -3,6 +3,8 @@ export type Clasificacion = 'necesario' | 'prescindible' | 'ahorro'
 export type Origen = 'manual' | 'excel' | 'extracto' | 'foto' | 'portapapeles'
 export type EstadoMes = 'abierto' | 'cerrado'
 
+export type NombreColor = 'lavanda' | 'ambar' | 'verde' | 'gris' | 'coral' | 'azul'
+
 export type Concepto = {
   id: number
   nombre: string
@@ -11,6 +13,8 @@ export type Concepto = {
   activo: boolean
   orden: number
   esObjetivo: boolean
+  /** null = el que le toque por su id. Solo se guarda si se cambia a mano. */
+  color: NombreColor | null
 }
 
 export type EntradaPlantilla = {
@@ -553,25 +557,31 @@ export type ReglaNueva = {
   coincidencia: 'empieza' | 'exacta' | 'regex'
 }
 
-/** Los datos del dibujo que preside la pantalla del mes. */
-export type CintaMes = {
-  desde: string
-  hasta: string
-  dias: number
-  hoy: string | null
-  diaActual: number | null
-  /** true si el periodo sale de un extracto; false si es el mes del calendario. */
-  esDelExtracto: boolean
-  puntos: { dia: string; gasto: number; acumulado: number | null }[]
-  marcas: {
+/** Los datos que necesitan los bloques de la pantalla Mes. */
+export type PanelMes = {
+  periodo: {
+    desde: string
+    hasta: string
+    dias: number
+    diaActual: number
+    diasQueQuedan: number
+    hoy: string | null
+    delExtracto: boolean
+  }
+  puntos: { dia: string; extras: number; acumulado: number | null }[]
+  gastado: number
+  fijos: {
     movimientoId: number
     concepto: string
     importe: number
-    dia: string
-    estado: 'cobrado' | 'pendiente' | 'pasado'
+    diaPrevisto: string | null
+    cobrado: boolean
+    tarde: boolean
   }[]
-  total: number
-  ingreso: number
+  pendientes: number
+  nombresPendientes: string[]
+  extras: { total: number; mayor: { concepto: string; porcentaje: number } | null }
+  comida: { presupuesto: number; gastado: number; contada: number; sobreId: number | null }
 }
 
 // ---------- Analítica ----------

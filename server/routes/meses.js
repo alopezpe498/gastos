@@ -1,6 +1,6 @@
 import express from 'express'
 import * as mesesBd from '../db/meses.js'
-import { cinta } from '../services/cintaMes.js'
+import { panel } from '../services/panelMes.js'
 import * as movimientosBd from '../db/movimientos.js'
 import * as conceptosBd from '../db/conceptos.js'
 import * as configBd from '../db/config.js'
@@ -174,18 +174,19 @@ rutasMeses.get(
 
 /** Lo que cambiaria al regenerar, sin tocar nada. */
 /**
- * Los datos del dibujo que preside la pantalla del mes.
+ * Los datos que necesitan los bloques de la pantalla Mes: el periodo, el gasto
+ * acumulado por dia, los extras por dia y el estado de cada fijo.
  *
- * Va aparte del mes porque es lo unico que necesita recorrer dia a dia. Solo
- * lee: ningun calculo cambia. OJO CON EL ORDEN: antes de "/:anio/:mes".
+ * Va aparte del mes porque es lo unico que recorre dia a dia. Solo lee: ningun
+ * calculo cambia. OJO CON EL ORDEN: antes de "/:anio/:mes".
  */
 rutasMeses.get(
-  '/:id/cinta',
+  '/:id/panel',
   ruta((req, res) => {
     const id = enteroDe(req.params.id)
     const mes = id ? mesesBd.obtener(id) : null
     if (!mes) return fallo(res, 404, 'Ese mes ya no existe.')
-    return res.json(cinta(mes, configBd.ajustes()))
+    return res.json(panel(mes, configBd.ajustes()))
   }),
 )
 

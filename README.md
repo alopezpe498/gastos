@@ -771,19 +771,19 @@ pruebas/
   copia-bd.mjs          copia con fecha, con rotación
   fixtures/             el libro de ejemplo con el formato real
 src/
-  lib/                  cliente de API, tipos, formato español, tamaño
+  lib/                  cliente de API, tipos, formato español, colores
   components/           sheet, alertas, avisos, iconos, campos que guardan solos
     graficos/           líneas, barras, área apilada, mapa de calor, sparkline
   features/
     auth/               pantalla del PIN
-    mes/                el mes en curso
-    analisis/           tarta, 50/30/20, barras y ranking
+    mes/                el mes en curso, sus bloques y el análisis plegado
     anual/              matriz (escritorio) y vista por concepto (móvil)
     analitica/          evolución, años, reparto, ahorro y estacionalidad
     informe/            la hoja imprimible del mes y del año
     conceptos/          catálogo, ficha y plantilla
     ajustes/            cálculo, IA, importación, exportación y PIN
-  styles/               global (sistema), y una hoja por área
+  styles/               tres hojas: tokens, piezas comunes y lo de cada pantalla
+disenio/                la referencia visual aprobada y el encargo del rediseño
 ```
 
 ---

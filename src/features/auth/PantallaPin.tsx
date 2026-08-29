@@ -66,7 +66,9 @@ export function PantallaPin({ onDesbloqueado }: Props) {
         <div className="pin-icono">
           <IconoCandado size={30} />
         </div>
-        <h1 className="pin-titulo">Gastos</h1>
+        <h1 className="pin-titulo marca">
+          gastos<span>.</span>
+        </h1>
         <p className="pin-texto">{error || 'Introduce el PIN de la familia'}</p>
       </div>
 
