@@ -269,10 +269,16 @@ cero, que sería mentira.
 > foto de cuando se abrieron. Para ponerlos al día, «Regenerar desde la
 > plantilla» en el menú del mes.
 
-### Importar el extracto del banco
+### Importar
 
-En `Ajustes → Extracto del banco`, y desde el botón **Importar extracto** de la
-pantalla del mes. Es la función para la que existe el resto: cada mes subes el
+Una entrada propia del menú, con tres pestañas. Aquí vive todo lo que es una
+**acción**; en Ajustes solo queda lo que se configura.
+
+#### Extracto del banco
+
+La pestaña por defecto. También se llega desde el botón **Importar extracto** de
+la pantalla del mes, que abre esta pestaña con **ese mes ya elegido** y el foco
+puesto en «Elegir archivo». Es la función para la que existe el resto: cada mes subes el
 extracto y en un par de minutos el mes está hecho.
 
 Admite el `.xls` que da el banco, `.xlsx`, `.csv`, o una tabla copiada de la web
@@ -311,15 +317,31 @@ descarta y **C** marca como comida.
 > plantilla, y los abonos y devoluciones se quedan en su bloque, por si algún día
 > quieres rescatar uno a mano.
 
+Debajo, el **historial de importaciones de ese mes** con su botón de deshacer, y
+un enlace discreto **«Ver reglas»** que lleva a `Ajustes → Reglas`.
+
+#### Excel histórico
+
+Las hojas anuales de Cuentas20XX, que es lo que se hace una vez al empezar.
+
+#### Copia de seguridad
+
+Descargar todo en JSON (la copia completa) o en Excel (una hoja por año, con el
+mismo formato de siempre, así que se puede volver a importar).
+
 #### Deshacer
 
 Toda importación se deshace entera, desde el historial: borra lo que creó,
 devuelve los fijos a pendiente con su importe previsto y deja el mes exactamente
 como estaba. Las reglas que aprendiste se quedan.
 
-### Reglas de clasificación
+### Ajustes
 
-En `Ajustes → Reglas`. Cómo se reconoce cada movimiento del banco: un texto, un
+Solo configuración, en cuatro pestañas: **General** (los porcentajes del
+50/30/20, cómo cuenta la comida, los grupos de fijos del análisis y el PIN),
+**Inteligencia artificial**, **Reglas de clasificación** y **Formato del banco**.
+
+#### Reglas de clasificación Cómo se reconoce cada movimiento del banco: un texto, un
 concepto, y **el orden**, que manda tanto como el texto porque gana la primera
 regla que encaja. Se reordenan arrastrando.
 
@@ -332,21 +354,21 @@ BARCELONA y se lleva medio extracto.
 gana, a qué concepto va y cuántas se han descartado antes. Si no encaja ninguna,
 te ofrece crear la regla ahí mismo.
 
-Abajo, las **propuestas** (las aprendidas al revisar un extracto, para confirmar
-o rechazar), el **formato del banco** con un «Probar con un archivo» que enseña
-las primeras filas ya interpretadas, y exportar/importar las reglas en JSON.
+Abajo, las **propuestas**: las reglas aprendidas al revisar un extracto, para
+confirmar o rechazar. Y exportar e importar las reglas en JSON.
 
-### Ajustes
+#### Formato del banco
 
-Los porcentajes ideales, cómo cuenta la comida en el total, los grupos de fijos
-del análisis, la **configuración de IA**, la importación del Excel, las copias de
-seguridad y el PIN.
+Cómo se lee el fichero: columnas, texto que delata la cabecera, separador
+decimal y los trozos que se quitan de la descripción. Con un **«Probar con un
+archivo»** que enseña las diez primeras filas ya interpretadas, que es la única
+forma de saber si el formato está bien sin importar de verdad.
 
 ---
 
 ## Importar del Excel
 
-En **Ajustes → Importar del Excel**. Tres pasos: se sube el libro `.xlsx`, se
+En **Importar → Excel histórico**. Tres pasos: se sube el libro `.xlsx`, se
 elige la hoja anual y **se ve exactamente lo que va a entrar antes de tocar
 nada**.
 

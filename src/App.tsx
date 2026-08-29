@@ -8,6 +8,7 @@ import {
   IconoCalendario,
   IconoEtiquetas,
   IconoPanelIzquierdo,
+  IconoSubir,
   IconoTabla,
   IconoTarta,
   IconoTendencia,
@@ -20,9 +21,10 @@ import { PantallaAnalisis } from './features/analisis/PantallaAnalisis'
 import { PantallaAnual } from './features/anual/PantallaAnual'
 import { PantallaAnalitica } from './features/analitica/PantallaAnalitica'
 import { PantallaConceptos } from './features/conceptos/PantallaConceptos'
-import { PantallaAjustes } from './features/ajustes/PantallaAjustes'
+import { PantallaAjustes, type PestanaAjustes } from './features/ajustes/PantallaAjustes'
+import { PantallaImportar, type PestanaImportar } from './features/importar/PantallaImportar'
 
-type Pestana = 'mes' | 'analisis' | 'anual' | 'analitica' | 'conceptos' | 'ajustes'
+type Pestana = 'mes' | 'analisis' | 'anual' | 'analitica' | 'conceptos' | 'importar' | 'ajustes'
 type Sesion = 'comprobando' | 'bloqueada' | 'abierta'
 
 const PESTANAS = [
@@ -31,6 +33,7 @@ const PESTANAS = [
   { id: 'anual' as const, nombre: 'Año', icono: IconoTabla },
   { id: 'analitica' as const, nombre: 'Analítica', icono: IconoTendencia },
   { id: 'conceptos' as const, nombre: 'Conceptos', icono: IconoEtiquetas },
+  { id: 'importar' as const, nombre: 'Importar', icono: IconoSubir },
   { id: 'ajustes' as const, nombre: 'Ajustes', icono: IconoAjustes },
 ]
 
@@ -47,6 +50,18 @@ export default function App() {
   const [mesElegido, setMesElegido] = useState<{ anio: number; mes: number } | null>(null)
   // Año al que saltar desde la analítica.
   const [anioElegido, setAnioElegido] = useState<number | null>(null)
+  /*
+   * Con qué pestaña se entra en Importar y en Ajustes, y con qué mes.
+   * Sirve para que un botón lleve al sitio exacto: «Importar extracto» del mes
+   * abre Importar > Extracto con ese mes puesto, y «Ver reglas» abre Ajustes >
+   * Reglas sin tener que buscarlas.
+   */
+  const [destinoImportar, setDestinoImportar] = useState<{
+    pestana: PestanaImportar
+    mesId: number | null
+    pedirArchivo: boolean
+  }>({ pestana: 'extracto', mesId: null, pedirArchivo: false })
+  const [pestanaAjustes, setPestanaAjustes] = useState<PestanaAjustes>('general')
   const escritorio = useEsEscritorio()
 
   const refrescarTodo = useCallback(() => setVersion((v) => v + 1), [])
@@ -169,7 +184,10 @@ export default function App() {
               mesElegido={mesElegido}
               onCambioDeMes={setMesElegido}
               onVerAnalisis={() => setPestana('analisis')}
-              onImportarExtracto={() => setPestana('ajustes')}
+              onImportarExtracto={(mesId) => {
+                setDestinoImportar({ pestana: 'extracto', mesId, pedirArchivo: true })
+                setPestana('importar')
+              }}
             />
           ) : null}
           {pestana === 'analisis' ? (
@@ -196,9 +214,24 @@ export default function App() {
           {pestana === 'conceptos' ? (
             <PantallaConceptos onCambioGlobal={refrescarTodo} onIrAMes={irAlMes} />
           ) : null}
+          {pestana === 'importar' ? (
+            <PantallaImportar
+              key={version}
+              pestanaInicial={destinoImportar.pestana}
+              mesInicial={destinoImportar.mesId}
+              pedirArchivo={destinoImportar.pedirArchivo}
+              onCambioGlobal={refrescarTodo}
+              onVerReglas={() => {
+                setPestanaAjustes('reglas')
+                setPestana('ajustes')
+              }}
+            />
+          ) : null}
+
           {pestana === 'ajustes' ? (
             <PantallaAjustes
               key={version}
+              pestanaInicial={pestanaAjustes}
               protegido={protegido}
               onBloquear={() => setSesion('bloqueada')}
               onCambioGlobal={refrescarTodo}

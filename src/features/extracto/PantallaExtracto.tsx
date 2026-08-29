@@ -18,10 +18,19 @@ import { RevisionExtracto } from './RevisionExtracto'
 type Props = {
   meses: Mes[]
   mesPorDefecto?: number | null
+  /** Al venir del botón del mes: se abre el selector de archivo sin más. */
+  pedirArchivo?: boolean
   onAplicado: () => void
+  onVerReglas?: () => void
 }
 
-export function PantallaExtracto({ meses, mesPorDefecto, onAplicado }: Props) {
+export function PantallaExtracto({
+  meses,
+  mesPorDefecto,
+  pedirArchivo = false,
+  onAplicado,
+  onVerReglas,
+}: Props) {
   const { avisar } = useAvisos()
   const abiertos = meses.filter((m) => m.estado === 'abierto')
   const [mesId, setMesId] = useState<number>(
@@ -33,9 +42,19 @@ export function PantallaExtracto({ meses, mesPorDefecto, onAplicado }: Props) {
   const [texto, setTexto] = useState('')
   const [error, setError] = useState('')
   const archivo = useRef<HTMLInputElement>(null)
+  const botonArchivo = useRef<HTMLButtonElement>(null)
 
   const mes = meses.find((m) => m.id === mesId) ?? null
   const cerrado = mes?.estado === 'cerrado'
+
+  /*
+   * Al llegar desde el botón del mes, lo único que se quiere es elegir el
+   * archivo: el mes ya viene puesto. Se deja el foco en ese botón en vez de
+   * abrir el diálogo solo, que los navegadores bloquean si no lo pide un clic.
+   */
+  useEffect(() => {
+    if (pedirArchivo && !cerrado) botonArchivo.current?.focus()
+  }, [pedirArchivo, cerrado])
 
   const enviar = async (cuerpo: Record<string, unknown>) => {
     setCargando(true)
@@ -129,6 +148,7 @@ export function PantallaExtracto({ meses, mesPorDefecto, onAplicado }: Props) {
 
           <div className="fila-botones">
             <button
+              ref={botonArchivo}
               className="boton boton-principal"
               disabled={cargando || cerrado}
               onClick={() => archivo.current?.click()}
@@ -179,23 +199,45 @@ export function PantallaExtracto({ meses, mesPorDefecto, onAplicado }: Props) {
           ) : null}
 
           {error ? <p className="banda-aviso">{error}</p> : null}
+
+          {onVerReglas ? (
+            <p className="pista">
+              Lo que reconoce cada movimiento son las reglas.{' '}
+              <button className="boton boton-texto boton-compacto" onClick={onVerReglas}>
+                Ver reglas
+              </button>
+            </p>
+          ) : null}
         </div>
       </section>
 
-      <HistorialImportaciones mesId={mesId} onCambio={onAplicado} />
+      <HistorialImportaciones mesId={mesId} nombreMes={mes ? `${NOMBRES_MESES[mes.mes - 1]} ${mes.anio}` : ''} onCambio={onAplicado} />
     </>
   )
 }
 
-/** Lo que ya se importó, con el botón de deshacer. */
-function HistorialImportaciones({ mesId, onCambio }: { mesId: number; onCambio: () => void }) {
+/**
+ * Lo que ya se importó EN ESTE MES, con el botón de deshacer.
+ *
+ * Filtrado por el mes elegido arriba: el historial completo, con dos años de
+ * importaciones, no ayuda a decidir nada cuando estás subiendo el de agosto.
+ */
+function HistorialImportaciones({
+  mesId,
+  nombreMes,
+  onCambio,
+}: {
+  mesId: number
+  nombreMes: string
+  onCambio: () => void
+}) {
   const { avisar, avisarError } = useAvisos()
   const [historial, setHistorial] = useState<Importacion[] | null>(null)
   const [aDeshacer, setADeshacer] = useState<Importacion | null>(null)
 
   const cargar = async () => {
     try {
-      setHistorial(await api<Importacion[]>('/extracto/historial'))
+      setHistorial(await api<Importacion[]>(`/extracto/historial?mesId=${mesId}`))
     } catch {
       setHistorial([])
     }
@@ -203,6 +245,7 @@ function HistorialImportaciones({ mesId, onCambio }: { mesId: number; onCambio: 
 
   useEffect(() => {
     void cargar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mesId])
 
   const deshacer = async () => {
@@ -228,20 +271,21 @@ function HistorialImportaciones({ mesId, onCambio }: { mesId: number; onCambio: 
 
   return (
     <section className="seccion">
-      <h3 className="seccion-titulo">Importaciones anteriores</h3>
+      <h3 className="seccion-titulo">
+        Importaciones de {nombreMes || 'este mes'}
+      </h3>
       <div className="tarjeta">
         {historial.map((i) => (
           <div className="fila" key={i.id}>
             <div className="fila-cuerpo">
               <span className="fila-titulo">
-                {i.anio && i.mes ? `${NOMBRES_MESES[i.mes - 1]} ${i.anio}` : 'Mes desconocido'}
+                {i.nombreArchivo ?? 'Sin nombre'}
                 {i.estado !== 'aceptada' ? (
                   <span className="etiqueta-mini">{i.estado}</span>
                 ) : null}
               </span>
               <span className="fila-detalle">
-                {fechaCorta(i.fecha.slice(0, 10))} · {i.nombreArchivo ?? 'sin nombre'} ·{' '}
-                {cuantos(i.conteos.movimientos, 'movimiento')}
+                {fechaCorta(i.fecha.slice(0, 10))} · {cuantos(i.conteos.movimientos, 'movimiento')}
                 {i.estado === 'aceptada'
                   ? ` · ${i.conteos.fijos} fijos, ${i.conteos.variables} variables`
                   : ''}
