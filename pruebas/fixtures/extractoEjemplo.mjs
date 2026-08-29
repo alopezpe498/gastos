@@ -11,8 +11,11 @@
  *   - Descripciones CORTADAS a la mitad de una palabra ("WWW.AMAZON-LUXEM").
  *   - Fechas sueltas al principio ("20.08 TUNELSPAN", "13AUG BVK11V8J").
  *   - Varias facturas del mismo fijo en el mismo mes (dos de gas y una de agua).
- *   - Movimientos de otro mes al final del fichero.
- *   - Ingresos en positivo, que no entran.
+ *   - La nomina del 29/07 abriendo el mes: el mes va de nomina a nomina, no
+ *     del 1 al 31, y el extracto la trae al final porque el banco los da del
+ *     mas reciente al mas antiguo.
+ *   - Abonos que NO son la nomina (una devolucion, un Bizum recibido): entran
+ *     como variables en negativo, no se omiten.
  *   - Una fila de saldo al final SIN importe, que no es un movimiento.
  *   - "BAR" dentro de "BARCELONA", que era la trampa que rompia la clasificacion.
  */
@@ -63,11 +66,16 @@ export const FILAS = [
   ['10/08/2026', 'PAGO BIZUM NOMBRE A. B.', '10/08/2026', -190, 1015.59, '', '000000000001'],
   ['03/08/2026', 'REINTEGRO CAJERO AUTOMATICO 5402XXXXXXXX4010 03.08', '03/08/2026', -800, 1205.59, '', ''],
 
-  // --- ingresos: en positivo, se omiten ---
+  // --- abonos: el banco ingresa dinero ---
+  // Una devolucion que una regla SI reconoce: entra como variable en negativo.
+  ['11/08/2026', `DEVOLUCION 5402XXXXXXXX4010 09.08 JustEat-MADRID`, '12/08/2026', 53.69, 1259.28, '', ''],
+  // Y uno que no reconoce nadie: va a sin clasificar, con su etiqueta de abono.
   ['21/08/2026', 'ABONO TRANSFERENCIA DE Nombre Apellido', '21/08/2026', 117, 2005.59, '', ''],
+
+  // --- la nomina abre el mes ---
   ['29/07/2026', 'NOMINA DE EMPRESA EJEMPLO SL', '29/07/2026', 3124.21, 1888.59, '', ''],
 
-  // --- julio: fuera del mes destino ---
+  // --- del mes anterior por el calendario, pero DEL MES: entran igual ---
   ['31/07/2026', 'PRESTAMOS ADEUDO CUOTA N.0000000000 31/07/26', '31/07/2026', -622.53, -1235.62, '', ''],
   ['30/07/2026', 'ADEUDO RECIBO DIGI SPAIN TELECOM SA', '30/07/2026', -34, -613.09, 'A00000003', ''],
   ['29/07/2026', `${TARJ}NETFLIX.COM-MADRID`, '31/07/2026', -21.99, -579.09, '', ''],
@@ -81,9 +89,13 @@ export const FILAS = [
 /** Lo que tiene que salir de este fichero, para comprobarlo en las pruebas. */
 export const ESPERADO = {
   filaCabecera: 8, // base 0
-  movimientos: 20,
+  movimientos: 21,
   gastos: 18,
-  ingresos: 2,
+  // La nomina y dos abonos.
+  abonos: 3,
+  // El periodo que define el mes: del primer movimiento al ultimo.
+  desde: '2026-07-29',
+  hasta: '2026-08-26',
   // La suma de todos los importes, con signo. Se calcula del propio fixture:
   // escribirla a mano solo sirve para equivocarse al tocar una fila.
   suma: FILAS.reduce((t, f) => t + (typeof f[3] === 'number' ? f[3] : 0), 0),

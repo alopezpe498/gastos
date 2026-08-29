@@ -284,38 +284,65 @@ extracto y en un par de minutos el mes está hecho.
 Admite el `.xls` que da el banco, `.xlsx`, `.csv`, o una tabla copiada de la web
 del banco y pegada. Eliges el mes destino y **nada se guarda hasta que aceptas**.
 
+> **El extracto define el mes.** El mes de esta casa no es el del calendario:
+> empieza el día que se cobra la nómina y acaba el día antes de la siguiente. El
+> extracto se descarga justo entre las dos, así que **todo lo que trae pertenece
+> al mes**. No hay filtrado por fechas: un recibo del 31 de julio es de agosto si
+> viene en el extracto de agosto.
+
 #### La revisión
 
-Arriba, pegado a la pantalla, **el marcador**:
+Arriba, pegado a la pantalla, la cabecera se explica sola:
 
 ```
-71 movimientos = 12 fijos + 10 comida + 8 variables + 8 omitidos
-                 + 13 fuera de mes + 20 sin clasificar
+Agosto 2026 · del 29/07 al 26/08 · nómina 3.124,21 €
+Quedan 18 sin clasificar; cuando estén todos, Aceptar los mete en Agosto.
+
+71 movimientos = 20 fijos + 10 comida + 10 variables + 1 ingreso + 30 sin clasificar
 ```
 
-**Aceptar está bloqueado mientras quede uno sin clasificar**, y dice por qué.
-Esa es toda la garantía: de un extracto no se puede perder nada por el camino.
+**Aceptar está bloqueado mientras quede uno sin clasificar**, dice cuántos
+faltan, y un clic lleva al primero. Esa es toda la garantía: de un extracto no
+se puede perder nada por el camino.
 
 Debajo, los bloques:
 
-- **Sin clasificar**, arriba y resaltado, que es donde se trabaja. Fecha,
-  importe, descripción limpia con la original debajo en gris, un desplegable de
-  conceptos con buscador, y los atajos *Comida*, *Dividir* y *Descartar*. Al
-  asignar un concepto, **todos los movimientos con la misma descripción se
-  clasifican solos**. Y ofrece **Recordar**, que crea la regla para el mes que
-  viene con el texto ya propuesto.
+- **Sin clasificar**, arriba y resaltado, que es donde se trabaja. La fila
+  enseña lo justo: casilla, fecha, descripción limpia con la original debajo en
+  gris, importe, desplegable de conceptos y un menú **«···»** con *Recordar*,
+  *Dividir* y *Descartar*.
+
+  Al clasificar una, **no desaparece**: se mueve al bloque que le toca con un
+  resaltado de dos segundos, el contador de arriba baja, y hay cinco segundos
+  para **deshacer** (o `Ctrl+Z`). Si hay más movimientos con la misma
+  descripción, se clasifican solos.
+
+  **La IA se pide sola** al abrir la revisión, en una única llamada con todo lo
+  que las reglas no han reconocido. Su propuesta aparece **ya puesta en el
+  desplegable** con una etiqueta lila; un clic la confirma, y al pasar el ratón
+  se lee por qué. El botón «Pedir ayuda a la IA» queda solo para reintentar.
+
+  **Recordar** crea la regla para el mes que viene. Para las descripciones sin
+  nombre fijo —un pago por móvil llega como `13AUG B7DG2ZYM-Barcelona`, con un
+  código distinto cada vez— propone una **expresión regular** en vez de un texto
+  que no se repetirá, y dice **cuántos movimientos de este mismo extracto
+  encajarían** antes de crearla.
+
 - **Variables y comida**, por importe, con una etiqueta de color según de dónde
   salió la asignación: verde regla, azul aprendida, lila IA.
-- **Fijos**: previsto contra real, con la diferencia resaltada si pasa del 10 %.
-- **Fuera de mes, omitidos, duplicados y descartados**, plegados y recuperables.
+- **Fijos**: informativo, sin botones. Concepto, previsto, real, diferencia y
+  qué va a pasar. Debajo, **«Actualizar la plantilla con estos importes»** con
+  una casilla premarcada por cada fijo cuyo importe real difiera del previsto;
+  al aceptar, los marcados pasan a la plantilla desde el mes siguiente.
+- **Duplicados y descartados**, plegados y recuperables.
 
 Con selección múltiple, buscador, y el borrador se guarda solo: puedes cerrar y
-volver mañana. En escritorio, las flechas mueven por lo que queda pendiente, **D**
-descarta y **C** marca como comida.
+volver mañana. En escritorio las flechas mueven por lo pendiente y **D**
+descarta.
 
-> **Los ingresos no entran.** Solo se apunta lo que resta: la nómina sale de la
-> plantilla, y los abonos y devoluciones se quedan en su bloque, por si algún día
-> quieres rescatar uno a mano.
+> **La nómina va al ingreso del mes**, no crea un apunte. Cualquier otro abono
+> —una devolución, un Bizum recibido— **entra como gasto variable en negativo**:
+> nunca se omite nada.
 
 Debajo, el **historial de importaciones de ese mes** con su botón de deshacer, y
 un enlace discreto **«Ver reglas»** que lleva a `Ajustes → Reglas`.
@@ -659,7 +686,7 @@ Tres suites, cada una en su proceso:
 | `pruebas/api.mjs` | PIN y limitador, catálogo, la plantilla y sus valores, apertura de meses, navegación sin crear, regenerar y reiniciar, apuntes, cobros, visión anual, ajustes y exportación. |
 | `pruebas/importacion-excel.mjs` | El parser y la importación contra un libro generado con el formato real, y la ida y vuelta exportar → importar. |
 | `pruebas/ia.mjs` | Todo lo que usa IA, contra un proveedor **simulado**: sugerencias, hoja libre, ticket, texto, factura en PDF y los fallos del proveedor. |
-| `pruebas/extracto.mjs` | El parser con un extracto de ejemplo calcado del real, el orden de las reglas, conciliar fijos, duplicados, dividir, la validación de cuentas y deshacer. |
+| `pruebas/extracto.mjs` | El parser con un extracto de ejemplo calcado del real, el periodo que define el mes, la nómina al ingreso, los abonos en negativo, el orden de las reglas, conciliar y actualizar fijos, la propuesta de plantilla, las reglas por expresión regular, duplicados, dividir, la validación de cuentas y deshacer. |
 | `pruebas/analitica.mjs` | Las agregaciones, y sobre todo los huecos: que un mes sin datos valga `null` y que las medias no dividan entre meses que no existen. |
 
 **Nunca tocan la base de datos de desarrollo.** Cada suite levanta su propio

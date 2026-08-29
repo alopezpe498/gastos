@@ -6,6 +6,7 @@ import type {
   ContadorExtracto,
   DestinoLinea,
   LineaExtracto,
+  PlantillaPropuesta,
   PropuestaExtracto,
   ReglaNueva,
   SugerenciaIa,
@@ -15,20 +16,27 @@ import { Sheet } from '../../components/Sheet'
 import { CampoImporte } from '../../components/Campos'
 import { SelectorConcepto } from '../../components/SelectorConcepto'
 import { useAvisos } from '../../components/Avisos'
-import { euros, escribirImporte, fecha as fechaCorta, leerImporte, cuantos } from '../../lib/formato'
+import {
+  cuantos,
+  escribirImporte,
+  euros,
+  fecha as fechaCorta,
+  fechaMuyCorta,
+  leerImporte,
+} from '../../lib/formato'
 
 /**
  * Revisión de un extracto antes de aplicarlo.
  *
- * La pantalla entera gira alrededor de un número: **el marcador de arriba tiene
- * que cuadrar**. Los N movimientos del fichero se reparten entre fijos,
- * variables, comida, omitidos, descartados, fuera de mes y duplicados, y no se
- * puede aceptar mientras quede uno sin sitio. Así no se pierde nada por el
- * camino, que es el único miedo real al importar del banco.
+ * La pantalla gira alrededor de un número: **el marcador de arriba tiene que
+ * cuadrar**. Los N movimientos del fichero se reparten entre fijos, comida,
+ * variables, el ingreso, descartados y duplicados, y no se puede aceptar
+ * mientras quede uno sin sitio. Ese es el único miedo real al importar del
+ * banco: que algo se pierda por el camino.
  *
- * Lo demás son atajos para llegar rápido a cero pendientes: asignar un concepto
- * clasifica de paso todos los movimientos con la misma descripción, y ofrece
- * recordar la regla para el mes que viene.
+ * EL EXTRACTO DEFINE EL MES. No hay filtrado por fechas ni bloque de "fuera de
+ * mes": el mes de esta casa va de una nómina a la siguiente, y el fichero se
+ * descarga justo entre las dos, así que todo lo que trae pertenece al mes.
  */
 
 const ETIQUETAS_PROCEDENCIA: Record<LineaExtracto['procedencia'], string> = {
@@ -39,16 +47,35 @@ const ETIQUETAS_PROCEDENCIA: Record<LineaExtracto['procedencia'], string> = {
   ninguno: '',
 }
 
+const ETIQUETAS_ACCION: Record<Conciliacion['accion'], string> = {
+  cobrar: 'Se marcará cobrado',
+  actualizar: 'Se actualiza el importe',
+  crear: 'Se creará en el mes',
+  igual: 'Ya estaba igual',
+}
+
 type Props = {
   propuesta: PropuestaExtracto
-  onAplicado: (resumen: { conciliados: number; creados: number; comida: number }) => void
+  nombreMes: string
+  onAplicado: (resumen: ResultadoAceptar) => void
   onCancelar: () => void
 }
 
-export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
+export type ResultadoAceptar = {
+  cobrados: number
+  actualizados: number
+  creados: number
+  comida: number
+  variables: number
+  plantillaActualizada: number
+  ingreso: { antes: number; despues: number } | null
+}
+
+export function RevisionExtracto({ propuesta, nombreMes, onAplicado, onCancelar }: Props) {
   const { avisar, avisarError } = useAvisos()
   const [lineas, setLineas] = useState<LineaExtracto[]>(propuesta.lineas)
-  const [conciliaciones, setConciliaciones] = useState<Conciliacion[]>(propuesta.conciliaciones)
+  const [conciliaciones] = useState<Conciliacion[]>(propuesta.conciliaciones)
+  const [plantilla, setPlantilla] = useState<PlantillaPropuesta[]>(propuesta.plantillaPropuesta ?? [])
   const [seleccion, setSeleccion] = useState<Set<number>>(new Set())
   const [reglasNuevas, setReglasNuevas] = useState<ReglaNueva[]>([])
   const [busqueda, setBusqueda] = useState('')
@@ -59,11 +86,25 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
   const [pidiendoIa, setPidiendoIa] = useState(false)
   const [avisoIa, setAvisoIa] = useState('')
   const [dividiendo, setDividiendo] = useState<LineaExtracto | null>(null)
-  // La fila con el foco, para poder moverse con las flechas sin tocar el ratón.
   const [enfocada, setEnfocada] = useState<number | null>(null)
+  // Las que acaban de moverse de bloque: se resaltan dos segundos.
+  const [reciennnacidas, setRecien] = useState<Set<number>>(new Set())
+  // Para deshacer el último cambio con Ctrl+Z o el enlace de cinco segundos.
+  const [ultimo, setUltimo] = useState<{ lineas: LineaExtracto[]; que: string } | null>(null)
 
   const conceptos = propuesta.conceptos
   const importacionId = propuesta.importacion.id
+  const periodo = propuesta.lectura.periodo
+
+  /*
+   * El orden del desplegable: primero los más usados en los últimos meses (los
+   * manda el servidor), después los que ya se han usado en ESTE extracto, y
+   * detrás el resto. Con cincuenta conceptos, esto ahorra la mitad del trabajo.
+   */
+  const frecuentes = useMemo(() => {
+    const usadosAqui = [...new Set(lineas.map((l) => l.conceptoId).filter(Boolean) as number[])]
+    return [...new Set([...(propuesta.frecuentes ?? []), ...usadosAqui])]
+  }, [propuesta.frecuentes, lineas])
 
   // ---- el marcador ----
   const cuenta: ContadorExtracto = useMemo(() => {
@@ -72,24 +113,22 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
       fijos: 0,
       variables: 0,
       comida: 0,
-      omitidos: 0,
+      ingreso: 0,
       descartados: 0,
-      fueraDeMes: 0,
       duplicados: 0,
       sinClasificar: 0,
     }
     for (const l of lineas) {
       if (l.destino === 'descartado') c.descartados += 1
       else if (l.destino === 'duplicado') c.duplicados += 1
-      else if (l.destino === 'omitido') c.omitidos += 1
-      else if (l.fueraDeMes) c.fueraDeMes += 1
+      else if (l.destino === 'ingreso') c.ingreso += 1
       else if (l.destino === 'fijo') c.fijos += 1
       else if (l.destino === 'comida') c.comida += 1
       else if (l.destino === 'variable') c.variables += 1
       else c.sinClasificar += 1
     }
     const suma =
-      c.fijos + c.variables + c.comida + c.omitidos + c.descartados + c.fueraDeMes + c.duplicados + c.sinClasificar
+      c.fijos + c.variables + c.comida + c.ingreso + c.descartados + c.duplicados + c.sinClasificar
     return { ...c, suma, cuadra: suma === c.total }
   }, [lineas])
 
@@ -100,29 +139,37 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
     guardado.current = window.setTimeout(() => {
       void api(`/extracto/${importacionId}/borrador`, {
         metodo: 'PATCH',
-        cuerpo: { lineas, conciliaciones },
+        cuerpo: { lineas, conciliaciones, plantilla, periodo },
       }).catch(() => {
         // Que falle el autoguardado no puede molestar en medio de la revisión.
       })
     }, 1200)
     return () => window.clearTimeout(guardado.current)
-  }, [lineas, conciliaciones, importacionId])
+  }, [lineas, conciliaciones, plantilla, periodo, importacionId])
 
-  const sobre = useMemo(() => conceptos.find((c) => c.tipo === 'sobre') ?? null, [conceptos])
+  /** Guarda el estado anterior para poder deshacer, y resalta lo que se mueve. */
+  const recordarParaDeshacer = (que: string) => {
+    setUltimo({ lineas, que })
+    window.setTimeout(() => setUltimo((u) => (u?.que === que ? null : u)), 5000)
+  }
 
-  /** Cambia una línea y, si se pide, todas las que digan lo mismo. */
+  const resaltar = (ids: number[]) => {
+    setRecien(new Set(ids))
+    window.setTimeout(() => setRecien(new Set()), 2000)
+  }
+
+  /** Cambia una línea y, de paso, todas las que digan lo mismo. */
   const asignar = useCallback(
-    (linea: LineaExtracto, conceptoId: number | null, destino?: DestinoLinea) => {
+    (linea: LineaExtracto, conceptoId: number | null) => {
       const concepto = conceptos.find((c) => c.id === conceptoId) ?? null
-      const nuevoDestino: DestinoLinea =
-        destino ??
-        (concepto === null
+      const destino: DestinoLinea =
+        concepto === null
           ? 'sinClasificar'
           : concepto.tipo === 'sobre'
             ? 'comida'
             : concepto.tipo === 'fijo'
               ? 'fijo'
-              : 'variable')
+              : 'variable'
 
       const iguales = lineas.filter(
         (l) =>
@@ -130,82 +177,105 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
           l.destino === 'sinClasificar' &&
           l.descripcionLimpia === linea.descripcionLimpia,
       )
+      const tocadas = [linea.id, ...iguales.map((i) => i.id)]
 
+      recordarParaDeshacer(`${concepto?.nombre ?? 'sin clasificar'}`)
       setLineas((actuales) =>
-        actuales.map((l) => {
-          const esEsta = l.id === linea.id
-          const esIgual = iguales.some((i) => i.id === l.id)
-          if (!esEsta && !esIgual) return l
-          return {
-            ...l,
-            conceptoId,
-            concepto: concepto?.nombre ?? null,
-            destino: nuevoDestino,
-            procedencia: 'manual',
-          }
-        }),
+        actuales.map((l) =>
+          tocadas.includes(l.id)
+            ? { ...l, conceptoId, concepto: concepto?.nombre ?? null, destino, procedencia: 'manual' }
+            : l,
+        ),
       )
+      resaltar(tocadas)
 
       if (iguales.length > 0) {
-        avisar(
-          `${cuantos(iguales.length + 1, 'movimiento')} como ${concepto?.nombre ?? 'sin clasificar'}.`,
-        )
+        avisar(`${cuantos(tocadas.length, 'movimiento')} como ${concepto?.nombre ?? '—'}.`)
       }
+
+      // El foco salta al siguiente pendiente: apuntar veinte seguidos sin
+      // volver a coger el ratón es la diferencia entre hacerlo y no hacerlo.
+      const pendientes = lineas.filter(
+        (l) => l.destino === 'sinClasificar' && !tocadas.includes(l.id),
+      )
+      setEnfocada(pendientes[0]?.id ?? null)
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [conceptos, lineas, avisar],
   )
 
-  const cambiarDestino = (ids: number[], destino: DestinoLinea) => {
+  const cambiarDestino = (ids: number[], destino: DestinoLinea, que: string) => {
+    recordarParaDeshacer(que)
     setLineas((actuales) =>
       actuales.map((l) => (ids.includes(l.id) ? { ...l, destino, procedencia: 'manual' } : l)),
     )
+    resaltar(ids)
   }
 
-  const recordar = (linea: LineaExtracto, texto: string) => {
-    if (!linea.conceptoId || !texto.trim()) return
+  const deshacer = () => {
+    if (!ultimo) return
+    setLineas(ultimo.lineas)
+    setUltimo(null)
+    avisar('Deshecho.')
+  }
+
+  const recordar = (linea: LineaExtracto, regla: ReglaNueva) => {
+    if (!linea.conceptoId || !regla.texto.trim()) return
     setReglasNuevas((actuales) => {
-      if (actuales.some((r) => r.texto.toLowerCase() === texto.trim().toLowerCase())) return actuales
-      return [...actuales, { texto: texto.trim().toUpperCase(), conceptoId: linea.conceptoId }]
+      if (actuales.some((r) => r.texto.toLowerCase() === regla.texto.trim().toLowerCase())) {
+        return actuales
+      }
+      return [...actuales, { ...regla, texto: regla.texto.trim(), conceptoId: linea.conceptoId }]
     })
-    avisar(`Se recordará "${texto.trim().toUpperCase()}" → ${linea.concepto}.`)
+    avisar(`Se recordará "${regla.texto.trim()}" → ${linea.concepto}.`)
   }
 
   /**
-   * Sugerencias de la IA para lo que ninguna regla ha reconocido.
-   *
-   * Una sola llamada con todos, y solo se aplica cuando se pulsa: la IA propone
-   * y quien decide sigue siendo quien mira la pantalla.
+   * La IA se pide SOLA al abrir la revisión, sobre lo que las reglas no han
+   * reconocido. Una sola llamada. El botón queda solo para reintentar.
    */
-  const pedirSugerencias = async () => {
-    setPidiendoIa(true)
-    setAvisoIa('')
-    try {
-      const r = await api<{
-        sugerencias: Record<number, SugerenciaIa>
-        aviso: string | null
-        cuantas: number
-      }>(`/extracto/${importacionId}/sugerir`, { metodo: 'POST', cuerpo: { lineas } })
-      setSugerencias(r.sugerencias ?? {})
-      if (r.aviso) setAvisoIa(r.aviso)
-      avisar(
-        r.cuantas > 0
-          ? `La IA propone concepto para ${cuantos(r.cuantas, 'movimiento')}.`
-          : 'La IA no ha sabido proponer nada.',
-      )
-    } catch (causa) {
-      setAvisoIa(mensajeDeError(causa))
-    } finally {
-      setPidiendoIa(false)
-    }
-  }
+  const pedirSugerencias = useCallback(
+    async (automatico = false) => {
+      setPidiendoIa(true)
+      setAvisoIa('')
+      try {
+        const r = await api<{
+          sugerencias: Record<number, SugerenciaIa>
+          aviso: string | null
+          cuantas: number
+        }>(`/extracto/${importacionId}/sugerir`, { metodo: 'POST', cuerpo: { lineas } })
+        setSugerencias(r.sugerencias ?? {})
+        if (r.aviso) setAvisoIa(r.aviso)
+        if (!automatico) {
+          avisar(
+            r.cuantas > 0
+              ? `La IA propone concepto para ${cuantos(r.cuantas, 'movimiento')}.`
+              : 'La IA no ha sabido proponer nada.',
+          )
+        }
+      } catch (causa) {
+        // En automático no se grita: se deja el aviso y ya está.
+        setAvisoIa(mensajeDeError(causa))
+      } finally {
+        setPidiendoIa(false)
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [importacionId],
+  )
+
+  const yaPedida = useRef(false)
+  useEffect(() => {
+    if (yaPedida.current) return
+    yaPedida.current = true
+    if (propuesta.lineas.some((l) => l.destino === 'sinClasificar')) void pedirSugerencias(true)
+  }, [propuesta.lineas, pedirSugerencias])
 
   /** Parte un movimiento en varios: la suma tiene que dar el original. */
   const dividir = (linea: LineaExtracto, trozos: { importe: number; conceptoId: number | null }[]) => {
     const signo = linea.importe < 0 ? -1 : 1
+    recordarParaDeshacer('dividir')
     setLineas((actuales) => {
-      const resto = actuales.filter((l) => l.id !== linea.id)
-      // Ids nuevos por encima de los que hay: el marcador cuenta por linea, y
-      // dos lineas no pueden compartir id.
       let siguiente = Math.max(...actuales.map((l) => l.id)) + 1
       const nuevas = trozos.map((t, i) => {
         const concepto = conceptos.find((cc) => cc.id === t.conceptoId) ?? null
@@ -224,48 +294,34 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
             : 'sinClasificar') as DestinoLinea,
           procedencia: 'manual' as const,
           descripcionLimpia:
-            trozos.length > 1 ? `${linea.descripcionLimpia} (${i + 1}/${trozos.length})` : linea.descripcionLimpia,
-          // La huella se mantiene: sigue siendo el mismo apunte del banco, y es
-          // lo que impide que vuelva a entrar en la proxima importacion.
+            trozos.length > 1
+              ? `${linea.descripcionLimpia} (${i + 1}/${trozos.length})`
+              : linea.descripcionLimpia,
         }
       })
       const posicion = actuales.findIndex((l) => l.id === linea.id)
+      const resto = actuales.filter((l) => l.id !== linea.id)
       return [...resto.slice(0, posicion), ...nuevas, ...resto.slice(posicion)]
     })
     setDividiendo(null)
     avisar(`Dividido en ${cuantos(trozos.length, 'apunte')}.`)
   }
 
-  // ---- aplicar ----
-  const aplicar = async () => {
-    setAplicando(true)
-    try {
-      const resultado = await api<{ conciliados: number; creados: number; comida: number }>(
-        `/extracto/${importacionId}/aceptar`,
-        { metodo: 'POST', cuerpo: { lineas, conciliaciones, reglasNuevas } },
-      )
-      onAplicado(resultado)
-    } catch (causa) {
-      avisarError(mensajeDeError(causa))
-    } finally {
-      setAplicando(false)
-      setConfirmando(false)
-    }
-  }
-
-  /*
-   * Teclado en escritorio: flechas para moverse por lo que queda sin
-   * clasificar, D para descartar y C para comida. Apuntar veinte movimientos
-   * seguidos con el ratón es lo que hace que uno no lo haga.
-   */
+  // ---- teclado ----
   useEffect(() => {
     const alPulsar = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        deshacer()
+        return
+      }
       const destino = e.target as HTMLElement
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(destino?.tagName)) return
-      const pendientes = lineas.filter((l) => l.destino === 'sinClasificar' && !l.fueraDeMes)
-      if (pendientes.length === 0) return
 
+      const pendientes = lineas.filter((l) => l.destino === 'sinClasificar')
+      if (pendientes.length === 0) return
       const actual = pendientes.findIndex((l) => l.id === enfocada)
+
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault()
         const siguiente =
@@ -280,15 +336,30 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
       if (!linea) return
       if (e.key === 'd' || e.key === 'D') {
         e.preventDefault()
-        cambiarDestino([linea.id], 'descartado')
-      } else if ((e.key === 'c' || e.key === 'C') && sobre) {
-        e.preventDefault()
-        asignar(linea, sobre.id)
+        cambiarDestino([linea.id], 'descartado', 'descartar')
       }
     }
     window.addEventListener('keydown', alPulsar)
     return () => window.removeEventListener('keydown', alPulsar)
-  }, [lineas, enfocada, sobre, asignar])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineas, enfocada, ultimo])
+
+  // ---- aplicar ----
+  const aplicar = async () => {
+    setAplicando(true)
+    try {
+      const resultado = await api<ResultadoAceptar>(`/extracto/${importacionId}/aceptar`, {
+        metodo: 'POST',
+        cuerpo: { lineas, conciliaciones, reglasNuevas, plantilla, periodo },
+      })
+      onAplicado(resultado)
+    } catch (causa) {
+      avisarError(mensajeDeError(causa))
+    } finally {
+      setAplicando(false)
+      setConfirmando(false)
+    }
+  }
 
   const filtrar = (lista: LineaExtracto[]) => {
     const texto = busqueda.trim().toLowerCase()
@@ -301,41 +372,66 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
     )
   }
 
-  const sinClasificar = filtrar(lineas.filter((l) => l.destino === 'sinClasificar' && !l.fueraDeMes))
+  const sinClasificar = filtrar(lineas.filter((l) => l.destino === 'sinClasificar'))
   const clasificados = filtrar(
-    lineas.filter((l) => ['comida', 'variable'].includes(l.destino) && !l.fueraDeMes),
+    lineas.filter((l) => ['comida', 'variable'].includes(l.destino)),
   ).sort((a, b) => Math.abs(b.importe) - Math.abs(a.importe))
-  const fueraDeMes = filtrar(lineas.filter((l) => l.fueraDeMes && l.destino !== 'duplicado'))
-  const omitidos = filtrar(lineas.filter((l) => l.destino === 'omitido'))
+  const laNomina = lineas.find((l) => l.destino === 'ingreso') ?? null
   const duplicados = filtrar(lineas.filter((l) => l.destino === 'duplicado'))
   const descartados = filtrar(lineas.filter((l) => l.destino === 'descartado'))
 
-  const motivoBloqueo = !cuenta.cuadra
-    ? 'Las cuentas no cuadran.'
-    : cuenta.sinClasificar > 0
-      ? `Quedan ${cuantos(cuenta.sinClasificar, 'movimiento')} sin clasificar.`
-      : ''
+  const irAlPrimeroPendiente = () => {
+    const primero = lineas.find((l) => l.destino === 'sinClasificar')
+    if (!primero) return
+    setAbiertos((a) => ({ ...a, sin: true }))
+    setEnfocada(primero.id)
+    document
+      .querySelector(`[data-linea="${primero.id}"]`)
+      ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }
+
+  const frase =
+    cuenta.sinClasificar > 0
+      ? `Esto es un borrador. Quedan ${cuenta.sinClasificar} sin clasificar; cuando estén todos, Aceptar los mete en ${nombreMes}.`
+      : `Todo clasificado. Aceptar aplica ${cuantos(cuenta.fijos, 'fijo')}, ` +
+        `${cuantos(cuenta.variables, 'variable')}, ${cuantos(cuenta.comida, 'compra')} de comida` +
+        `${laNomina ? ' y el ingreso' : ''}.`
 
   return (
     <div className="revision-extracto">
       <div className="marcador">
+        <div className="marcador-arriba">
+          <p className="marcador-periodo">
+            <strong>{nombreMes}</strong>
+            {periodo?.desde && periodo?.hasta ? (
+              <> · del {fechaMuyCorta(periodo.desde)} al {fechaMuyCorta(periodo.hasta)}</>
+            ) : null}
+            {laNomina ? <> · nómina {euros(Math.abs(laNomina.importe))}</> : null}
+          </p>
+          <p className={`marcador-frase${cuenta.sinClasificar > 0 ? ' pendiente' : ''}`}>{frase}</p>
+        </div>
+
         <div className="marcador-cifras">
           <strong>{cuenta.total}</strong> movimientos ={' '}
           <Cifra n={cuenta.fijos} que="fijos" />
           <Cifra n={cuenta.comida} que="comida" />
           <Cifra n={cuenta.variables} que="variables" />
-          <Cifra n={cuenta.omitidos} que="omitidos" />
+          <Cifra n={cuenta.ingreso} que="ingreso" />
           <Cifra n={cuenta.descartados} que="descartados" />
-          <Cifra n={cuenta.fueraDeMes} que="fuera de mes" />
           <Cifra n={cuenta.duplicados} que="duplicados" />
           {cuenta.sinClasificar > 0 ? (
-            <span className="cifra pendiente">
-              <strong>{cuenta.sinClasificar}</strong> sin clasificar
-            </span>
+            <button className="cifra pendiente" onClick={irAlPrimeroPendiente}>
+              <strong>{cuenta.sinClasificar}</strong> sin clasificar · ir al primero
+            </button>
           ) : null}
         </div>
 
         <div className="marcador-acciones">
+          {ultimo ? (
+            <button className="boton boton-texto boton-compacto" onClick={deshacer}>
+              Deshacer «{ultimo.que}»
+            </button>
+          ) : null}
           <input
             className="campo-linea texto campo-buscar"
             placeholder="Buscar texto o importe"
@@ -357,15 +453,24 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
           </button>
           <button
             className="boton boton-principal"
-            disabled={!!motivoBloqueo || aplicando}
-            title={motivoBloqueo}
+            disabled={cuenta.sinClasificar > 0 || !cuenta.cuadra || aplicando}
+            title={
+              cuenta.sinClasificar > 0
+                ? `Faltan ${cuantos(cuenta.sinClasificar, 'movimiento')} por clasificar`
+                : ''
+            }
             onClick={() => setConfirmando(true)}
           >
             {aplicando ? 'Aplicando…' : 'Aceptar'}
           </button>
         </div>
-        {motivoBloqueo ? <p className="marcador-aviso">{motivoBloqueo}</p> : null}
+
         {avisoIa ? <p className="marcador-aviso">{avisoIa}</p> : null}
+        {(propuesta.avisos ?? []).map((a) => (
+          <p className="marcador-aviso" key={a}>
+            {a}
+          </p>
+        ))}
       </div>
 
       {seleccion.size > 0 ? (
@@ -378,6 +483,7 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
             placeholder="Asignar concepto…"
             onElegir={(conceptoId) => {
               const concepto = conceptos.find((c) => c.id === conceptoId)
+              recordarParaDeshacer('asignar en bloque')
               setLineas((actuales) =>
                 actuales.map((l) =>
                   seleccion.has(l.id)
@@ -385,42 +491,34 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
                         ...l,
                         conceptoId,
                         concepto: concepto?.nombre ?? null,
-                        destino: concepto?.tipo === 'sobre' ? 'comida' : concepto?.tipo === 'fijo' ? 'fijo' : 'variable',
+                        destino:
+                          concepto?.tipo === 'sobre'
+                            ? 'comida'
+                            : concepto?.tipo === 'fijo'
+                              ? 'fijo'
+                              : 'variable',
                         procedencia: 'manual',
                       }
                     : l,
                 ),
               )
+              resaltar([...seleccion])
               setSeleccion(new Set())
             }}
           />
-          {sobre ? (
-            <button
-              className="boton boton-secundario boton-compacto"
-              onClick={() => {
-                setLineas((actuales) =>
-                  actuales.map((l) =>
-                    seleccion.has(l.id)
-                      ? { ...l, conceptoId: sobre.id, concepto: sobre.nombre, destino: 'comida', procedencia: 'manual' }
-                      : l,
-                  ),
-                )
-                setSeleccion(new Set())
-              }}
-            >
-              Es comida
-            </button>
-          ) : null}
           <button
             className="boton boton-secundario boton-compacto"
             onClick={() => {
-              cambiarDestino([...seleccion], 'descartado')
+              cambiarDestino([...seleccion], 'descartado', 'descartar en bloque')
               setSeleccion(new Set())
             }}
           >
             Descartar
           </button>
-          <button className="boton boton-texto boton-compacto" onClick={() => setSeleccion(new Set())}>
+          <button
+            className="boton boton-texto boton-compacto"
+            onClick={() => setSeleccion(new Set())}
+          >
             Quitar selección
           </button>
         </div>
@@ -439,10 +537,12 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
             key={linea.id}
             linea={linea}
             conceptos={conceptos}
-            sobre={sobre}
             sugerencia={sugerencias[linea.id] ?? null}
             enfocada={enfocada === linea.id}
+            recien={reciennnacidas.has(linea.id)}
             seleccionada={seleccion.has(linea.id)}
+            descripcionesDelExtracto={lineas.map((l) => l.descripcionOriginal)}
+            frecuentes={frecuentes}
             onSeleccionar={(marcada) =>
               setSeleccion((s) => {
                 const nueva = new Set(s)
@@ -452,9 +552,9 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
               })
             }
             onAsignar={(conceptoId) => asignar(linea, conceptoId)}
-            onDescartar={() => cambiarDestino([linea.id], 'descartado')}
-            onRecordar={(texto) => recordar(linea, texto)}
+            onDescartar={() => cambiarDestino([linea.id], 'descartado', 'descartar')}
             onDividir={() => setDividiendo(linea)}
+            onRecordar={(regla) => recordar(linea, regla)}
           />
         ))}
       </Bloque>
@@ -471,10 +571,12 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
             key={linea.id}
             linea={linea}
             conceptos={conceptos}
-            sobre={sobre}
-            sugerencia={sugerencias[linea.id] ?? null}
-            enfocada={enfocada === linea.id}
+            sugerencia={null}
+            enfocada={false}
+            recien={reciennnacidas.has(linea.id)}
             seleccionada={seleccion.has(linea.id)}
+            descripcionesDelExtracto={lineas.map((l) => l.descripcionOriginal)}
+            frecuentes={frecuentes}
             onSeleccionar={(marcada) =>
               setSeleccion((s) => {
                 const nueva = new Set(s)
@@ -484,9 +586,9 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
               })
             }
             onAsignar={(conceptoId) => asignar(linea, conceptoId)}
-            onDescartar={() => cambiarDestino([linea.id], 'descartado')}
-            onRecordar={(texto) => recordar(linea, texto)}
+            onDescartar={() => cambiarDestino([linea.id], 'descartado', 'descartar')}
             onDividir={() => setDividiendo(linea)}
+            onRecordar={(regla) => recordar(linea, regla)}
           />
         ))}
       </Bloque>
@@ -504,47 +606,73 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
             <span>Previsto</span>
             <span>Real</span>
             <span>Diferencia</span>
-            <span>Qué hago</span>
+            <span>Estado</span>
           </div>
           {conciliaciones.map((c) => (
-            <FilaConciliacion
-              key={c.conceptoId}
-              conciliacion={c}
-              onCambiar={(accion) =>
-                setConciliaciones((actuales) =>
-                  actuales.map((x) => (x.conceptoId === c.conceptoId ? { ...x, accion } : x)),
-                )
-              }
-            />
+            <FilaConciliacion key={c.conceptoId} conciliacion={c} />
           ))}
         </div>
 
         {propuesta.fijosSinEncontrar.length > 0 ? (
           <p className="pista">
-            Siguen pendientes, el extracto no los menciona:{' '}
-            {propuesta.fijosSinEncontrar.map((f) => f.concepto).join(', ')}.
+            Siguen pendientes: {propuesta.fijosSinEncontrar.map((f) => f.concepto).join(', ')}.
           </p>
+        ) : null}
+
+        {plantilla.length > 0 ? (
+          <>
+            <h4 className="subseccion">Actualizar la plantilla con estos importes</h4>
+            <p className="pista">
+              Desde {plantilla[0]?.vigenteDesde}. Desmarca lo que sea un importe puntual que no se
+              va a repetir.
+            </p>
+            <div className="tarjeta">
+              {plantilla.map((p) => (
+                <label className="fila" key={p.conceptoId}>
+                  <input
+                    type="checkbox"
+                    className="casilla"
+                    checked={p.aplicar}
+                    onChange={(e) =>
+                      setPlantilla((actuales) =>
+                        actuales.map((x) =>
+                          x.conceptoId === p.conceptoId ? { ...x, aplicar: e.target.checked } : x,
+                        ),
+                      )
+                    }
+                  />
+                  <span className="fila-cuerpo">
+                    <span className="fila-titulo">{p.concepto}</span>
+                    <span className="fila-detalle">
+                      {euros(p.previsto)} → {euros(p.real)}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </>
         ) : null}
       </Bloque>
 
       <Bloque
-        titulo="Fuera de mes, omitidos y duplicados"
-        cuantos={fueraDeMes.length + omitidos.length + duplicados.length + descartados.length}
+        titulo="Duplicados y descartados"
+        cuantos={duplicados.length + descartados.length}
         abierto={abiertos.resto}
         onAlternar={() => setAbiertos((a) => ({ ...a, resto: !a.resto }))}
         vacio="Nada aquí."
       >
-        <SubBloque titulo="Fuera del mes" lineas={fueraDeMes} />
         <SubBloque
-          titulo="Ingresos omitidos"
-          nota="Solo entra lo que resta. Se pueden rescatar de uno en uno."
-          lineas={omitidos}
+          titulo="Duplicados"
+          nota="Ya entraron en una importación aceptada. Se pueden forzar."
+          lineas={duplicados}
+          textoAccion="Forzar"
+          onRecuperar={(id) => cambiarDestino([id], 'sinClasificar', 'forzar duplicado')}
         />
-        <SubBloque titulo="Duplicados" nota="Ya entraron en una importación anterior." lineas={duplicados} />
         <SubBloque
           titulo="Descartados"
           lineas={descartados}
-          onRecuperar={(id) => cambiarDestino([id], 'sinClasificar')}
+          textoAccion="Recuperar"
+          onRecuperar={(id) => cambiarDestino([id], 'sinClasificar', 'recuperar')}
         />
       </Bloque>
 
@@ -559,9 +687,15 @@ export function RevisionExtracto({ propuesta, onAplicado, onCancelar }: Props) {
         abierto={confirmando}
         titulo="¿Aplicar la importación?"
         mensaje={
-          `Entrarán ${cuantos(cuenta.fijos, 'fijo')} conciliados, ` +
-          `${cuantos(cuenta.comida, 'compra')} de comida y ${cuantos(cuenta.variables, 'gasto variable', 'gastos variables')}. ` +
-          (reglasNuevas.length > 0 ? `Se recordarán ${cuantos(reglasNuevas.length, 'regla', 'reglas')}. ` : '') +
+          `Entrarán ${cuantos(cuenta.fijos, 'fijo')}, ${cuantos(cuenta.comida, 'compra')} de comida ` +
+          `y ${cuantos(cuenta.variables, 'gasto variable', 'gastos variables')}. ` +
+          (laNomina ? `El ingreso pasa a ${euros(Math.abs(laNomina.importe))}. ` : '') +
+          (plantilla.filter((p) => p.aplicar).length > 0
+            ? `Se actualizarán ${cuantos(plantilla.filter((p) => p.aplicar).length, 'importe')} de la plantilla. `
+            : '') +
+          (reglasNuevas.length > 0
+            ? `Se recordarán ${cuantos(reglasNuevas.length, 'regla', 'reglas')}. `
+            : '') +
           'Se puede deshacer entera después.'
         }
         textoConfirmar="Aplicar"
@@ -618,38 +752,53 @@ function Bloque({
   )
 }
 
+/**
+ * Una línea del extracto.
+ *
+ * Solo lo imprescindible a la vista: casilla, fecha, descripción, importe y el
+ * selector. Dividir, descartar y recordar viven en el menú «···», porque son
+ * cosas que se hacen de vez en cuando y llenaban la fila de botones.
+ */
 function FilaExtracto({
   linea,
   conceptos,
-  sobre,
   sugerencia,
   enfocada,
+  recien,
   seleccionada,
+  descripcionesDelExtracto,
+  frecuentes,
   onSeleccionar,
   onAsignar,
   onDescartar,
-  onRecordar,
   onDividir,
+  onRecordar,
 }: {
   linea: LineaExtracto
   conceptos: Concepto[]
-  sobre: Concepto | null
   sugerencia: SugerenciaIa | null
   enfocada: boolean
+  recien: boolean
   seleccionada: boolean
+  descripcionesDelExtracto: string[]
+  frecuentes: number[]
   onSeleccionar: (marcada: boolean) => void
   onAsignar: (conceptoId: number | null) => void
   onDescartar: () => void
-  onRecordar: (texto: string) => void
   onDividir: () => void
+  onRecordar: (regla: ReglaNueva) => void
 }) {
+  const [menu, setMenu] = useState(false)
   const [recordando, setRecordando] = useState(false)
-  const [texto, setTexto] = useState('')
 
   return (
     <div
+      data-linea={linea.id}
       className={
-        'linea-extracto' + (seleccionada ? ' seleccionada' : '') + (enfocada ? ' enfocada' : '')
+        'linea-extracto' +
+        (seleccionada ? ' seleccionada' : '') +
+        (enfocada ? ' enfocada' : '') +
+        (recien ? ' recien' : '')
       }
     >
       <input
@@ -663,31 +812,37 @@ function FilaExtracto({
       <span className="linea-fecha">{linea.fecha ? fechaCorta(linea.fecha) : '—'}</span>
 
       <span className="linea-texto">
-        <span className="linea-limpia">{linea.descripcionLimpia}</span>
+        <span className="linea-limpia">
+          {linea.descripcionLimpia}
+          {linea.esAbono ? <span className="etiqueta-mini abono">abono</span> : null}
+        </span>
         <span className="linea-original">{linea.descripcionOriginal}</span>
         {linea.nota ? <span className="linea-nota">{linea.nota}</span> : null}
       </span>
 
-      <span className="linea-importe dinero">{euros(Math.abs(linea.importe))}</span>
+      <span className={`linea-importe dinero${linea.esAbono ? ' negativo' : ''}`}>
+        {linea.esAbono ? '−' : ''}
+        {euros(Math.abs(linea.importe))}
+      </span>
 
       <span className="linea-concepto">
-        {sugerencia && !linea.conceptoId ? (
-          <button
-            className={`sugerencia-ia ${sugerencia.confianza}`}
-            title={sugerencia.porque}
-            onClick={() => onAsignar(sugerencia.conceptoId)}
-          >
-            ¿{sugerencia.concepto}?
-          </button>
-        ) : null}
         <SelectorConcepto
           conceptos={conceptos}
-          valor={linea.conceptoId}
+          frecuentes={frecuentes}
+          valor={linea.conceptoId ?? sugerencia?.conceptoId ?? null}
           ariaLabel={`Concepto de ${linea.descripcionLimpia}`}
           placeholder="Elegir…"
           onElegir={onAsignar}
         />
-        {linea.procedencia !== 'ninguno' && linea.procedencia !== 'manual' ? (
+        {!linea.conceptoId && sugerencia ? (
+          <button
+            className={`marca-origen ia ${sugerencia.confianza}`}
+            title={sugerencia.porque}
+            onClick={() => onAsignar(sugerencia.conceptoId)}
+          >
+            IA ✓
+          </button>
+        ) : linea.procedencia !== 'ninguno' && linea.procedencia !== 'manual' ? (
           <span className={`marca-origen ${linea.procedencia}`}>
             {ETIQUETAS_PROCEDENCIA[linea.procedencia]}
           </span>
@@ -695,120 +850,211 @@ function FilaExtracto({
       </span>
 
       <span className="linea-acciones">
-        {sobre ? (
-          <button
-            className="boton boton-texto boton-compacto"
-            title="Marcar como comida"
-            onClick={() => onAsignar(sobre.id)}
-          >
-            Comida
-          </button>
-        ) : null}
-        <button className="boton boton-texto boton-compacto" onClick={onDividir}>
-          Dividir
+        <button
+          className="icono-boton"
+          aria-label={`Más acciones para ${linea.descripcionLimpia}`}
+          onClick={() => setMenu((m) => !m)}
+        >
+          ···
         </button>
-        <button className="boton boton-texto boton-compacto" onClick={onDescartar}>
-          Descartar
-        </button>
-        {linea.conceptoId ? (
-          recordando ? (
-            <span className="recordar-fila">
-              <input
-                className="campo-linea texto"
-                aria-label="Texto que recordar"
-                value={texto}
-                autoFocus
-                onChange={(e) => setTexto(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    onRecordar(texto)
-                    setRecordando(false)
-                  }
-                  if (e.key === 'Escape') setRecordando(false)
-                }}
-              />
+        {menu ? (
+          <span className="menu-linea">
+            {linea.conceptoId ? (
               <button
-                className="boton boton-secundario boton-compacto"
                 onClick={() => {
-                  onRecordar(texto)
-                  setRecordando(false)
+                  setMenu(false)
+                  setRecordando(true)
                 }}
               >
                 Recordar
               </button>
-            </span>
-          ) : (
+            ) : null}
             <button
-              className="boton boton-texto boton-compacto"
               onClick={() => {
-                setTexto(primeraPalabra(linea.descripcionLimpia))
-                setRecordando(true)
+                setMenu(false)
+                onDividir()
               }}
             >
-              Recordar
+              Dividir
             </button>
-          )
+            <button
+              onClick={() => {
+                setMenu(false)
+                onDescartar()
+              }}
+            >
+              Descartar
+            </button>
+          </span>
         ) : null}
       </span>
+
+      {recordando ? (
+        <SheetRecordar
+          linea={linea}
+          descripciones={descripcionesDelExtracto}
+          onCerrar={() => setRecordando(false)}
+          onRecordar={(regla) => {
+            onRecordar(regla)
+            setRecordando(false)
+          }}
+        />
+      ) : null}
     </div>
   )
 }
 
-/** La primera palabra con sentido: en el banco, el comercio va delante. */
-function primeraPalabra(texto: string) {
-  const palabras = texto
-    .split(/[^A-Za-zÀ-ÿ0-9]+/)
-    .filter((p) => p.length >= 4 && !/\d/.test(p))
-  return (palabras[0] ?? texto).toUpperCase()
+/**
+ * Crear la regla que reconocerá esto el mes que viene.
+ *
+ * El servidor propone el texto, y para las descripciones que no tienen ninguno
+ * fijo —los pagos por móvil, con un código distinto cada vez— propone una
+ * expresión regular. Antes de crearla se dice **cuántos movimientos de este
+ * mismo extracto encajarían**: una regla que solo pilla la línea que tienes
+ * delante casi nunca merece la pena.
+ */
+function SheetRecordar({
+  linea,
+  descripciones,
+  onCerrar,
+  onRecordar,
+}: {
+  linea: LineaExtracto
+  descripciones: string[]
+  onCerrar: () => void
+  onRecordar: (regla: ReglaNueva) => void
+}) {
+  const [texto, setTexto] = useState('')
+  const [coincidencia, setCoincidencia] = useState<ReglaNueva['coincidencia']>('empieza')
+  const [explicacion, setExplicacion] = useState('')
+  const [encajarian, setEncajarian] = useState<number | null>(null)
+
+  useEffect(() => {
+    void api<{
+      propuesta: { texto: string; coincidencia: ReglaNueva['coincidencia']; explicacion: string }
+      encajarian: number
+    }>('/reglas/probar', {
+      metodo: 'POST',
+      cuerpo: { descripcion: linea.descripcionOriginal, contra: descripciones },
+    })
+      .then((r) => {
+        setTexto(r.propuesta.texto)
+        setCoincidencia(r.propuesta.coincidencia)
+        setExplicacion(r.propuesta.explicacion)
+        setEncajarian(r.encajarian)
+      })
+      .catch(() => setTexto(''))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linea.id])
+
+  const recontar = async (nuevoTexto: string, nuevaCoincidencia: ReglaNueva['coincidencia']) => {
+    try {
+      const r = await api<{ encajarian: number }>('/reglas/probar', {
+        metodo: 'POST',
+        cuerpo: { descripcion: nuevoTexto, contra: descripciones },
+      })
+      setEncajarian(r.encajarian)
+    } catch {
+      setEncajarian(null)
+    }
+    void nuevaCoincidencia
+  }
+
+  return (
+    <Sheet abierta titulo={`Recordar → ${linea.concepto}`} onCerrar={onCerrar}>
+      <p className="seccion-pista">
+        Se creará una regla para que el mes que viene esto se clasifique solo.
+        {explicacion ? ` Esta descripción es ${explicacion}.` : ''}
+      </p>
+
+      <label className="etiqueta-campo" htmlFor="texto-regla">
+        Texto que buscar
+      </label>
+      <input
+        id="texto-regla"
+        className="campo-linea texto"
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        onBlur={() => void recontar(texto, coincidencia)}
+      />
+
+      <label className="etiqueta-campo" htmlFor="encaje-regla">
+        Cómo encaja
+      </label>
+      <select
+        id="encaje-regla"
+        className="campo-linea"
+        value={coincidencia}
+        onChange={(e) => setCoincidencia(e.target.value as ReglaNueva['coincidencia'])}
+      >
+        <option value="empieza">Empieza palabra</option>
+        <option value="exacta">Palabra completa</option>
+        <option value="regex">Expresión regular</option>
+      </select>
+
+      {encajarian !== null ? (
+        <p className={`pista${encajarian <= 1 ? ' descuadre' : ''}`}>
+          {encajarian === 0
+            ? 'No encajaría con ningún movimiento de este extracto.'
+            : encajarian === 1
+              ? 'Solo encajaría con este movimiento.'
+              : `Encajaría con ${encajarian} movimientos de este extracto.`}
+        </p>
+      ) : null}
+
+      <button
+        className="boton boton-principal boton-ancho"
+        disabled={!texto.trim()}
+        onClick={() => onRecordar({ texto, conceptoId: linea.conceptoId, coincidencia })}
+      >
+        Recordar
+      </button>
+    </Sheet>
+  )
 }
 
-function FilaConciliacion({
-  conciliacion,
-  onCambiar,
-}: {
-  conciliacion: Conciliacion
-  onCambiar: (accion: Conciliacion['accion']) => void
-}) {
+/** El bloque de fijos es informativo: lo decide el extracto, no un botón. */
+function FilaConciliacion({ conciliacion }: { conciliacion: Conciliacion }) {
+  const [abierta, setAbierta] = useState(false)
   const previsto = conciliacion.importePrevisto
-  const diferencia = previsto === null || previsto === 0 ? null : conciliacion.importe - previsto
+  const diferencia = previsto === null ? null : conciliacion.importe - previsto
   const desviado = diferencia !== null && previsto ? Math.abs(diferencia / previsto) > 0.1 : false
 
   return (
-    <div className="conciliacion-fila">
-      <span className="conciliacion-concepto">
-        {conciliacion.concepto}
-        {conciliacion.cuantasLineas > 1 ? (
-          <span className="linea-nota">{conciliacion.cuantasLineas} líneas sumadas</span>
-        ) : null}
-        {conciliacion.situacion === 'ya-cobrado' ? (
-          <span className="linea-nota aviso">Ya estaba cobrado</span>
-        ) : null}
-        {conciliacion.situacion === 'no-existe' ? (
-          <span className="linea-nota aviso">No está en el mes</span>
-        ) : null}
-      </span>
-      <span className="dinero apagado">{previsto === null ? '—' : euros(previsto)}</span>
-      <span className="dinero">{euros(conciliacion.importe)}</span>
-      <span className={`dinero${desviado ? ' negativo' : ''}`}>
-        {diferencia === null ? '—' : (diferencia > 0 ? '+' : '') + euros(diferencia)}
-      </span>
-      <select
-        className="campo-linea"
-        aria-label={`Qué hacer con ${conciliacion.concepto}`}
-        value={conciliacion.accion}
-        onChange={(e) => onCambiar(e.target.value as Conciliacion['accion'])}
-      >
-        {conciliacion.situacion === 'no-existe' ? (
-          <option value="crear">Crear el fijo en el mes</option>
-        ) : (
-          <option value="conciliar">Marcar cobrado</option>
-        )}
-        {conciliacion.situacion === 'ya-cobrado' ? (
-          <option value="conciliar">Sustituir el importe</option>
-        ) : null}
-        <option value="descartar">No tocarlo</option>
-      </select>
-    </div>
+    <>
+      <div className="conciliacion-fila">
+        <span className="conciliacion-concepto">
+          {conciliacion.cuantasLineas > 1 ? (
+            <button className="boton boton-texto boton-compacto" onClick={() => setAbierta((a) => !a)}>
+              {abierta ? '−' : '+'} {conciliacion.concepto}
+            </button>
+          ) : (
+            conciliacion.concepto
+          )}
+          {conciliacion.cuantasLineas > 1 ? (
+            <span className="linea-nota">{conciliacion.cuantasLineas} líneas sumadas</span>
+          ) : null}
+        </span>
+        <span className="dinero apagado">{previsto === null ? '—' : euros(previsto)}</span>
+        <span className="dinero">{euros(conciliacion.importe)}</span>
+        <span className={`dinero${desviado ? ' negativo' : ''}`}>
+          {diferencia === null ? '—' : (diferencia > 0 ? '+' : '') + euros(diferencia)}
+        </span>
+        <span className={`estado-fijo ${conciliacion.accion}`}>
+          {ETIQUETAS_ACCION[conciliacion.accion]}
+        </span>
+      </div>
+
+      {abierta
+        ? conciliacion.detalleLineas.map((d, i) => (
+            <div className="linea-simple detalle-fijo" key={i}>
+              <span className="linea-fecha">{d.fecha ? fechaCorta(d.fecha) : '—'}</span>
+              <span className="linea-limpia">{d.descripcion}</span>
+              <span className="dinero">{euros(d.importe)}</span>
+            </div>
+          ))
+        : null}
+    </>
   )
 }
 
@@ -816,12 +1062,14 @@ function SubBloque({
   titulo,
   nota,
   lineas,
+  textoAccion,
   onRecuperar,
 }: {
   titulo: string
   nota?: string
   lineas: LineaExtracto[]
-  onRecuperar?: (id: number) => void
+  textoAccion: string
+  onRecuperar: (id: number) => void
 }) {
   if (lineas.length === 0) return null
   return (
@@ -835,11 +1083,9 @@ function SubBloque({
           <span className="linea-fecha">{l.fecha ? fechaCorta(l.fecha) : '—'}</span>
           <span className="linea-limpia">{l.descripcionLimpia}</span>
           <span className="dinero">{euros(Math.abs(l.importe))}</span>
-          {onRecuperar ? (
-            <button className="boton boton-texto boton-compacto" onClick={() => onRecuperar(l.id)}>
-              Recuperar
-            </button>
-          ) : null}
+          <button className="boton boton-texto boton-compacto" onClick={() => onRecuperar(l.id)}>
+            {textoAccion}
+          </button>
         </div>
       ))}
     </div>
@@ -850,7 +1096,7 @@ function SubBloque({
  * Partir un movimiento en varios conceptos.
  *
  * La suma tiene que dar exactamente el importe original: una compra de 120 € no
- * puede convertirse en 100 € por despiste. Hasta que cuadra, no deja aplicar.
+ * puede convertirse en 100 € por despiste.
  */
 function SheetDividir({
   linea,
@@ -867,9 +1113,8 @@ function SheetDividir({
 
   useEffect(() => {
     if (!linea) return
-    const total = Math.abs(linea.importe)
     setTrozos([
-      { importe: escribirImporte(total), conceptoId: linea.conceptoId },
+      { importe: escribirImporte(Math.abs(linea.importe)), conceptoId: linea.conceptoId },
       { importe: '', conceptoId: null },
     ])
   }, [linea])

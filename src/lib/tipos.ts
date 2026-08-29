@@ -32,8 +32,11 @@ export type Regla = {
   concepto: string | null
   conceptoTipo: Tipo | null
   tipo: 'fijo' | 'sobre' | 'variable' | 'manual'
-  /** 'empieza' = principio de palabra; 'exacta' = la palabra entera. */
-  coincidencia: 'empieza' | 'exacta'
+  /**
+   * 'empieza' = principio de palabra; 'exacta' = la palabra entera;
+   * 'regex' = una expresión regular, para lo que no tiene texto fijo.
+   */
+  coincidencia: 'empieza' | 'exacta' | 'regex'
   prioridad: number
   estado: 'confirmada' | 'propuesta'
   activa: boolean
@@ -64,7 +67,9 @@ export type PruebaRegla = {
   /** Cuántas se han mirado y descartado antes de la que gana. */
   descartadas: number
   /** El texto que se propone si se quiere crear una regla nueva. */
-  propuesta: string
+  propuesta: { texto: string; coincidencia: 'empieza' | 'exacta' | 'regex'; explicacion: string }
+  /** Cuántas de las descripciones mandadas encajarían con esa propuesta. */
+  encajarian?: number
 }
 
 /**
@@ -161,6 +166,9 @@ export type Mes = {
   presupuestoComida: number
   objetivoAhorro: number
   notas: string
+  /** El periodo real que cubre, del extracto. null hasta que se importa uno. */
+  fechaInicio: string | null
+  fechaFin: string | null
   estado: EstadoMes
   fechaApertura: string
   resumen: ResumenMes
@@ -367,7 +375,8 @@ export type DestinoLinea =
   | 'fijo'
   | 'comida'
   | 'variable'
-  | 'omitido'
+  /** La nómina: no crea apunte, va a `meses.ingreso`. */
+  | 'ingreso'
   | 'descartado'
   | 'duplicado'
   | 'sinClasificar'
@@ -382,13 +391,14 @@ export type LineaExtracto = {
   huella: string
   /** Lo que cobró el banco. No cambia al dividir: los trozos deben sumar esto. */
   importeOriginal?: number
+  /** El banco ingresa dinero: entrará como variable en negativo. */
+  esAbono?: boolean
   destino: DestinoLinea
   conceptoId: number | null
   concepto: string | null
   reglaId: number | null
   /** De dónde sale la asignación, para verlo de un vistazo con un color. */
   procedencia: 'regla' | 'aprendida' | 'ia' | 'manual' | 'ninguno'
-  fueraDeMes: boolean
   nota: string
   /** Lo que se guardará como descripción; la original no se toca nunca. */
   descripcion?: string
@@ -398,14 +408,30 @@ export type Conciliacion = {
   conceptoId: number
   concepto: string
   lineas: number[]
+  detalleLineas: { fecha: string | null; importe: number; descripcion: string }[]
   cuantasLineas: number
   importe: number
   fecha: string | null
   detalle: string
   movimientoId: number | null
   importePrevisto: number | null
-  situacion: 'pendiente' | 'ya-cobrado' | 'no-existe'
-  accion: 'conciliar' | 'crear' | 'decidir' | 'descartar'
+  importeAnterior: number | null
+  /**
+   * Lo que va a pasar. No se pregunta: el extracto es la verdad y el fijo se
+   * pone al día con lo que dice el banco.
+   */
+  accion: 'cobrar' | 'actualizar' | 'crear' | 'igual'
+}
+
+/** Un fijo cuyo importe real no coincide con la plantilla. */
+export type PlantillaPropuesta = {
+  conceptoId: number
+  concepto: string
+  previsto: number
+  real: number
+  aplicar: boolean
+  diaPrevisto: string | null
+  vigenteDesde: string
 }
 
 export type ContadorExtracto = {
@@ -413,9 +439,8 @@ export type ContadorExtracto = {
   fijos: number
   variables: number
   comida: number
-  omitidos: number
+  ingreso: number
   descartados: number
-  fueraDeMes: number
   duplicados: number
   sinClasificar: number
   suma: number
@@ -450,9 +475,21 @@ export type PropuestaExtracto = {
     cabecera: string[]
     nOrigen: number
     filasDescartadas: number
+    /** El periodo que cubre el extracto: es lo que define el mes. */
+    periodo: { desde: string | null; hasta: string | null }
+    nominas: {
+      id: number
+      fecha: string | null
+      importe: number
+      descripcion: string
+      abreElMes: boolean
+    }[]
   }
+  /** Avisos no bloqueantes: la nómina no abre el mes, hay más de una… */
+  avisos?: string[]
   lineas: LineaExtracto[]
   conciliaciones: Conciliacion[]
+  plantillaPropuesta: PlantillaPropuesta[]
   fijosSinEncontrar: {
     movimientoId: number
     conceptoId: number
@@ -462,6 +499,8 @@ export type PropuestaExtracto = {
   }[]
   resumen: ContadorExtracto
   conceptos: Concepto[]
+  /** Ids que van primero en el desplegable: los más usados últimamente. */
+  frecuentes?: number[]
   /** Cuando no reconoce el fichero, en vez de la propuesta llega esto. */
   necesitaAyuda?: boolean
   motivo?: string
@@ -501,7 +540,7 @@ export type SugerenciaIa = {
 export type ReglaNueva = {
   texto: string
   conceptoId: number | null
-  coincidencia?: 'empieza' | 'exacta'
+  coincidencia: 'empieza' | 'exacta' | 'regex'
 }
 
 // ---------- Analítica ----------

@@ -27,6 +27,12 @@ type Props = {
   autoFocus?: boolean
   /** Se llama al pulsar Intro con un concepto ya elegido: apunta y sigue. */
   onConfirmar?: () => void
+  /**
+   * Ids que van primero cuando no se ha escrito nada: los más usados en los
+   * últimos meses y los que ya se han usado en este mismo extracto. Con
+   * cincuenta conceptos, el orden alfabético obliga a leerlos todos.
+   */
+  frecuentes?: number[]
 }
 
 export function SelectorConcepto({
@@ -37,6 +43,7 @@ export function SelectorConcepto({
   ariaLabel,
   autoFocus = false,
   onConfirmar,
+  frecuentes = [],
 }: Props) {
   const [texto, setTexto] = useState('')
   const [abierto, setAbierto] = useState(false)
@@ -48,7 +55,17 @@ export function SelectorConcepto({
 
   const filtrados = useMemo(() => {
     const busqueda = sinAcentos(texto.trim())
-    if (!busqueda) return conceptos
+    if (!busqueda) {
+      if (frecuentes.length === 0) return conceptos
+      /*
+       * Sin nada escrito, los frecuentes arriba en su orden, y detras el resto
+       * como venga. Al escribir manda lo que se escribe, no la frecuencia.
+       */
+      const porId = new Map(conceptos.map((c) => [c.id, c]))
+      const arriba = frecuentes.map((id) => porId.get(id)).filter(Boolean) as Concepto[]
+      const yaEstan = new Set(arriba.map((c) => c.id))
+      return [...arriba, ...conceptos.filter((c) => !yaEstan.has(c.id))]
+    }
     // Los que empiezan por lo escrito van primero: es lo que se busca al
     // teclear dos letras.
     const empiezan: Concepto[] = []
@@ -59,7 +76,7 @@ export function SelectorConcepto({
       else if (nombre.includes(busqueda)) contienen.push(concepto)
     }
     return [...empiezan, ...contienen]
-  }, [conceptos, texto])
+  }, [conceptos, texto, frecuentes])
 
   useEffect(() => setResaltado(0), [texto])
 

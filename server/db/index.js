@@ -91,6 +91,11 @@ CREATE TABLE IF NOT EXISTS meses (
   presupuesto_comida REAL NOT NULL DEFAULT 0,
   objetivo_ahorro    REAL NOT NULL DEFAULT 0,
   notas              TEXT,
+  -- El periodo que de verdad cubre el mes, sacado del extracto: de la nomina a
+  -- la siguiente. NO es el mes del calendario, y por eso se guarda: agosto va
+  -- del 29/07 al 26/08. Vacios mientras no se haya importado ningun extracto.
+  fecha_inicio       TEXT,
+  fecha_fin          TEXT,
   estado             TEXT NOT NULL DEFAULT 'abierto' CHECK (estado IN ('abierto','cerrado')),
   fecha_apertura     TEXT NOT NULL,
   UNIQUE (anio, mes)
@@ -142,7 +147,11 @@ CREATE TABLE IF NOT EXISTS reglas_clasificacion (
   --               'PRESTAM' tiene que pillar 'PRESTAMOS'.
   --   'exacta'  -> la palabra entera. Hace falta para las cortas: sin esto,
   --               'BAR' encaja dentro de 'BARCELONA' y se lleva medio extracto.
-  coincidencia      TEXT NOT NULL DEFAULT 'empieza' CHECK (coincidencia IN ('empieza','exacta')),
+  --   'regex'   -> una expresion regular. Hace falta para los pagos por movil,
+  --               que traen un codigo distinto cada vez ("13AUG B7DG2ZYM-Barcelona")
+  --               y no hay ningun texto fijo que buscar.
+  coincidencia      TEXT NOT NULL DEFAULT 'empieza'
+                    CHECK (coincidencia IN ('empieza','exacta','regex')),
   -- Manda el orden de evaluacion: fijos, luego el sobre, luego los variables.
   -- 'manual' es la regla que reconoce algo y aun asi lo manda a revision.
   tipo              TEXT NOT NULL CHECK (tipo IN ('fijo','sobre','variable','manual')),
@@ -173,6 +182,9 @@ CREATE TABLE IF NOT EXISTS formatos_banco (
   -- El texto que delata la fila de cabecera: las exportaciones traen encima
   -- un numero variable de filas de titulo y saldos.
   fila_cabecera_texto TEXT NOT NULL DEFAULT 'Importe',
+  -- Lo que delata la nomina: es el primer movimiento del mes y el que va al
+  -- ingreso, no un abono cualquiera.
+  texto_nomina        TEXT NOT NULL DEFAULT 'NOMINA',
   -- JSON: trozos a quitar de la descripcion ("COMPRA TARJ. 5402XXXX4010").
   prefijos_a_limpiar  TEXT NOT NULL DEFAULT '[]',
   por_defecto         INTEGER NOT NULL DEFAULT 0,
@@ -274,3 +286,47 @@ anadirColumnaSiFalta(
   'coincidencia',
   "TEXT NOT NULL DEFAULT 'empieza'",
 )
+anadirColumnaSiFalta('formatos_banco', 'texto_nomina', "TEXT NOT NULL DEFAULT 'NOMINA'")
+
+/*
+ * El CHECK de `coincidencia` no admitia 'regex' en las bases creadas antes.
+ * SQLite no sabe cambiar un CHECK con ALTER, asi que hay que rehacer la tabla:
+ * se crea al lado, se copian las reglas (que ya son datos de verdad, con las
+ * que el usuario ha tocado), y se cambia el nombre.
+ */
+const defRegla = bd
+  .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'reglas_clasificacion'")
+  .get()
+if (defRegla && !defRegla.sql.includes('regex')) {
+  bd.exec(`
+    CREATE TABLE reglas_nuevas (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      texto             TEXT NOT NULL,
+      texto_normalizado TEXT NOT NULL,
+      concepto_id       INTEGER REFERENCES conceptos(id) ON DELETE CASCADE,
+      tipo              TEXT NOT NULL CHECK (tipo IN ('fijo','sobre','variable','manual')),
+      coincidencia      TEXT NOT NULL DEFAULT 'empieza'
+                        CHECK (coincidencia IN ('empieza','exacta','regex')),
+      prioridad         INTEGER NOT NULL DEFAULT 0,
+      estado            TEXT NOT NULL DEFAULT 'confirmada'
+                        CHECK (estado IN ('confirmada','propuesta')),
+      activa            INTEGER NOT NULL DEFAULT 1,
+      veces_aplicada    INTEGER NOT NULL DEFAULT 0,
+      ultima_aplicacion TEXT,
+      origen            TEXT NOT NULL DEFAULT 'usuario'
+                        CHECK (origen IN ('seed','usuario','aprendida')),
+      fecha_creacion    TEXT NOT NULL
+    );
+    INSERT INTO reglas_nuevas
+      (id, texto, texto_normalizado, concepto_id, tipo, coincidencia, prioridad,
+       estado, activa, veces_aplicada, ultima_aplicacion, origen, fecha_creacion)
+      SELECT id, texto, texto_normalizado, concepto_id, tipo, coincidencia, prioridad,
+             estado, activa, veces_aplicada, ultima_aplicacion, origen, fecha_creacion
+      FROM reglas_clasificacion;
+    DROP TABLE reglas_clasificacion;
+    ALTER TABLE reglas_nuevas RENAME TO reglas_clasificacion;
+    CREATE INDEX IF NOT EXISTS idx_reglas_orden ON reglas_clasificacion(prioridad);
+  `)
+}
+anadirColumnaSiFalta('meses', 'fecha_inicio', 'TEXT')
+anadirColumnaSiFalta('meses', 'fecha_fin', 'TEXT')

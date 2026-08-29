@@ -694,6 +694,12 @@ que no. Comprobado contra un extracto real:
   la regla `BAR` encajaba dentro de **BAR**CELONA y se llevaba siete
   movimientos que no tenían nada que ver (el túnel del Cadí, una frutería y
   cuatro pagos de Glovo).
+- **`regex`** — una expresión regular. Hace falta para lo que **no tiene ningún
+  texto fijo**: un pago por móvil llega como `13AUG B7DG2ZYM-Barcelona` y el
+  código cambia cada vez. Recordar `B7DG2ZYM` no serviría de nada; lo que se
+  repite es la forma. `POST /reglas/probar` la propone sola en esos casos, y
+  devuelve `encajarian` con cuántas de las descripciones que se le manden
+  (`contra`) encajarían, para poder decidir antes de crearla.
 
 **Se compara siempre contra la descripción ORIGINAL**, no contra la limpia.
 Limpiar quita prefijos, y esos prefijos son justo lo que identifica el
@@ -753,40 +759,71 @@ huella ya está en una importación **aceptada**, la línea sale marcada como
 `duplicado` y no se procesa. Al deshacer, la importación pasa a `deshecha` y sus
 huellas dejan de contar, así que el extracto se puede volver a importar.
 
+### El extracto define el mes
+
+El mes de esta casa **no es el del calendario**: empieza el día que se cobra la
+nómina (el 27 o el 28 del mes anterior) y acaba el día antes de la siguiente. El
+extracto se descarga justo entre nómina y nómina, así que **todo lo que trae el
+fichero pertenece al mes que se elija**.
+
+Por eso **no hay ningún filtrado por fecha ni bloque de «fuera de mes»**. Los
+movimientos se ordenan del más antiguo al más reciente, y el periodo que cubren
+se guarda en `meses.fecha_inicio` y `meses.fecha_fin`. Un mes abierto desde la
+plantilla, sin extracto, los tiene a `null`.
+
+`/clasificar` devuelve `lectura.periodo` y `lectura.nominas`, y un array
+`avisos` con lo que conviene mirar sin bloquear nada: que el extracto no empiece
+por la nómina, o que traiga más de una.
+
 ### El orden de la clasificación
 
 Se para en la primera que aplica:
 
-1. **Duplicado** — la huella ya entró en una importación aceptada.
-2. **Omitido** — el importe es positivo. **Solo entra lo que resta**: la nómina
-   sale de la plantilla, y los abonos y devoluciones se quedan fuera. Se ven en
-   su bloque y se pueden rescatar de uno en uno.
+1. **Duplicado** — la huella ya entró en una importación aceptada, **de
+   cualquier mes**. Se muestra plegado abajo y se puede forzar.
+2. **Nómina** — un abono con el texto configurado en el formato del banco
+   (`NOMINA` por defecto). No crea apunte: va a `meses.ingreso`.
 3. **Regla** — la primera activa que encaje. Según su tipo: conciliar un fijo,
    comida, variable, o `manual` (reconocido pero a revisión).
-4. **IA** — a petición, en una sola llamada con todos los que queden.
+4. **IA** — en una sola llamada, automática al abrir la revisión.
 5. **Sin clasificar**.
 
-**Fuera de mes no es un paso**: se marca aparte. Un movimiento de otro mes se
-clasifica igual, para que incluirlo sea un clic.
+**Nunca se omite nada.** Un abono que no es la nómina —una devolución de
+JustEat, un Bizum recibido— entra como **variable en negativo**, porque eso es
+lo que es. El signo va al revés que en el banco: lo que el banco cobra suma
+gasto, y lo que devuelve lo resta.
 
 ### Conciliar un fijo
 
-Un movimiento que cae en un fijo **no crea un apunte nuevo**: busca el fijo
-pendiente de ese concepto en el mes y lo marca cobrado con el importe real y la
-fecha del banco. Si varias líneas caen en el mismo fijo (dos facturas de gas y
-una de agua), **se suman** y el detalle de cada una se guarda en la descripción.
+Un movimiento que cae en un fijo **no crea un apunte nuevo**: pone al día el
+fijo de ese concepto con el importe real y la fecha del banco. Si varias líneas
+caen en el mismo fijo (dos facturas de gas y una de agua, cinco suscripciones en
+«Netflix etc»), **se suman** y el detalle de cada una se guarda en la
+descripción.
 
-| `situacion` | Qué pasa |
+**No se pregunta por fila.** El extracto es la verdad; el fijo se actualiza:
+
+| `accion` | Qué pasa |
 | --- | --- |
-| `pendiente` | Lo normal: se marca cobrado con el importe real. |
-| `ya-cobrado` | Posible duplicado: hay que elegir sustituir, crear aparte o no tocarlo. |
-| `no-existe` | El fijo no está en el mes: se ofrece crearlo. |
+| `cobrar` | Estaba pendiente: se marca cobrado con el importe real. |
+| `actualizar` | Ya estaba cobrado con **otro** importe: se sustituye. No es un duplicado, es la misma factura mejor informada. |
+| `crear` | No está en el mes: se crea ya cobrado. |
+| `igual` | Ya estaba cobrado con la misma fecha e importe: es la misma línea ya importada, no se toca. |
+
+Los fijos del mes que el extracto no menciona siguen pendientes y se listan.
+
+### Actualizar la plantilla
+
+`/clasificar` devuelve `plantillaPropuesta`: los fijos cuyo importe real no
+coincide con la plantilla, **incluidos los que la tenían a 0,00 €**. Vienen
+premarcados y, al aceptar, crean una entrada nueva en `plantilla_fijos` vigente
+desde el **mes siguiente**. Se desmarca lo que sea un importe puntual.
 
 ### El marcador tiene que cuadrar
 
 ```
-N movimientos = fijos + comida + variables + omitidos
-              + descartados + fuera de mes + duplicados + sin clasificar
+N movimientos = fijos + comida + variables + ingreso
+              + descartados + duplicados + sin clasificar
 ```
 
 `/aceptar` valida **antes de escribir una sola fila**, y si algo no cuadra

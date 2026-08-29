@@ -15,6 +15,9 @@ function aMes(m) {
     notas: m.notas ?? '',
     estado: m.estado,
     fechaApertura: m.fecha_apertura,
+    // El periodo real que cubre, sacado del extracto. null hasta que se importa.
+    fechaInicio: m.fecha_inicio ?? null,
+    fechaFin: m.fecha_fin ?? null,
   }
 }
 
@@ -118,6 +121,8 @@ export function actualizar(id, cambios) {
        presupuesto_comida = @comida,
        objetivo_ahorro = @ahorro,
        notas = @notas,
+       fecha_inicio = @inicio,
+       fecha_fin = @fin,
        estado = @estado
      WHERE id = @id`,
   ).run({
@@ -133,6 +138,9 @@ export function actualizar(id, cambios) {
     comida: numero(cambios.presupuestoComida, actual.presupuestoComida),
     ahorro: numero(cambios.objetivoAhorro, actual.objetivoAhorro),
     notas: cambios.notas === undefined ? actual.notas : String(cambios.notas),
+    // El periodo lo pone la importacion del extracto, y null lo borra.
+    inicio: cambios.fechaInicio === undefined ? actual.fechaInicio : (cambios.fechaInicio || null),
+    fin: cambios.fechaFin === undefined ? actual.fechaFin : (cambios.fechaFin || null),
     estado: cambios.estado ?? actual.estado,
   })
   return obtener(id)

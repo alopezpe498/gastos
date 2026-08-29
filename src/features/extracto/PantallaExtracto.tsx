@@ -92,15 +92,22 @@ export function PantallaExtracto({
     return (
       <RevisionExtracto
         propuesta={propuesta}
+        nombreMes={mes ? `${NOMBRES_MESES[mes.mes - 1]} ${mes.anio}` : ''}
         onCancelar={() => {
           void api(`/extracto/${propuesta.importacion.id}`, { metodo: 'DELETE' }).catch(() => {})
           setPropuesta(null)
         }}
         onAplicado={(resumen) => {
-          avisar(
-            `Importación aplicada: ${cuantos(resumen.conciliados, 'fijo')}, ` +
-              `${cuantos(resumen.creados, 'variable')} y ${cuantos(resumen.comida, 'compra')} de comida.`,
-          )
+          const partes = [
+            `${cuantos(resumen.cobrados + resumen.actualizados + resumen.creados, 'fijo')}`,
+            `${cuantos(resumen.variables, 'variable')}`,
+            `${cuantos(resumen.comida, 'compra')} de comida`,
+          ]
+          if (resumen.ingreso) partes.push('el ingreso')
+          if (resumen.plantillaActualizada > 0) {
+            partes.push(`${cuantos(resumen.plantillaActualizada, 'importe')} de la plantilla`)
+          }
+          avisar(`Importación aplicada: ${partes.join(', ')}.`)
           setPropuesta(null)
           onAplicado()
         }}

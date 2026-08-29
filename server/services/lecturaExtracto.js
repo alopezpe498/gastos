@@ -37,6 +37,11 @@ import { redondear } from '../lib/http.js'
  *
  * 4. LA DESCRIPCION VIENE CORTADA a unos 46 caracteres ("WWW.AMAZON-LUXEM",
  *    "MERCADONA BERGA-"). No se puede contar con que este entera.
+ *
+ * 5. EL EXTRACTO DEFINE EL MES, no el calendario. El mes de esta casa va de una
+ *    nomina a la siguiente (del 29/07 al 26/08), y el extracto se descarga
+ *    justo entre las dos. Por eso TODO lo que trae el fichero pertenece al mes
+ *    que se elija: aqui no se aparta nada por su fecha.
  */
 
 // ---------------------------------------------------------------------------
@@ -376,6 +381,8 @@ export async function leerExtracto({ buffer, texto, nombreArchivo = '', formato 
 
     movimientos.push({
       linea: i + 1,
+      // Lo pone el orden por fecha, mas abajo.
+      id: 0,
       fecha,
       importe,
       descripcionOriginal,
@@ -384,12 +391,45 @@ export async function leerExtracto({ buffer, texto, nombreArchivo = '', formato 
     })
   }
 
+  /*
+   * Del mas antiguo al mas reciente. El banco los da al reves, y el orden
+   * importa: el primero deberia ser la nomina, que es la que abre el mes.
+   * Los que no traen fecha van al final, que es donde menos estorban.
+   */
+  movimientos.sort((a, b) => (a.fecha ?? '9999').localeCompare(b.fecha ?? '9999'))
+  movimientos.forEach((m, i) => {
+    m.id = i + 1
+  })
+
+  // Las nominas del fichero. Deberia haber una, y la primera de todas.
+  const buscadoNomina = normalizar(formato?.textoNomina ?? 'NOMINA')
+  const nominas = movimientos.filter(
+    (m) => m.importe > 0 && buscadoNomina && normalizar(m.descripcionOriginal).includes(buscadoNomina),
+  )
+
   return {
     necesitaAyuda: false,
     hoja: hoja.nombre,
     filaCabecera,
     cabecera: columnas.nombres,
     columnas: { fecha: columnas.fecha, concepto: columnas.concepto, importe: columnas.importe },
+    // El periodo real del mes: del primer movimiento al ultimo.
+    periodo: {
+      desde: movimientos[0]?.fecha ?? null,
+      hasta: movimientos[movimientos.length - 1]?.fecha ?? null,
+    },
+    nominas: nominas.map((m) => ({
+      id: m.id,
+      fecha: m.fecha,
+      importe: m.importe,
+      descripcion: m.descripcionLimpia,
+      /*
+       * "Abre el mes" es que caiga el primer DIA del extracto, no que sea la
+       * primera fila: la nomina del 29/07 comparte dia con dos peajes, y
+       * exigir que fuera literalmente la primera daba un aviso falso.
+       */
+      abreElMes: !!m.fecha && m.fecha === (movimientos[0]?.fecha ?? null),
+    })),
     // Cuantos habia en el fichero: es la cifra contra la que se valida todo al
     // aceptar, para que no se pierda ni aparezca ningun movimiento por el camino.
     nOrigen: movimientos.length,

@@ -2,6 +2,7 @@ import { bd } from '../db/index.js'
 import * as mesesBd from '../db/meses.js'
 import * as movimientosBd from '../db/movimientos.js'
 import * as conceptosBd from '../db/conceptos.js'
+import * as plantillaBd from '../db/plantilla.js'
 import * as importacionesBd from '../db/importaciones.js'
 import * as reglasBd from '../db/reglas.js'
 import { contar } from './clasificacionExtracto.js'
@@ -14,9 +15,9 @@ import { redondear } from '../lib/http.js'
  * extracto completo o no entra nada. Una importacion a medias seria peor que no
  * haberla hecho, porque no se sabria por donde iba.
  *
- * Antes de escribir se valida que la propuesta cuadra: el numero de lineas del
- * fichero tiene que ser exactamente la suma de lo que se hace con ellas, y el
- * dinero tambien. Si no cuadra no se guarda y se dice por que.
+ * Antes de escribir se valida que la propuesta cuadra: el numero de movimientos
+ * del fichero tiene que ser exactamente la suma de lo que se hace con ellos, y
+ * el dinero tambien. Si no cuadra no se guarda y se dice por que.
  */
 
 export class ErrorAplicacion extends Error {
@@ -25,6 +26,9 @@ export class ErrorAplicacion extends Error {
     this.detalle = detalle
   }
 }
+
+/** El banco cobra en negativo; aqui un gasto suma. Un abono resta. */
+const aImporteDeApp = (importeBanco) => redondear(-importeBanco)
 
 /**
  * Comprueba que no se pierde ni aparece nada.
@@ -69,6 +73,7 @@ export function validar({ lineas, nOrigen }) {
       )
     }
   }
+
   if (!cuenta.cuadra) {
     problemas.push(
       `Los ${cuenta.total} movimientos no cuadran con el reparto (suman ${cuenta.suma}).`,
@@ -80,21 +85,16 @@ export function validar({ lineas, nOrigen }) {
     )
   }
 
-  // El dinero tambien tiene que cuadrar: lo que entra en la aplicacion mas lo
-  // que se queda fuera tiene que ser el total del extracto, al centimo.
+  // El dinero: lo que entra mas lo que se queda fuera tiene que ser el total.
   const total = redondear(lineas.reduce((t, l) => t + Math.abs(l.importe), 0))
   const dentro = redondear(
     lineas
-      .filter((l) => ['fijo', 'comida', 'variable'].includes(l.destino) && !l.fueraDeMes)
+      .filter((l) => ['fijo', 'comida', 'variable', 'ingreso'].includes(l.destino))
       .reduce((t, l) => t + Math.abs(l.importe), 0),
   )
   const fuera = redondear(
     lineas
-      .filter(
-        (l) =>
-          l.fueraDeMes ||
-          ['omitido', 'descartado', 'duplicado'].includes(l.destino),
-      )
+      .filter((l) => ['descartado', 'duplicado'].includes(l.destino))
       .reduce((t, l) => t + Math.abs(l.importe), 0),
   )
   if (Math.abs(total - (dentro + fuera)) > 0.005) {
@@ -109,7 +109,7 @@ export function validar({ lineas, nOrigen }) {
 
 /**
  * Lo que va a pasar, sin hacerlo: cuanto entra en cada concepto y como queda el
- * mes antes y despues. Es la pantalla previa a confirmar.
+ * mes antes y despues.
  */
 export function previsualizar({ importacionId, lineas, conciliaciones }) {
   const importacion = importacionesBd.obtener(importacionId)
@@ -118,31 +118,34 @@ export function previsualizar({ importacionId, lineas, conciliaciones }) {
 
   const porConcepto = new Map()
   const sumar = (conceptoId, nombre, importe) => {
-    const actual = porConcepto.get(conceptoId) ?? { conceptoId, concepto: nombre, total: 0, cuantos: 0 }
-    actual.total = redondear(actual.total + Math.abs(importe))
+    const actual = porConcepto.get(conceptoId) ?? {
+      conceptoId,
+      concepto: nombre,
+      total: 0,
+      cuantos: 0,
+    }
+    actual.total = redondear(actual.total + importe)
     actual.cuantos += 1
     porConcepto.set(conceptoId, actual)
   }
 
   for (const linea of lineas) {
-    if (linea.fueraDeMes || !['comida', 'variable'].includes(linea.destino)) continue
-    sumar(linea.conceptoId, linea.concepto, linea.importe)
+    if (!['comida', 'variable'].includes(linea.destino)) continue
+    sumar(linea.conceptoId, linea.concepto, aImporteDeApp(linea.importe))
   }
   for (const c of conciliaciones) {
-    if (c.accion === 'descartar') continue
+    if (c.accion === 'igual') continue
     sumar(c.conceptoId, c.concepto, c.importe)
   }
 
-  const antes = mes.resumen ?? null
-  const nuevoGasto = redondear([...porConcepto.values()].reduce((t, c) => t + c.total, 0))
+  const nomina = lineas.find((l) => l.destino === 'ingreso')
 
   return {
     conceptos: [...porConcepto.values()].sort((a, b) => b.total - a.total),
     mes: { anio: mes.anio, mes: mes.mes, id: mes.id },
-    antes,
-    // Cuanto suma lo que entra. El "despues" real lo calcula el cliente con el
-    // resumen del mes, que ya sabe restar la comida y el ahorro como toca.
-    entra: nuevoGasto,
+    antes: mes.resumen ?? null,
+    entra: redondear([...porConcepto.values()].reduce((t, c) => t + c.total, 0)),
+    ingreso: nomina ? { antes: mes.ingreso, despues: Math.abs(nomina.importe) } : null,
   }
 }
 
@@ -152,63 +155,141 @@ export function previsualizar({ importacionId, lineas, conciliaciones }) {
  * `lineas` y `conciliaciones` vienen del borrador revisado, no de volver a
  * clasificar: lo que se acepta tiene que ser exactamente lo que se vio.
  */
-export const aceptar = bd.transaction(({ importacionId, lineas, conciliaciones, reglasNuevas = [] }) => {
-  const importacion = importacionesBd.obtener(importacionId)
-  if (!importacion) throw new ErrorAplicacion('Esa importación ya no existe.')
-  if (importacion.estado !== 'borrador') {
-    throw new ErrorAplicacion('Esa importación ya se aplicó. Deshazla antes de volver a aplicarla.')
-  }
-
-  const mes = mesesBd.obtener(importacion.mesId)
-  if (!mes) throw new ErrorAplicacion('El mes de esa importación ya no existe.')
-  if (mes.estado !== 'abierto') {
-    throw new ErrorAplicacion(
-      `${mes.nombreMes} de ${mes.anio} está cerrado. Reábrelo antes de importar en él.`,
-    )
-  }
-
-  const { problemas } = validar({ lineas, nOrigen: importacion.conteos.movimientos })
-  if (problemas.length > 0) {
-    throw new ErrorAplicacion('La importación no cuadra, así que no se ha guardado nada.', problemas)
-  }
-
-  const huellaDeLinea = new Map(lineas.map((l) => [l.id, l]))
-  let conciliados = 0
-  let creados = 0
-  let comida = 0
-
-  // ---- 1. Fijos: conciliar, crear o sustituir ----
-  for (const c of conciliaciones) {
-    if (c.accion === 'descartar') continue
-
-    const descripcion = c.detalle || ''
-    let movimientoId = c.movimientoId
-
-    if (c.accion === 'crear' || !movimientoId) {
-      const nuevo = movimientosBd.crear({
-        mesId: mes.id,
-        conceptoId: c.conceptoId,
-        importe: c.importe,
-        importePrevisto: c.importePrevisto ?? c.importe,
-        fechaCobro: c.fecha,
-        descripcion,
-        origen: 'extracto',
-      })
-      movimientoId = nuevo.id
-      creados += 1
-    } else {
-      movimientosBd.actualizar(movimientoId, {
-        importe: c.importe,
-        fechaCobro: c.fecha,
-        ...(descripcion ? { descripcion } : {}),
-      })
-      conciliados += 1
+export const aceptar = bd.transaction(
+  ({ importacionId, lineas, conciliaciones, reglasNuevas = [], plantilla = [], periodo = null }) => {
+    const importacion = importacionesBd.obtener(importacionId)
+    if (!importacion) throw new ErrorAplicacion('Esa importación ya no existe.')
+    if (importacion.estado !== 'borrador') {
+      throw new ErrorAplicacion(
+        'Esa importación ya se aplicó. Deshazla antes de volver a aplicarla.',
+      )
     }
 
-    // La huella de cada linea que ha ido a este fijo apunta al mismo movimiento.
-    for (const idLinea of c.lineas) {
-      const linea = huellaDeLinea.get(idLinea)
-      if (!linea) continue
+    const mes = mesesBd.obtener(importacion.mesId)
+    if (!mes) throw new ErrorAplicacion('El mes de esa importación ya no existe.')
+    if (mes.estado !== 'abierto') {
+      throw new ErrorAplicacion(
+        `${mes.nombreMes} de ${mes.anio} está cerrado. Reábrelo antes de importar en él.`,
+      )
+    }
+
+    const { problemas } = validar({ lineas, nOrigen: importacion.conteos.movimientos })
+    if (problemas.length > 0) {
+      throw new ErrorAplicacion(
+        'La importación no cuadra, así que no se ha guardado nada.',
+        problemas,
+      )
+    }
+
+    const porId = new Map(lineas.map((l) => [l.id, l]))
+    const guardadas = new Set()
+    let cobrados = 0
+    let actualizados = 0
+    let creados = 0
+    let comida = 0
+    let variables = 0
+
+    // ---- 1. Fijos: se ponen al dia con lo que dice el banco ----
+    for (const c of conciliaciones) {
+      let movimientoId = c.movimientoId
+
+      if (c.accion === 'igual') {
+        // La misma linea ya importada: no se toca nada, pero su huella se
+        // guarda para que no vuelva a proponerse.
+        for (const idLinea of c.lineas) {
+          const linea = porId.get(idLinea)
+          if (!linea) continue
+          importacionesBd.guardarHuella({
+            importacionId,
+            hash: linea.huella,
+            fecha: linea.fecha,
+            importe: linea.importe,
+            descripcionOriginal: linea.descripcionOriginal,
+            descripcionLimpia: linea.descripcionLimpia,
+            resultado: 'duplicado',
+            movimientoId,
+          })
+          guardadas.add(idLinea)
+        }
+        continue
+      }
+
+      if (c.accion === 'crear' || !movimientoId) {
+        const nuevo = movimientosBd.crear({
+          mesId: mes.id,
+          conceptoId: c.conceptoId,
+          importe: c.importe,
+          importePrevisto: c.importePrevisto ?? c.importe,
+          fechaCobro: c.fecha,
+          descripcion: c.detalle || '',
+          origen: 'extracto',
+        })
+        movimientoId = nuevo.id
+        creados += 1
+      } else {
+        movimientosBd.actualizar(movimientoId, {
+          importe: c.importe,
+          fechaCobro: c.fecha,
+          ...(c.detalle ? { descripcion: c.detalle } : {}),
+        })
+        if (c.accion === 'actualizar') actualizados += 1
+        else cobrados += 1
+      }
+
+      for (const idLinea of c.lineas) {
+        const linea = porId.get(idLinea)
+        if (!linea) continue
+        importacionesBd.guardarHuella({
+          importacionId,
+          hash: linea.huella,
+          fecha: linea.fecha,
+          importe: linea.importe,
+          descripcionOriginal: linea.descripcionOriginal,
+          descripcionLimpia: linea.descripcionLimpia,
+          resultado: 'conciliado',
+          movimientoId,
+        })
+        guardadas.add(idLinea)
+      }
+      marcarImportacion(movimientoId, importacionId)
+    }
+
+    // ---- 2. Variables, comida y la nomina ----
+    const sobre = conceptosBd.sobrePrincipal()
+    const ingresoAnterior = mes.ingreso
+    let ingresoNuevo = null
+
+    for (const linea of lineas) {
+      if (guardadas.has(linea.id)) continue
+
+      let resultado = 'ignorado'
+      let movimientoId = null
+
+      if (linea.destino === 'ingreso') {
+        // La nomina no crea un apunte: es el ingreso del mes.
+        ingresoNuevo = Math.abs(linea.importe)
+        resultado = 'ingreso'
+      } else if (['comida', 'variable'].includes(linea.destino)) {
+        const nuevo = movimientosBd.crear({
+          mesId: mes.id,
+          conceptoId: linea.conceptoId,
+          // Un abono entra en negativo: resta gasto, no lo suma.
+          importe: aImporteDeApp(linea.importe),
+          fechaCobro: linea.fecha,
+          descripcion: linea.descripcion ?? linea.descripcionLimpia,
+          origen: 'extracto',
+        })
+        movimientoId = nuevo.id
+        resultado = 'creado'
+        if (linea.conceptoId === sobre?.id) comida += 1
+        else variables += 1
+        marcarImportacion(movimientoId, importacionId, linea.descripcionOriginal)
+      } else if (linea.destino === 'descartado') {
+        resultado = 'descartado'
+      } else if (linea.destino === 'duplicado') {
+        resultado = 'duplicado'
+      }
+
       importacionesBd.guardarHuella({
         importacionId,
         hash: linea.huella,
@@ -216,96 +297,72 @@ export const aceptar = bd.transaction(({ importacionId, lineas, conciliaciones, 
         importe: linea.importe,
         descripcionOriginal: linea.descripcionOriginal,
         descripcionLimpia: linea.descripcionLimpia,
-        resultado: 'conciliado',
+        resultado,
         movimientoId,
       })
-      linea.yaGuardada = true
     }
-    marcarImportacion(movimientoId, importacionId)
-  }
 
-  // ---- 2. Variables y comida ----
-  const sobre = conceptosBd.sobrePrincipal()
-  for (const linea of lineas) {
-    if (linea.yaGuardada) continue
+    // ---- 3. El mes: el ingreso y el periodo que cubre ----
+    const cambiosDelMes = {}
+    if (ingresoNuevo !== null) cambiosDelMes.ingreso = ingresoNuevo
+    if (periodo?.desde) cambiosDelMes.fechaInicio = periodo.desde
+    if (periodo?.hasta) cambiosDelMes.fechaFin = periodo.hasta
+    if (Object.keys(cambiosDelMes).length > 0) mesesBd.actualizar(mes.id, cambiosDelMes)
 
-    let resultado = 'ignorado'
-    let movimientoId = null
-
-    const entra = !linea.fueraDeMes && ['comida', 'variable'].includes(linea.destino)
-    if (entra) {
-      const nuevo = movimientosBd.crear({
-        mesId: mes.id,
-        conceptoId: linea.conceptoId,
-        importe: Math.abs(linea.importe),
-        fechaCobro: linea.fecha,
-        descripcion: linea.descripcion ?? linea.descripcionLimpia,
-        origen: 'extracto',
+    // ---- 4. La plantilla, para los fijos que se hayan marcado ----
+    let plantillaActualizada = 0
+    for (const entrada of plantilla) {
+      if (!entrada?.aplicar || !entrada.conceptoId || !entrada.vigenteDesde) continue
+      plantillaBd.guardar(entrada.conceptoId, {
+        diaPrevisto: entrada.diaPrevisto ?? null,
+        importePrevisto: entrada.real,
+        vigenteDesde: entrada.vigenteDesde,
       })
-      movimientoId = nuevo.id
-      resultado = 'creado'
-      if (linea.conceptoId === sobre?.id) comida += 1
-      else creados += 1
-      marcarImportacion(movimientoId, importacionId, linea.descripcionOriginal)
-    } else if (linea.destino === 'descartado') {
-      resultado = 'descartado'
-    } else if (linea.destino === 'duplicado') {
-      resultado = 'duplicado'
-    } else if (linea.destino === 'omitido') {
-      // Los positivos: se guarda la huella para que no vuelvan a proponerse,
-      // pero no entran en el mes.
-      resultado = 'ingreso'
+      plantillaActualizada += 1
     }
 
-    importacionesBd.guardarHuella({
-      importacionId,
-      hash: linea.huella,
-      fecha: linea.fecha,
-      importe: linea.importe,
-      descripcionOriginal: linea.descripcionOriginal,
-      descripcionLimpia: linea.descripcionLimpia,
-      resultado,
-      movimientoId,
+    // ---- 5. Las reglas que se hayan pedido recordar ----
+    for (const regla of reglasNuevas) {
+      if (!regla?.texto || reglasBd.buscarPorTexto(regla.texto)) continue
+      const concepto = regla.conceptoId ? conceptosBd.obtener(regla.conceptoId) : null
+      reglasBd.crear({
+        texto: regla.texto,
+        conceptoId: concepto?.id ?? null,
+        tipo: concepto ? (concepto.tipo === 'sobre' ? 'sobre' : concepto.tipo) : 'manual',
+        coincidencia: ['exacta', 'regex'].includes(regla.coincidencia)
+          ? regla.coincidencia
+          : 'empieza',
+        estado: 'propuesta',
+        origen: 'aprendida',
+      })
+    }
+
+    // ---- 6. Cerrar la importacion ----
+    const cuenta = contar(lineas)
+    importacionesBd.actualizarConteos(importacionId, {
+      fijos: conciliaciones.filter((c) => c.accion !== 'igual').length,
+      variables: cuenta.variables,
+      ingresos: cuenta.ingreso,
+      descartados: cuenta.descartados,
+      duplicados: cuenta.duplicados,
     })
-  }
+    importacionesBd.guardarBorrador(importacionId, null)
+    importacionesBd.marcar(importacionId, 'aceptada', { ingresoAnterior })
 
-  // ---- 3. Las reglas que se hayan pedido recordar ----
-  for (const regla of reglasNuevas) {
-    if (!regla?.texto || reglasBd.buscarPorTexto(regla.texto)) continue
-    const concepto = regla.conceptoId ? conceptosBd.obtener(regla.conceptoId) : null
-    reglasBd.crear({
-      texto: regla.texto,
-      conceptoId: concepto?.id ?? null,
-      tipo: concepto ? (concepto.tipo === 'sobre' ? 'sobre' : concepto.tipo) : 'manual',
-      coincidencia: regla.coincidencia === 'exacta' ? 'exacta' : 'empieza',
-      estado: 'propuesta',
-      origen: 'aprendida',
-    })
-  }
-
-  // ---- 4. Cerrar la importacion ----
-  const cuenta = contar(lineas)
-  importacionesBd.actualizarConteos(importacionId, {
-    fijos: conciliaciones.filter((c) => c.accion !== 'descartar').length,
-    variables: cuenta.variables,
-    ingresos: cuenta.omitidos,
-    descartados: cuenta.descartados,
-    duplicados: cuenta.duplicados,
-  })
-  importacionesBd.guardarBorrador(importacionId, null)
-  // El ingreso no se toca (solo entra lo que resta), pero se guarda el que
-  // habia por si algun dia vuelve a tocarse: deshacer tiene que poder volver.
-  importacionesBd.marcar(importacionId, 'aceptada', { ingresoAnterior: mes.ingreso })
-
-  return {
-    conciliados,
-    creados,
-    comida,
-    descartados: cuenta.descartados,
-    omitidos: cuenta.omitidos,
-    mes: mesesBd.obtener(mes.id),
-  }
-})
+    return {
+      cobrados,
+      actualizados,
+      creados,
+      comida,
+      variables,
+      descartados: cuenta.descartados,
+      duplicados: cuenta.duplicados,
+      plantillaActualizada,
+      ingreso: ingresoNuevo === null ? null : { antes: ingresoAnterior, despues: ingresoNuevo },
+      mes: mesesBd.obtener(mes.id),
+    }
+  },
+)
 
 function marcarImportacion(movimientoId, importacionId, descripcionOriginal = null) {
   bd.prepare(
@@ -323,10 +380,11 @@ function marcarImportacion(movimientoId, importacionId, descripcionOriginal = nu
  * Deshace una importacion entera.
  *
  * Borra lo que creo, devuelve los fijos conciliados a pendiente y a su importe
- * previsto, y marca la importacion como deshecha, con lo que sus huellas dejan
- * de contar como duplicados y el extracto se puede volver a importar.
+ * previsto, restaura el ingreso anterior y marca la importacion como deshecha,
+ * con lo que sus huellas dejan de contar como duplicados.
  *
- * Las reglas aprendidas NO se tocan: lo que se aprendio sigue valiendo.
+ * Las reglas aprendidas y los cambios de plantilla NO se tocan: lo que se
+ * aprendio sigue valiendo.
  */
 export const deshacer = bd.transaction((importacionId) => {
   const importacion = importacionesBd.obtener(importacionId)
@@ -339,8 +397,6 @@ export const deshacer = bd.transaction((importacionId) => {
   let borrados = 0
   let devueltos = 0
 
-  // Los movimientos creados por la importacion se van; los que ya existian y
-  // solo se conciliaron vuelven a pendiente.
   const creadosPorEsta = bd
     .prepare('SELECT id FROM movimientos WHERE importacion_id = ?')
     .all(importacionId)
@@ -359,8 +415,7 @@ export const deshacer = bd.transaction((importacionId) => {
   for (const movimientoId of conciliados) {
     const movimiento = movimientosBd.obtener(movimientoId)
     if (!movimiento) continue
-    // A pendiente y a lo que decia la plantilla: el importe real del banco era
-    // justo lo que aporto esta importacion.
+    // A pendiente y a lo que decia la plantilla.
     movimientosBd.actualizarPrevisto(movimientoId, {
       importePrevisto: movimiento.importePrevisto ?? movimiento.importe,
       importe: movimiento.importePrevisto ?? movimiento.importe,
@@ -371,9 +426,14 @@ export const deshacer = bd.transaction((importacionId) => {
     devueltos += 1
   }
 
+  const cambios = {}
   if (importacion.ingresoAnterior !== null && importacion.ingresoAnterior !== undefined) {
-    mesesBd.actualizar(importacion.mesId, { ingreso: importacion.ingresoAnterior })
+    cambios.ingreso = importacion.ingresoAnterior
   }
+  // El periodo lo puso esta importacion: al deshacerla, el mes deja de tenerlo.
+  cambios.fechaInicio = null
+  cambios.fechaFin = null
+  mesesBd.actualizar(importacion.mesId, cambios)
 
   importacionesBd.marcar(importacionId, 'deshecha')
 

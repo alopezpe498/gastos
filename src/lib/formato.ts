@@ -124,6 +124,13 @@ export function fecha(iso: string | null | undefined): string {
 }
 
 /** "2026-08-28" -> "28 ago". Para las listas, donde el año sobra. */
+/** Solo el día y el mes: "29/07". Para el periodo, donde el año se repite. */
+export function fechaMuyCorta(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const [, mes, dia] = iso.split('-')
+  return dia && mes ? `${dia}/${mes}` : '—'
+}
+
 export function fechaCorta(iso: string | null | undefined): string {
   if (!iso) return ''
   return FECHA_DIA_MES.format(aFecha(iso)).replace('.', '')

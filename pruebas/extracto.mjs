@@ -5,10 +5,12 @@
 //
 //   1. Que NO SE PIERDE NADA. El marcador tiene que cuadrar siempre, y aceptar
 //      una revisión incompleta tiene que fallar sin escribir una sola fila.
-//   2. Que DESHACER devuelve el mes exactamente a como estaba.
-//   3. Que el orden de las reglas hace lo que dice (PRIME antes que AMAZON, y
+//   2. Que EL EXTRACTO DEFINE EL MES: no se aparta nada por su fecha, la nómina
+//      abre el periodo y va al ingreso.
+//   3. Que DESHACER devuelve el mes exactamente a como estaba.
+//   4. Que el orden de las reglas hace lo que dice (PRIME antes que AMAZON, y
 //      BAR sin comerse BARCELONA).
-//   4. Que subir dos veces el mismo fichero no duplica nada.
+//   5. Que subir dos veces el mismo fichero no duplica nada.
 import ExcelJS from 'exceljs'
 import { levantar, crearLlamar, crearComprobador, igualEnCentimos } from './entorno.mjs'
 import { FILAS, ESPERADO, comoTexto } from './fixtures/extractoEjemplo.mjs'
@@ -56,18 +58,35 @@ try {
       'y las filas sin importe (saldo final, avisos) no cuentan como movimiento',
     )
 
+    // El extracto define el mes: del primer movimiento al ultimo.
+    comprobar(
+      leido.datos.periodo.desde === ESPERADO.desde && leido.datos.periodo.hasta === ESPERADO.hasta,
+      'el periodo va del primer movimiento al último',
+      JSON.stringify(leido.datos.periodo),
+    )
+    comprobar(
+      leido.datos.movimientos[0].fecha === ESPERADO.desde,
+      'los movimientos vienen ordenados del más antiguo al más reciente',
+      leido.datos.movimientos[0].fecha,
+    )
+    comprobar(
+      leido.datos.nominas.length === 1 && leido.datos.nominas[0].abreElMes,
+      'y la nómina es la que abre el mes',
+      JSON.stringify(leido.datos.nominas),
+    )
+
     const suma = leido.datos.movimientos.reduce((t, m) => t + m.importe, 0)
     comprobar(igualEnCentimos(suma, ESPERADO.suma), 'los importes cuadran al céntimo', `da ${suma}`)
 
-    const primero = leido.datos.movimientos[0]
-    comprobar(primero.fecha === '2026-08-26', 'la fecha operativa se lee como AAAA-MM-DD')
+    const condis = leido.datos.movimientos.find((m) => m.descripcionOriginal.includes('CONDIS'))
+    comprobar(condis.fecha === '2026-08-26', 'la fecha operativa se lee como AAAA-MM-DD')
     comprobar(
-      primero.descripcionLimpia === 'CONDIS-BARCELONA',
+      condis.descripcionLimpia === 'CONDIS-BARCELONA',
       'el prefijo de la tarjeta se quita para poder leerla',
-      primero.descripcionLimpia,
+      condis.descripcionLimpia,
     )
     comprobar(
-      primero.descripcionOriginal.includes('COMPRA TARJ.'),
+      condis.descripcionOriginal.includes('COMPRA TARJ.'),
       'pero la original se conserva entera',
     )
 
@@ -135,9 +154,9 @@ try {
     )
 
     comprobar(
-      typeof bar.datos.propuesta === 'string' && bar.datos.propuesta.length > 2,
+      typeof bar.datos.propuesta?.texto === 'string' && bar.datos.propuesta.texto.length > 2,
       'y propone un texto para recordar',
-      bar.datos.propuesta,
+      JSON.stringify(bar.datos.propuesta),
     )
   }
 
@@ -157,8 +176,33 @@ try {
     const c = propuesta.resumen
     comprobar(c.cuadra, 'el marcador cuadra', JSON.stringify(c))
     comprobar(c.total === ESPERADO.movimientos, 'con todos los movimientos del fichero')
-    comprobar(c.omitidos === ESPERADO.ingresos, 'los positivos se omiten', `da ${c.omitidos}`)
-    comprobar(c.fueraDeMes === 3, 'los de julio quedan fuera del mes', `da ${c.fueraDeMes}`)
+    comprobar(c.ingreso === 1, 'la nómina va al ingreso, ella sola', `da ${c.ingreso}`)
+    comprobar(
+      !('fueraDeMes' in c),
+      'ya no hay "fuera de mes": el extracto define el mes',
+      JSON.stringify(Object.keys(c)),
+    )
+
+    // Los de julio son del mes igual: la hipoteca del 31/07 es de agosto.
+    const hipoteca = propuesta.conciliaciones.find((x) => x.concepto === 'Hipoteca')
+    comprobar(!!hipoteca, 'un fijo del 31 de julio se concilia en agosto igual')
+
+    // Un abono que una regla reconoce: variable, y en negativo al guardarlo.
+    const devolucion = propuesta.lineas.find((l) => l.descripcionOriginal.includes('JustEat'))
+    comprobar(
+      devolucion.destino === 'variable' && devolucion.esAbono,
+      'una devolución reconocida entra como variable, marcada como abono',
+      `${devolucion.destino} abono=${devolucion.esAbono}`,
+    )
+
+    const abonoSuelto = propuesta.lineas.find((l) =>
+      l.descripcionOriginal.includes('ABONO TRANSFERENCIA'),
+    )
+    comprobar(
+      abonoSuelto.destino === 'sinClasificar' && abonoSuelto.esAbono,
+      'y un abono que no reconoce nadie va a revisión, no se omite',
+      abonoSuelto.destino,
+    )
 
     const luz = propuesta.conciliaciones.find((x) => x.concepto === 'Luz/Gas/Agua/IBI')
     comprobar(!!luz, 'la luz/gas/agua se concilia')
@@ -171,7 +215,22 @@ try {
       luz.detalle.includes('AGUA') && luz.detalle.includes('GAS'),
       'y guardando el detalle de cada una',
     )
-    comprobar(luz.situacion === 'pendiente', 'contra el fijo que estaba pendiente')
+    comprobar(luz.accion === 'cobrar', 'contra el fijo que estaba pendiente', luz.accion)
+
+    comprobar(
+      propuesta.plantillaPropuesta.length > 0,
+      'se propone actualizar la plantilla con los importes reales',
+    )
+    comprobar(
+      propuesta.plantillaPropuesta.every((x) => x.aplicar),
+      'y las casillas vienen premarcadas',
+    )
+    const dePlantilla = propuesta.plantillaPropuesta.find((x) => x.concepto === 'Luz/Gas/Agua/IBI')
+    comprobar(
+      dePlantilla && dePlantilla.vigenteDesde === '2026-09',
+      'vigente desde el mes siguiente',
+      dePlantilla?.vigenteDesde,
+    )
 
     const bizum = propuesta.lineas.find((l) => l.descripcionOriginal.includes('BIZUM'))
     comprobar(
@@ -189,7 +248,7 @@ try {
   // -------------------------------------------------------------------------
   console.log('\nNo se puede aceptar lo que no cuadra')
   // -------------------------------------------------------------------------
-  const importacionId = propuesta.importacion.id
+  let importacionId = propuesta.importacion.id
   {
     const faltan = await llamar(`/extracto/${importacionId}/aceptar`, {
       metodo: 'POST',
@@ -197,7 +256,7 @@ try {
     })
     comprobar(faltan.estado === 400, 'con movimientos de menos, no se acepta')
     comprobar(
-      (faltan.datos.detalle ?? []).some((d) => d.includes('20')),
+      (faltan.datos.detalle ?? []).some((d) => d.includes(String(ESPERADO.movimientos))),
       'y dice cuántos faltan',
       JSON.stringify(faltan.datos.detalle),
     )
@@ -226,20 +285,36 @@ try {
     const lineas = propuesta.lineas.map((l) =>
       l.destino === 'sinClasificar' ? { ...l, destino: 'descartado' } : l,
     )
+    void lineas
     const r = await llamar(`/extracto/${importacionId}/aceptar`, {
       metodo: 'POST',
       cuerpo: {
         lineas,
         conciliaciones: propuesta.conciliaciones,
+        plantilla: propuesta.plantillaPropuesta,
+        periodo: propuesta.lectura.periodo,
         reglasNuevas: [
-          { texto: 'TUNELSPAN', conceptoId: propuesta.conceptos.find((c) => c.nombre === 'Peaje').id },
+          {
+            texto: 'TUNELSPAN',
+            coincidencia: 'empieza',
+            conceptoId: propuesta.conceptos.find((c) => c.nombre === 'Peaje').id,
+          },
         ],
       },
     })
-    comprobar(r.estado === 200, 'ahora sí se acepta')
+    comprobar(r.estado === 200, 'ahora sí se acepta', JSON.stringify(r.datos?.detalle ?? r.datos?.error))
     resultado = r.datos
-    comprobar(resultado.conciliados > 0, `se concilian fijos (${resultado.conciliados})`)
+    comprobar(resultado.cobrados > 0, `se cobran fijos (${resultado.cobrados})`)
     comprobar(resultado.comida > 0, `y entran compras de comida (${resultado.comida})`)
+    comprobar(
+      resultado.ingreso && igualEnCentimos(resultado.ingreso.despues, 3124.21),
+      'la nómina pasa al ingreso del mes',
+      JSON.stringify(resultado.ingreso),
+    )
+    comprobar(
+      resultado.plantillaActualizada > 0,
+      `y se actualiza la plantilla (${resultado.plantillaActualizada})`,
+    )
 
     const { datos: mes } = await llamar('/meses/2026/8')
     const luz = mes.fijos.find((f) => f.concepto === 'Luz/Gas/Agua/IBI')
@@ -257,6 +332,143 @@ try {
       aprendida.datos.some((x) => x.texto === 'TUNELSPAN'),
       'la regla que se pidió recordar queda como propuesta',
     )
+
+    // El periodo del mes lo pone el extracto.
+    comprobar(
+      mes.fechaInicio === ESPERADO.desde && mes.fechaFin === ESPERADO.hasta,
+      'el mes guarda el periodo que cubre el extracto',
+      `${mes.fechaInicio}..${mes.fechaFin}`,
+    )
+
+    // El abono entra en NEGATIVO: resta gasto, no lo suma.
+    const enJustEat = mes.variables.filter((v) => v.concepto === 'JustEat')
+    comprobar(
+      enJustEat.some((v) => v.importe < 0),
+      'la devolución se apunta en negativo',
+      JSON.stringify(enJustEat.map((v) => v.importe)),
+    )
+  }
+
+  // -------------------------------------------------------------------------
+  console.log('\nUn fijo ya cobrado se actualiza, no se duplica')
+  // -------------------------------------------------------------------------
+  {
+    // Se deshace lo anterior y se deja la luz cobrada con OTRO importe.
+    await llamar(`/extracto/${importacionId}/deshacer`, { metodo: 'POST' })
+    const { datos: antesMes } = await llamar('/meses/2026/8')
+    const luz = antesMes.fijos.find((f) => f.concepto === 'Luz/Gas/Agua/IBI')
+    await llamar(`/movimientos/${luz.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { importe: '100,00', fechaCobro: '2026-08-01' },
+    })
+
+    const { datos: p2 } = await llamar('/extracto/clasificar', {
+      metodo: 'POST',
+      cuerpo: { mesId, archivo, nombreArchivo: 'extracto.xlsx' },
+    })
+    const laLuz = p2.conciliaciones.find((c) => c.concepto === 'Luz/Gas/Agua/IBI')
+    comprobar(
+      laLuz.accion === 'actualizar',
+      'un fijo ya cobrado con otro importe se ACTUALIZA, no se duplica',
+      laLuz.accion,
+    )
+    comprobar(
+      igualEnCentimos(laLuz.importeAnterior, 100),
+      'y se ve lo que tenía antes',
+      String(laLuz.importeAnterior),
+    )
+
+    const lineas2 = p2.lineas.map((l) =>
+      l.destino === 'sinClasificar' ? { ...l, destino: 'descartado' } : l,
+    )
+    const r2 = await llamar(`/extracto/${p2.importacion.id}/aceptar`, {
+      metodo: 'POST',
+      cuerpo: { lineas: lineas2, conciliaciones: p2.conciliaciones, periodo: p2.lectura.periodo },
+    })
+    comprobar(r2.datos.actualizados > 0, 'al aceptar se cuenta como actualizado')
+
+    const { datos: mes2 } = await llamar('/meses/2026/8')
+    const cuantasLuces = mes2.fijos.filter((f) => f.concepto === 'Luz/Gas/Agua/IBI').length
+    comprobar(cuantasLuces === 1, 'y sigue habiendo un solo apunte de luz', String(cuantasLuces))
+    comprobar(
+      igualEnCentimos(mes2.fijos.find((f) => f.concepto === 'Luz/Gas/Agua/IBI').importe, 176.43),
+      'con el importe del banco',
+    )
+    await llamar(`/extracto/${p2.importacion.id}/deshacer`, { metodo: 'POST' })
+
+    // Y se vuelve a dejar como estaba para las pruebas de abajo.
+    const rehacer = await llamar('/extracto/clasificar', {
+      metodo: 'POST',
+      cuerpo: { mesId, archivo, nombreArchivo: 'extracto.xlsx' },
+    })
+    await llamar(`/extracto/${rehacer.datos.importacion.id}/aceptar`, {
+      metodo: 'POST',
+      cuerpo: {
+        lineas: rehacer.datos.lineas.map((l) =>
+          l.destino === 'sinClasificar' ? { ...l, destino: 'descartado' } : l,
+        ),
+        conciliaciones: rehacer.datos.conciliaciones,
+        periodo: rehacer.datos.lectura.periodo,
+      },
+    })
+    importacionId = rehacer.datos.importacion.id
+  }
+
+  // -------------------------------------------------------------------------
+  console.log('\nReglas por expresión regular')
+  // -------------------------------------------------------------------------
+  {
+    // Un pago por movil no tiene ningun texto fijo que recordar.
+    const codigo = await llamar('/reglas/probar', {
+      metodo: 'POST',
+      cuerpo: {
+        descripcion: 'COMPRA TARJ. 5402XXXXXXXX4010 13AUG BVK11V8J-Barcelona',
+        contra: [
+          '13AUG BVK11V8J-Barcelona',
+          '12AUG BXBRXTF7-Barcelona',
+          '10AUG BV5WDRMJ-Barcelona',
+          'CONDIS-BARCELONA',
+        ],
+      },
+    })
+    comprobar(
+      codigo.datos.propuesta.coincidencia === 'regex',
+      'para un pago por móvil se propone una expresión regular',
+      JSON.stringify(codigo.datos.propuesta),
+    )
+    comprobar(
+      codigo.datos.encajarian === 3,
+      'y dice con cuántos movimientos del extracto encajaría',
+      String(codigo.datos.encajarian),
+    )
+
+    const normal = await llamar('/reglas/probar', {
+      metodo: 'POST',
+      cuerpo: { descripcion: 'COMPRA TARJ. 5402XXXXXXXX4010 DRUNI-VINAROS', contra: [] },
+    })
+    comprobar(
+      normal.datos.propuesta.texto === 'DRUNI' && normal.datos.propuesta.coincidencia === 'empieza',
+      'y para un comercio con nombre, el nombre',
+      JSON.stringify(normal.datos.propuesta),
+    )
+
+    const creada = await llamar('/reglas', {
+      metodo: 'POST',
+      cuerpo: {
+        texto: codigo.datos.propuesta.texto,
+        coincidencia: 'regex',
+        conceptoId: null,
+      },
+    })
+    comprobar(creada.estado === 201, 'la regla por expresión regular se crea')
+
+    const mala = await llamar('/reglas', {
+      metodo: 'POST',
+      cuerpo: { texto: '[sin cerrar', coincidencia: 'regex' },
+    })
+    comprobar(mala.estado === 400, 'y una expresión regular mal escrita se rechaza')
+
+    await llamar(`/reglas/${creada.datos.id}`, { metodo: 'DELETE' })
   }
 
   // -------------------------------------------------------------------------

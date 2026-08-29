@@ -1,13 +1,13 @@
 import express from 'express'
 import * as reglasBd from '../db/reglas.js'
 import * as conceptosBd from '../db/conceptos.js'
-import { probar, proponerTexto, olvidarCache } from '../services/reglas.js'
+import { probar, proponerTexto, cuantosEncajan, olvidarCache } from '../services/reglas.js'
 import { fallo, ruta, enteroDe, textoDe } from '../lib/http.js'
 
 export const rutasReglas = express.Router()
 
 const TIPOS = new Set(['fijo', 'sobre', 'variable', 'manual'])
-const COINCIDENCIAS = new Set(['empieza', 'exacta'])
+const COINCIDENCIAS = new Set(['empieza', 'exacta', 'regex'])
 const ESTADOS = new Set(['confirmada', 'propuesta'])
 
 /**
@@ -42,7 +42,15 @@ function revisar(cuerpo, { exigirTexto = true } = {}) {
   }
   if (cuerpo.coincidencia !== undefined) {
     if (!COINCIDENCIAS.has(cuerpo.coincidencia)) {
-      return { error: 'La coincidencia solo puede ser "empieza" o "exacta".' }
+      return { error: 'La coincidencia solo puede ser "empieza", "exacta" o "regex".' }
+    }
+    // Una expresion regular mal escrita se rechaza aqui y no al importar.
+    if (cuerpo.coincidencia === 'regex') {
+      try {
+        new RegExp(String(cuerpo.texto ?? ''))
+      } catch {
+        return { error: 'Esa expresión regular no se entiende.' }
+      }
     }
     limpio.coincidencia = cuerpo.coincidencia
   }
@@ -78,7 +86,19 @@ rutasReglas.post(
   ruta((req, res) => {
     const descripcion = textoDe(req.body?.descripcion ?? '', { max: 300 })
     if (!descripcion) return fallo(res, 400, 'Pega una descripción para probarla.')
-    return res.json({ ...probar(descripcion), propuesta: proponerTexto(descripcion) })
+
+    const propuesta = proponerTexto(descripcion)
+    /*
+     * Cuantas descripciones encajarian con la regla propuesta. El cliente manda
+     * las del extracto que esta revisando: una regla que solo pilla la linea
+     * que tienes delante quiza no merezca la pena, y una que pilla ocho si.
+     */
+    const contra = Array.isArray(req.body?.contra) ? req.body.contra.map(String) : []
+    return res.json({
+      ...probar(descripcion),
+      propuesta,
+      encajarian: propuesta.texto ? cuantosEncajan(propuesta, contra) : 0,
+    })
   }),
 )
 

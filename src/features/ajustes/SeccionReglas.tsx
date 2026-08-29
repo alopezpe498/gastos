@@ -412,16 +412,16 @@ function CrearDesdePrueba({
   conceptos,
   onCreada,
 }: {
-  propuesta: string
+  propuesta: PruebaRegla['propuesta']
   conceptos: Concepto[]
   onCreada: () => Promise<void> | void
 }) {
   const { avisar, avisarError } = useAvisos()
-  const [texto, setTexto] = useState(propuesta)
+  const [texto, setTexto] = useState(propuesta.texto)
   const [conceptoId, setConceptoId] = useState('')
   const [enviando, setEnviando] = useState(false)
 
-  useEffect(() => setTexto(propuesta), [propuesta])
+  useEffect(() => setTexto(propuesta.texto), [propuesta])
 
   const crear = async () => {
     if (!conceptoId) return

@@ -815,3 +815,111 @@
   color: var(--texto-2);
   overflow-x: auto;
 }
+
+
+/* ---------- Revisión: cabecera que se explica sola ---------- */
+
+.marcador-arriba {
+  flex-basis: 100%;
+}
+
+.marcador-periodo {
+  margin: 0;
+  font-size: var(--txt-cuerpo);
+}
+
+/* La frase que dice en qué punto estás y qué pasa al aceptar. */
+.marcador-frase {
+  margin: 2px 0 0;
+  font-size: var(--txt-apoyo);
+  color: var(--texto-2);
+}
+
+.marcador-frase.pendiente {
+  color: var(--peligro, #b3261e);
+}
+
+button.cifra.pendiente {
+  cursor: pointer;
+}
+
+button.cifra.pendiente:hover {
+  text-decoration: underline;
+}
+
+/* Una fila que acaba de cambiar de bloque: dos segundos y se apaga. */
+.linea-extracto.recien {
+  animation: recienClasificada 2s ease-out;
+}
+
+@keyframes recienClasificada {
+  from {
+    background: var(--especial-suave, #fff6d9);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+.etiqueta-mini.abono {
+  background: #e4eefb;
+  color: #1d4f8b;
+}
+
+/* El menú "···" de cada fila: dividir, descartar y recordar viven aquí. */
+.linea-acciones {
+  position: relative;
+}
+
+.menu-linea {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  padding: 4px;
+  border-radius: var(--radio-s);
+  background: var(--fondo-elevado);
+  box-shadow: 0 4px 16px rgba(16, 48, 44, 0.18);
+}
+
+.menu-linea button {
+  padding: 8px 12px;
+  border-radius: var(--radio-s);
+  text-align: left;
+  font-size: var(--txt-apoyo);
+}
+
+.menu-linea button:hover {
+  background: var(--pildora);
+}
+
+/* La sugerencia de la IA, ya puesta en el selector: un clic la confirma. */
+.marca-origen.ia {
+  cursor: pointer;
+}
+
+.marca-origen.ia.baja {
+  opacity: 0.65;
+}
+
+/* En el bloque de fijos ya no se decide nada: se dice lo que va a pasar. */
+.estado-fijo {
+  font-size: var(--txt-etiqueta);
+  color: var(--texto-2);
+}
+
+.estado-fijo.actualizar {
+  color: var(--acento-texto, #1d6b35);
+}
+
+.estado-fijo.igual {
+  color: var(--texto-3);
+}
+
+.detalle-fijo {
+  padding-left: var(--e-4);
+  color: var(--texto-2);
+}

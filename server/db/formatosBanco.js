@@ -20,6 +20,7 @@ function aFormato(f) {
     formatoFecha: f.formato_fecha,
     separadorDecimal: f.separador_decimal,
     filaCabeceraTexto: f.fila_cabecera_texto,
+    textoNomina: f.texto_nomina ?? 'NOMINA',
     prefijosALimpiar: leerLista(f.prefijos_a_limpiar),
     porDefecto: !!f.por_defecto,
   }
@@ -58,9 +59,11 @@ export function crear(datos) {
     .prepare(
       `INSERT INTO formatos_banco
          (nombre, columna_fecha, columna_concepto, columna_importe, formato_fecha,
-          separador_decimal, fila_cabecera_texto, prefijos_a_limpiar, por_defecto, fecha_creacion)
+          separador_decimal, fila_cabecera_texto, texto_nomina, prefijos_a_limpiar,
+          por_defecto, fecha_creacion)
        VALUES (@nombre, @columnaFecha, @columnaConcepto, @columnaImporte, @formatoFecha,
-               @separadorDecimal, @filaCabeceraTexto, @prefijos, @porDefecto, @fecha)`,
+               @separadorDecimal, @filaCabeceraTexto, @textoNomina, @prefijos,
+               @porDefecto, @fecha)`,
     )
     .run({
       nombre: datos.nombre,
@@ -70,6 +73,7 @@ export function crear(datos) {
       formatoFecha: datos.formatoFecha ?? 'dd/mm/aaaa',
       separadorDecimal: datos.separadorDecimal ?? ',',
       filaCabeceraTexto: datos.filaCabeceraTexto ?? 'Importe',
+      textoNomina: datos.textoNomina ?? 'NOMINA',
       prefijos: JSON.stringify(datos.prefijosALimpiar ?? []),
       porDefecto: datos.porDefecto ? 1 : 0,
       fecha: ahora(),
@@ -85,6 +89,7 @@ const CAMPOS = {
   formatoFecha: 'formato_fecha',
   separadorDecimal: 'separador_decimal',
   filaCabeceraTexto: 'fila_cabecera_texto',
+  textoNomina: 'texto_nomina',
 }
 
 export function actualizar(id, cambios) {
@@ -120,6 +125,8 @@ export const SABADELL = {
   formatoFecha: 'dd/mm/aaaa',
   separadorDecimal: ',',
   filaCabeceraTexto: 'Importe',
+  // Lo que delata la nomina, que es la que abre el mes y va al ingreso.
+  textoNomina: 'NOMINA',
   prefijosALimpiar: [
     // El numero de la tarjeta, en cualquier sitio de la linea.
     '\\b\\d{4}X{4,}\\d{4}\\b',

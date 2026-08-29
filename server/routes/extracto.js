@@ -4,7 +4,12 @@ import * as formatosBd from '../db/formatosBanco.js'
 import * as importacionesBd from '../db/importaciones.js'
 import * as conceptosBd from '../db/conceptos.js'
 import { leerExtracto } from '../services/lecturaExtracto.js'
-import { clasificar, huellasAceptadas, contar } from '../services/clasificacionExtracto.js'
+import {
+  clasificar,
+  huellasAceptadas,
+  contar,
+  conceptosFrecuentes,
+} from '../services/clasificacionExtracto.js'
 import { aceptar, deshacer, validar, previsualizar, ErrorAplicacion } from '../services/aplicarExtracto.js'
 import { sugerirParaExtracto } from '../services/iaExtracto.js'
 import * as configBd from '../db/config.js'
@@ -50,6 +55,7 @@ rutasExtracto.patch(
       'columnaImporte',
       'formatoFecha',
       'filaCabeceraTexto',
+      'textoNomina',
     ]) {
       if (req.body?.[campo] !== undefined) cambios[campo] = textoDe(req.body[campo], { max: 60 })
     }
@@ -146,7 +152,29 @@ rutasExtracto.post(
       movimientos: leido.movimientos,
       mes,
       huellasUsadas: huellasAceptadas(),
+      formato,
     })
+
+    /*
+     * El extracto define el mes: se espera que empiece por la nomina. Si no,
+     * se avisa, pero no se bloquea: puede ser un extracto partido, o un mes en
+     * el que la nomina llego antes.
+     */
+    const avisos = []
+    if (leido.nominas.length === 0) {
+      avisos.push(
+        'El extracto no empieza por la nómina; comprueba que es el mes correcto.',
+      )
+    } else if (!leido.nominas.some((n) => n.abreElMes)) {
+      avisos.push(
+        'La nómina no es el primer movimiento del extracto; comprueba que es el mes correcto.',
+      )
+    }
+    if (leido.nominas.length > 1) {
+      avisos.push(
+        `Hay ${leido.nominas.length} nóminas en el archivo. Elige cuál es la de este mes.`,
+      )
+    }
 
     const importacion = importacionesBd.crear({
       mesId: mes.id,
@@ -157,6 +185,8 @@ rutasExtracto.post(
     importacionesBd.guardarBorrador(importacion.id, {
       lineas: propuesta.lineas,
       conciliaciones: propuesta.conciliaciones,
+      plantillaPropuesta: propuesta.plantillaPropuesta,
+      periodo: leido.periodo,
       nOrigen: leido.nOrigen,
     })
 
@@ -169,9 +199,15 @@ rutasExtracto.post(
         cabecera: leido.cabecera,
         nOrigen: leido.nOrigen,
         filasDescartadas: leido.filasDescartadas,
+        // El periodo que cubre: es lo que define el mes.
+        periodo: leido.periodo,
+        nominas: leido.nominas,
       },
+      avisos,
       ...propuesta,
       conceptos: conceptosBd.listar({ soloActivos: true }),
+      // Los que van arriba del desplegable, para no leer cincuenta nombres.
+      frecuentes: conceptosFrecuentes(mes),
     })
   }),
 )
@@ -235,6 +271,8 @@ rutasExtracto.patch(
     importacionesBd.guardarBorrador(id, {
       lineas: req.body.lineas,
       conciliaciones: req.body.conciliaciones ?? [],
+      plantillaPropuesta: req.body.plantilla ?? [],
+      periodo: req.body.periodo ?? null,
       nOrigen: importacion.conteos.movimientos,
     })
     return res.json({ guardado: true, cuenta: contar(req.body.lineas) })
@@ -274,6 +312,8 @@ rutasExtracto.post(
         lineas: req.body.lineas,
         conciliaciones: req.body.conciliaciones ?? [],
         reglasNuevas: req.body.reglasNuevas ?? [],
+        plantilla: req.body.plantilla ?? [],
+        periodo: req.body.periodo ?? null,
       })
       return res.json(resultado)
     } catch (causa) {
