@@ -11,6 +11,7 @@ import {
   rankingVariables,
   separar,
   matrizAnual,
+  comidaQueCuenta,
 } from '../server/services/calculos.js'
 import { crearComprobador, igualEnCentimos } from './entorno.mjs'
 
@@ -245,6 +246,67 @@ console.log('\nMatriz anual')
   comprobar(
     matriz.detalleVariables['1']?.length === 1,
     'el detalle de variables va por mes',
+  )
+}
+
+// ---------------------------------------------------------------------------
+console.log('\nEl exceso del sobre de Comida SÍ es un gasto')
+// ---------------------------------------------------------------------------
+{
+  /*
+   * El fallo que arregla esto: con 500 de presupuesto y 620 gastados, el mes
+   * sumaba 500 y los 120 de exceso desaparecian de las cuentas.
+   */
+  const casos = [
+    { presupuesto: 500, gastado: 380, presu: 500, gast: 380, que: 'sin llegar al presupuesto' },
+    { presupuesto: 500, gastado: 500, presu: 500, gast: 500, que: 'justo en el presupuesto' },
+    { presupuesto: 500, gastado: 620, presu: 620, gast: 620, que: 'pasandose del presupuesto' },
+  ]
+
+  for (const caso of casos) {
+    comprobar(
+      igualEnCentimos(
+        comidaQueCuenta(caso.presupuesto, caso.gastado, 'presupuesto'),
+        caso.presu,
+      ),
+      `por presupuesto, ${caso.que}: cuenta ${caso.presu}`,
+      String(comidaQueCuenta(caso.presupuesto, caso.gastado, 'presupuesto')),
+    )
+    comprobar(
+      igualEnCentimos(comidaQueCuenta(caso.presupuesto, caso.gastado, 'gastado'), caso.gast),
+      `por lo gastado, ${caso.que}: cuenta ${caso.gast}`,
+      String(comidaQueCuenta(caso.presupuesto, caso.gastado, 'gastado')),
+    )
+  }
+
+  // Y el resumen del mes lo aplica de verdad.
+  const mes = { ingreso: 3000, presupuestoComida: 500, objetivoAhorro: 0, dineroEnCuenta: null }
+  const pasado = [
+    { tipo: 'sobre', importe: 620, esObjetivo: false, cobrado: true },
+    { tipo: 'fijo', importe: 100, esObjetivo: false, cobrado: true },
+  ]
+  const r = resumen(mes, pasado, { ...AJUSTES, comidaEnTotal: 'presupuesto' })
+  comprobar(
+    igualEnCentimos(r.comida.contada, 620),
+    'el resumen del mes cuenta los 620, no los 500',
+    String(r.comida.contada),
+  )
+  comprobar(igualEnCentimos(r.gastos, 720), 'y los gastos del mes son 720', String(r.gastos))
+  comprobar(
+    igualEnCentimos(r.comida.queda, -120),
+    'con el exceso en negativo, para pintarlo en rojo',
+    String(r.comida.queda),
+  )
+
+  const sinPasarse = resumen(
+    mes,
+    [{ tipo: 'sobre', importe: 380, esObjetivo: false, cobrado: true }],
+    { ...AJUSTES, comidaEnTotal: 'presupuesto' },
+  )
+  comprobar(
+    igualEnCentimos(sinPasarse.comida.contada, 500),
+    'sin llegar al presupuesto se sigue reservando el sobre entero',
+    String(sinPasarse.comida.contada),
   )
 }
 

@@ -9,10 +9,12 @@ import {
   huellasAceptadas,
   contar,
   conceptosFrecuentes,
+  importacionQueLoTrajo,
 } from '../services/clasificacionExtracto.js'
 import { aceptar, deshacer, validar, previsualizar, ErrorAplicacion } from '../services/aplicarExtracto.js'
 import { sugerirParaExtracto } from '../services/iaExtracto.js'
 import * as configBd from '../db/config.js'
+import { NOMBRES_MESES } from '../lib/fechas.js'
 import { fallo, ruta, enteroDe, textoDe } from '../lib/http.js'
 
 export const rutasExtracto = express.Router()
@@ -208,6 +210,18 @@ rutasExtracto.post(
       conceptos: conceptosBd.listar({ soloActivos: true }),
       // Los que van arriba del desplegable, para no leer cincuenta nombres.
       frecuentes: conceptosFrecuentes(mes),
+      // De donde salen los duplicados, si los hay.
+      yaImportado:
+        propuesta.resumen.duplicados > 0
+          ? (() => {
+              const previa = importacionQueLoTrajo(
+                propuesta.lineas.filter((l) => l.destino === 'duplicado').map((l) => l.huella),
+              )
+              return previa
+                ? { ...previa, nombreMes: NOMBRES_MESES[previa.mes - 1] }
+                : null
+            })()
+          : null,
     })
   }),
 )

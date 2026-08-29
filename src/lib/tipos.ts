@@ -501,6 +501,16 @@ export type PropuestaExtracto = {
   conceptos: Concepto[]
   /** Ids que van primero en el desplegable: los más usados últimamente. */
   frecuentes?: number[]
+  /** La importación aceptada que ya trajo estos movimientos, si los hay. */
+  yaImportado?: {
+    id: number
+    fecha: string
+    nombreArchivo: string | null
+    anio: number
+    mes: number
+    nombreMes: string
+    cuantas: number
+  } | null
   /** Cuando no reconoce el fichero, en vez de la propuesta llega esto. */
   necesitaAyuda?: boolean
   motivo?: string
@@ -701,6 +711,8 @@ export type ValorPlantilla = {
 }
 
 export type ResumenRegeneracion = {
+  /** Importaciones aceptadas del mes: reiniciar o borrar las deshace. */
+  importacionesAceptadas?: number
   mesId: number
   anio: number
   mes: number

@@ -41,6 +41,8 @@ export function PantallaExtracto({
   const [pegando, setPegando] = useState(false)
   const [texto, setTexto] = useState('')
   const [error, setError] = useState('')
+  // Sube al aceptar, deshacer o volver del historial: fuerza a releerlo.
+  const [refrescos, setRefrescos] = useState(0)
   const archivo = useRef<HTMLInputElement>(null)
   const botonArchivo = useRef<HTMLButtonElement>(null)
 
@@ -93,6 +95,17 @@ export function PantallaExtracto({
       <RevisionExtracto
         propuesta={propuesta}
         nombreMes={mes ? `${NOMBRES_MESES[mes.mes - 1]} ${mes.anio}` : ''}
+        onVerHistorial={() => {
+          // El historial vive en la pantalla de carga, así que hay que volver.
+          // El borrador se tira: no se ha tocado nada todavía.
+          void api(`/extracto/${propuesta.importacion.id}`, { metodo: 'DELETE' }).catch(() => {})
+          setPropuesta(null)
+          setRefrescos((n) => n + 1)
+          window.setTimeout(
+            () => document.querySelector('[data-historial]')?.scrollIntoView({ behavior: 'smooth' }),
+            80,
+          )
+        }}
         onCancelar={() => {
           void api(`/extracto/${propuesta.importacion.id}`, { metodo: 'DELETE' }).catch(() => {})
           setPropuesta(null)
@@ -109,6 +122,7 @@ export function PantallaExtracto({
           }
           avisar(`Importación aplicada: ${partes.join(', ')}.`)
           setPropuesta(null)
+          setRefrescos((n) => n + 1)
           onAplicado()
         }}
       />
@@ -218,7 +232,15 @@ export function PantallaExtracto({
         </div>
       </section>
 
-      <HistorialImportaciones mesId={mesId} nombreMes={mes ? `${NOMBRES_MESES[mes.mes - 1]} ${mes.anio}` : ''} onCambio={onAplicado} />
+      <HistorialImportaciones
+        mesId={mesId}
+        refrescos={refrescos}
+        nombreMes={mes ? `${NOMBRES_MESES[mes.mes - 1]} ${mes.anio}` : ''}
+        onCambio={() => {
+          setRefrescos((n) => n + 1)
+          onAplicado()
+        }}
+      />
     </>
   )
 }
@@ -231,10 +253,13 @@ export function PantallaExtracto({
  */
 function HistorialImportaciones({
   mesId,
+  refrescos,
   nombreMes,
   onCambio,
 }: {
   mesId: number
+  /** Cambia al aceptar o deshacer: sin esto el historial se quedaba viejo. */
+  refrescos: number
   nombreMes: string
   onCambio: () => void
 }) {
@@ -253,7 +278,7 @@ function HistorialImportaciones({
   useEffect(() => {
     void cargar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mesId])
+  }, [mesId, refrescos])
 
   const deshacer = async () => {
     if (!aDeshacer) return
@@ -277,7 +302,7 @@ function HistorialImportaciones({
   if (!historial || historial.length === 0) return null
 
   return (
-    <section className="seccion">
+    <section className="seccion" data-historial>
       <h3 className="seccion-titulo">
         Importaciones de {nombreMes || 'este mes'}
       </h3>

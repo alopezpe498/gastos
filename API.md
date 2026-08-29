@@ -188,6 +188,7 @@ anteriores. `GET /conceptos/:id/plantilla` devuelve el histórico y `DELETE
 | `POST` | `/meses/:id/siguiente` | Atajo: abre el mes que va detrás de ese. |
 | `POST` | `/meses/:id/regenerar` | Vuelve a aplicar la plantilla. `{ aplicarIngreso?, aplicarComida?, aplicarAhorro? }`. `409` si el mes está cerrado. |
 | `POST` | `/meses/:id/reiniciar` | Borra todos los movimientos y regenera desde cero. Exige `{ confirmar: true }`. `409` si está cerrado. |
+| `DELETE` | `/meses/:id` | Borra el mes entero: movimientos, importaciones y huellas. Exige `{ confirmar: true }`. |
 | `PATCH` | `/meses/:id` | `{ ingreso?, dineroEnCuenta?, presupuestoComida?, objetivoAhorro?, notas?, estado? }`. |
 
 ### Navegar no es abrir
@@ -269,6 +270,20 @@ actualizar los fijos no puede llevárselo por delante.
 —fijos cobrados y variables incluidos— y lo genera de nuevo desde la plantilla.
 Exige `{ confirmar: true }` en el cuerpo (`400` sin él) y la interfaz pide dos
 confirmaciones. El ingreso, el dinero en cuenta y las notas del mes se conservan.
+
+**Además marca como `deshecha` toda importación aceptada del mes**, con lo que
+sus huellas dejan de contar como duplicados y el mismo extracto se puede volver
+a subir. Sin esto, tras reiniciar el mes el extracto salía entero como duplicado
+y no había forma cómoda de recargarlo. `/regeneracion` devuelve
+`importacionesAceptadas` para poder avisar antes de confirmar.
+
+### Borrar un mes
+
+`DELETE /meses/:id` con `{ confirmar: true }` borra el mes por completo:
+movimientos, importaciones y huellas (que cuelgan de la importación en cascada).
+El mes deja de existir y hay que volver a abrirlo desde la plantilla. A
+diferencia de reiniciar, aquí las huellas **se borran**, no se liberan: el mes al
+que pertenecían ya no está.
 
 ### Meses cerrados
 

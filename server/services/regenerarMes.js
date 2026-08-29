@@ -3,6 +3,7 @@ import * as mesesBd from '../db/meses.js'
 import * as movimientosBd from '../db/movimientos.js'
 import * as plantillaBd from '../db/plantilla.js'
 import * as conceptosBd from '../db/conceptos.js'
+import * as importacionesBd from '../db/importaciones.js'
 import * as configBd from '../db/config.js'
 import { mesAnterior } from '../lib/fechas.js'
 import { redondear } from '../lib/http.js'
@@ -174,6 +175,9 @@ export function resumenRegeneracion(mesId) {
     // Los variables no se tocan, pero se cuentan para poder decirlo.
     variables: variables.length,
     valores: valoresPorDefecto(mes),
+    // Cuantas importaciones aceptadas hay: reiniciar o borrar el mes las
+    // deshace, y eso conviene decirlo antes de confirmar.
+    importacionesAceptadas: importacionesBd.aceptadasDelMes(mesId),
     // Si no hay nada que hacer, la pantalla lo dice y no ofrece el boton.
     sinCambios: anadir.length === 0 && actualizar.length === 0,
   }
@@ -257,6 +261,13 @@ export const reiniciar = bd.transaction((mesId) => {
 
   movimientosBd.borrarDelMes(mesId)
 
+  /*
+   * Y las huellas de los extractos que se importaron en este mes se liberan.
+   * Sin esto, tras reiniciar el mes el mismo extracto salia entero como
+   * duplicado —71 de 71— y no habia forma comoda de volver a cargarlo.
+   */
+  const importacionesDeshechas = importacionesBd.liberarHuellasDelMes(mesId)
+
   let generados = 0
   for (const linea of plantillaBd.vigentesEn(mes.anio, mes.mes)) {
     if (linea.tipo !== 'fijo' || linea.esObjetivo) continue
@@ -283,7 +294,7 @@ export const reiniciar = bd.transaction((mesId) => {
   }
   if (Object.keys(cambios).length > 0) mesesBd.actualizar(mesId, cambios)
 
-  return { borrados, variablesBorrados, generados }
+  return { borrados, variablesBorrados, importacionesDeshechas, generados }
 })
 
 /** Cuántos meses abiertos hay: lo usa el aviso al cambiar una plantilla. */
@@ -296,3 +307,27 @@ export function mesesAbiertos() {
 
 /** Redondeo compartido, por si alguien importa este modulo suelto. */
 export { redondear }
+
+/**
+ * Borra un mes por completo: sus movimientos, sus importaciones y sus huellas.
+ *
+ * Es el unico sitio de la aplicacion que destruye un mes entero, y por eso la
+ * pantalla pide dos confirmaciones. A diferencia de reiniciar, aqui las huellas
+ * se BORRAN de verdad, porque el mes al que pertenecian deja de existir.
+ */
+export const borrarMes = bd.transaction((mesId) => {
+  const mes = mesesBd.obtener(mesId)
+  if (!mes) return null
+
+  const movimientos = movimientosBd.delMes(mesId).length
+  const importaciones = importacionesBd.listar({ mesId })
+
+  // Las huellas cuelgan de la importacion (ON DELETE CASCADE), y los
+  // movimientos del mes, pero se cuentan antes para poder decir que se pierde.
+  for (const i of importaciones) importacionesBd.borrar(i.id)
+  movimientosBd.borrarDelMes(mesId)
+  mesesBd.borrar(mesId)
+
+  // El nombre del mes lo pone la ruta; aqui se devuelven los numeros.
+  return { movimientos, importaciones: importaciones.length, anio: mes.anio, mes: mes.mes }
+})

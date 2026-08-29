@@ -128,6 +128,20 @@ cobro, con su importe previsto vigente para ese mes, más la nómina prevista y 
 presupuesto de comida. **«Abrir mes siguiente» avisa si ese mes ya existía** en
 vez de no hacer nada.
 
+#### El sobre de la comida
+
+Con el criterio **«cuenta por el presupuesto»** (el de siempre, el del Excel), la
+comida aporta a los gastos del mes **el presupuesto o lo gastado, lo que sea
+mayor**: el sobre se reserva entero aunque no se agote, pero **pasarse es un
+gasto**. Con 500 € de presupuesto y 620 € gastados, el mes suma 620.
+
+Con el criterio **«cuenta por lo gastado»**, siempre lo gastado.
+
+La regla vive en una sola función (`comidaQueCuenta`) y la usan el resumen del
+mes, la tabla anual, el análisis, la analítica, los informes y la exportación,
+para que todas las pantallas den el mismo número. En la barra del sobre, al
+pasarse pone **«Te has pasado 120 €»** en rojo, no «Queda 0 €».
+
 #### Regenerar y reiniciar
 
 Un mes se monta con la plantilla del día en que se abre, y ahí se queda: si
@@ -155,6 +169,13 @@ venir a actualizar los fijos no puede llevárselo por delante.
 gastos variables incluidos— y lo genera de nuevo desde cero. Pide dos
 confirmaciones y dice cuántos variables se van a perder. El ingreso, el dinero en
 cuenta y las notas se conservan.
+
+También **deshace las importaciones de extracto de ese mes**, así que el mismo
+archivo se puede volver a subir. La confirmación lo dice.
+
+**Borrar el mes** lo elimina por completo: apuntes, importaciones y el propio
+mes. Dos confirmaciones, y no se puede deshacer: hay que volver a abrirlo desde
+la plantilla.
 
 > **Un mes cerrado** se puede seguir editando apunte a apunte, pero no se puede
 > regenerar ni reiniciar: las dos opciones salen apagadas hasta reabrirlo, desde
@@ -334,7 +355,10 @@ Debajo, los bloques:
   qué va a pasar. Debajo, **«Actualizar la plantilla con estos importes»** con
   una casilla premarcada por cada fijo cuyo importe real difiera del previsto;
   al aceptar, los marcados pasan a la plantilla desde el mes siguiente.
-- **Duplicados y descartados**, plegados y recuperables.
+- **Duplicados y descartados**, plegados y recuperables, con un **«Forzar
+  todos»** además del botón por fila. Si el extracto entero ya se había
+  importado, la cabecera lo dice —*«Este extracto ya se importó en Agosto 2026 el
+  29/08»*— con un enlace al historial para deshacer aquella importación.
 
 Con selección múltiple, buscador, y el borrador se guarda solo: puedes cerrar y
 volver mañana. En escritorio las flechas mueven por lo pendiente y **D**

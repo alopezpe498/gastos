@@ -334,3 +334,37 @@ export function huellasAceptadas() {
     .all()
   return new Set(filas.map((f) => f.hash))
 }
+
+/**
+ * La importacion aceptada que ya trajo estas huellas.
+ *
+ * Se usa para poder decir "este extracto ya se importó en Agosto 2026 el 29/08"
+ * en vez de dejar setenta y una lineas marcadas como duplicadas sin explicar de
+ * donde salen.
+ */
+export function importacionQueLoTrajo(huellas) {
+  if (huellas.length === 0) return null
+  const marcas = huellas.map(() => '?').join(',')
+  const fila = bd
+    .prepare(
+      `SELECT i.id, i.fecha, i.nombre_archivo, m.anio, m.mes, COUNT(*) AS cuantas
+       FROM huellas_banco h
+       JOIN importaciones i ON i.id = h.importacion_id
+       JOIN meses m ON m.id = i.mes_id
+       WHERE i.estado = 'aceptada' AND h.hash IN (${marcas})
+       GROUP BY i.id
+       ORDER BY cuantas DESC
+       LIMIT 1`,
+    )
+    .get(...huellas)
+  return fila
+    ? {
+        id: fila.id,
+        fecha: fila.fecha,
+        nombreArchivo: fila.nombre_archivo,
+        anio: fila.anio,
+        mes: fila.mes,
+        cuantas: fila.cuantas,
+      }
+    : null
+}

@@ -14,6 +14,9 @@ type Props = {
  * que lo que importa no es cuanto se ha gastado sino cuanto queda. La barra
  * pasa a ambar al acercarse al limite y a rojo al pasarse, que es cuando hace
  * falta enterarse.
+ *
+ * Y pasarse cuenta: el exceso suma en los gastos del mes. Por eso al pasarse
+ * pone "Te has pasado 120 €" y no "Queda 0 €", que sonaria a que da igual.
  */
 export function BarraComida({ resumen, onCambiarPresupuesto }: Props) {
   const { presupuesto, gastado, queda } = resumen.comida
@@ -57,7 +60,9 @@ export function BarraComida({ resumen, onCambiarPresupuesto }: Props) {
           Gastado <strong className="dinero">{euros(gastado)}</strong>
         </span>
         <span className={queda < 0 ? 'negativo' : ''}>
-          {queda < 0 ? 'Pasado de ' : 'Queda '}
+          {/* Pasarse es un gasto de verdad: el exceso SI suma en el mes, asi
+              que aqui no puede poner "Queda 0". */}
+          {queda < 0 ? 'Te has pasado ' : 'Queda '}
           <strong className="dinero">{euros(Math.abs(queda))}</strong>
         </span>
       </div>

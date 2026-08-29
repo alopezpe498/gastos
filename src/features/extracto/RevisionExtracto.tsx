@@ -59,6 +59,8 @@ type Props = {
   nombreMes: string
   onAplicado: (resumen: ResultadoAceptar) => void
   onCancelar: () => void
+  /** Lleva al historial de importaciones, para poder deshacer la anterior. */
+  onVerHistorial?: () => void
 }
 
 export type ResultadoAceptar = {
@@ -71,7 +73,13 @@ export type ResultadoAceptar = {
   ingreso: { antes: number; despues: number } | null
 }
 
-export function RevisionExtracto({ propuesta, nombreMes, onAplicado, onCancelar }: Props) {
+export function RevisionExtracto({
+  propuesta,
+  nombreMes,
+  onAplicado,
+  onCancelar,
+  onVerHistorial,
+}: Props) {
   const { avisar, avisarError } = useAvisos()
   const [lineas, setLineas] = useState<LineaExtracto[]>(propuesta.lineas)
   const [conciliaciones] = useState<Conciliacion[]>(propuesta.conciliaciones)
@@ -79,7 +87,13 @@ export function RevisionExtracto({ propuesta, nombreMes, onAplicado, onCancelar 
   const [seleccion, setSeleccion] = useState<Set<number>>(new Set())
   const [reglasNuevas, setReglasNuevas] = useState<ReglaNueva[]>([])
   const [busqueda, setBusqueda] = useState('')
-  const [abiertos, setAbiertos] = useState({ sin: true, clasificados: true, fijos: true, resto: false })
+  const [abiertos, setAbiertos] = useState({
+    sin: true,
+    clasificados: true,
+    fijos: true,
+    // Si el extracto entero es duplicado, el bloque se abre: es lo único que hay.
+    resto: propuesta.resumen.duplicados === propuesta.lineas.length,
+  })
   const [confirmando, setConfirmando] = useState(false)
   const [aplicando, setAplicando] = useState(false)
   const [sugerencias, setSugerencias] = useState<Record<number, SugerenciaIa>>({})
@@ -378,6 +392,8 @@ export function RevisionExtracto({ propuesta, nombreMes, onAplicado, onCancelar 
   ).sort((a, b) => Math.abs(b.importe) - Math.abs(a.importe))
   const laNomina = lineas.find((l) => l.destino === 'ingreso') ?? null
   const duplicados = filtrar(lineas.filter((l) => l.destino === 'duplicado'))
+  // Todo el fichero ya estaba importado: es el caso que dejaba sin salida.
+  const todoDuplicado = lineas.length > 0 && cuenta.duplicados === lineas.length
   const descartados = filtrar(lineas.filter((l) => l.destino === 'descartado'))
 
   const irAlPrimeroPendiente = () => {
@@ -465,6 +481,21 @@ export function RevisionExtracto({ propuesta, nombreMes, onAplicado, onCancelar 
           </button>
         </div>
 
+        {todoDuplicado ? (
+          <p className="banda-aviso">
+            Este extracto ya se importó
+            {propuesta.yaImportado
+              ? ` en ${propuesta.yaImportado.nombreMes} ${propuesta.yaImportado.anio} el ${fechaCorta(propuesta.yaImportado.fecha.slice(0, 10))}`
+              : ''}
+            . Si quieres volver a cargarlo, deshaz esa importación desde el historial o fuerza los
+            movimientos.
+            {onVerHistorial ? (
+              <button className="boton boton-texto boton-compacto" onClick={onVerHistorial}>
+                Ir al historial
+              </button>
+            ) : null}
+          </p>
+        ) : null}
         {avisoIa ? <p className="marcador-aviso">{avisoIa}</p> : null}
         {(propuesta.avisos ?? []).map((a) => (
           <p className="marcador-aviso" key={a}>
@@ -667,6 +698,14 @@ export function RevisionExtracto({ propuesta, nombreMes, onAplicado, onCancelar 
           lineas={duplicados}
           textoAccion="Forzar"
           onRecuperar={(id) => cambiarDestino([id], 'sinClasificar', 'forzar duplicado')}
+          onTodos={() =>
+            cambiarDestino(
+              duplicados.map((l) => l.id),
+              'sinClasificar',
+              'forzar todos los duplicados',
+            )
+          }
+          textoTodos="Forzar todos"
         />
         <SubBloque
           titulo="Descartados"
@@ -1064,18 +1103,27 @@ function SubBloque({
   lineas,
   textoAccion,
   onRecuperar,
+  onTodos,
+  textoTodos,
 }: {
   titulo: string
   nota?: string
   lineas: LineaExtracto[]
   textoAccion: string
   onRecuperar: (id: number) => void
+  onTodos?: () => void
+  textoTodos?: string
 }) {
   if (lineas.length === 0) return null
   return (
     <div className="sub-bloque">
       <h4 className="subseccion">
         {titulo} · {lineas.length}
+        {onTodos ? (
+          <button className="boton boton-secundario boton-compacto" onClick={onTodos}>
+            {textoTodos}
+          </button>
+        ) : null}
       </h4>
       {nota ? <p className="pista">{nota}</p> : null}
       {lineas.map((l) => (

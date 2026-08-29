@@ -609,6 +609,174 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nReiniciar y borrar el mes liberan las huellas')
+  // -------------------------------------------------------------------------
+  {
+    /*
+     * El fallo que arregla esto: tras reiniciar el mes, el mismo extracto salia
+     * entero como duplicado y no habia forma comoda de volver a cargarlo.
+     */
+    const { datos: p } = await llamar('/extracto/clasificar', {
+      metodo: 'POST',
+      cuerpo: { mesId, archivo, nombreArchivo: 'para-reiniciar.xlsx' },
+    })
+    await llamar(`/extracto/${p.importacion.id}/aceptar`, {
+      metodo: 'POST',
+      cuerpo: {
+        lineas: p.lineas.map((l) =>
+          l.destino === 'sinClasificar' ? { ...l, destino: 'descartado' } : l,
+        ),
+        conciliaciones: p.conciliaciones,
+        periodo: p.lectura.periodo,
+      },
+    })
+
+    const repetido = await llamar('/extracto/clasificar', {
+      metodo: 'POST',
+      cuerpo: { mesId, archivo, nombreArchivo: 'repetido.xlsx' },
+    })
+    comprobar(
+      repetido.datos.resumen.duplicados === ESPERADO.movimientos,
+      'antes de reiniciar, el mismo extracto sale entero como duplicado',
+    )
+    comprobar(
+      !!repetido.datos.yaImportado && repetido.datos.yaImportado.nombreMes === 'Agosto',
+      'y se dice en qué importación entró',
+      JSON.stringify(repetido.datos.yaImportado),
+    )
+    await llamar(`/extracto/${repetido.datos.importacion.id}`, { metodo: 'DELETE' })
+
+    // El resumen avisa de cuántas importaciones se van a deshacer.
+    const resumenPrevio = await llamar(`/meses/${mesId}/regeneracion`)
+    comprobar(
+      resumenPrevio.datos.importacionesAceptadas >= 1,
+      'el resumen de reinicio dice cuántas importaciones se desharán',
+      String(resumenPrevio.datos.importacionesAceptadas),
+    )
+
+    const rei = await llamar(`/meses/${mesId}/reiniciar`, {
+      metodo: 'POST',
+      cuerpo: { confirmar: true },
+    })
+    comprobar(rei.estado === 200, 'se reinicia el mes')
+    comprobar(
+      rei.datos.reinicio.importacionesDeshechas >= 1,
+      'deshaciendo sus importaciones',
+      String(rei.datos.reinicio.importacionesDeshechas),
+    )
+
+    const trasReiniciar = await llamar('/extracto/clasificar', {
+      metodo: 'POST',
+      cuerpo: { mesId, archivo, nombreArchivo: 'tras-reiniciar.xlsx' },
+    })
+    comprobar(
+      trasReiniciar.datos.resumen.duplicados === 0,
+      'y TRAS REINICIAR el mismo extracto se puede volver a subir entero',
+      `quedan ${trasReiniciar.datos.resumen.duplicados} duplicados`,
+    )
+    await llamar(`/extracto/${trasReiniciar.datos.importacion.id}`, { metodo: 'DELETE' })
+  }
+
+  // -------------------------------------------------------------------------
+  console.log('\nDeshacer desde el historial también libera las huellas')
+  // -------------------------------------------------------------------------
+  {
+    const { datos: p } = await llamar('/extracto/clasificar', {
+      metodo: 'POST',
+      cuerpo: { mesId, archivo, nombreArchivo: 'para-deshacer.xlsx' },
+    })
+    await llamar(`/extracto/${p.importacion.id}/aceptar`, {
+      metodo: 'POST',
+      cuerpo: {
+        lineas: p.lineas.map((l) =>
+          l.destino === 'sinClasificar' ? { ...l, destino: 'descartado' } : l,
+        ),
+        conciliaciones: p.conciliaciones,
+        periodo: p.lectura.periodo,
+      },
+    })
+    await llamar(`/extracto/${p.importacion.id}/deshacer`, { metodo: 'POST' })
+
+    const otra = await llamar('/extracto/clasificar', {
+      metodo: 'POST',
+      cuerpo: { mesId, archivo, nombreArchivo: 'otra.xlsx' },
+    })
+    comprobar(
+      otra.datos.resumen.duplicados === 0,
+      'tras deshacer una importación, sus huellas dejan de contar',
+      `quedan ${otra.datos.resumen.duplicados}`,
+    )
+
+    const historial = await llamar(`/extracto/historial?mesId=${mesId}`)
+    comprobar(
+      historial.datos.every((i) => i.mesId === mesId),
+      'el historial del mes solo trae las de ese mes',
+    )
+    comprobar(
+      historial.datos.some((i) => i.estado === 'deshecha'),
+      'y las deshechas siguen constando',
+    )
+    await llamar(`/extracto/${otra.datos.importacion.id}`, { metodo: 'DELETE' })
+  }
+
+  // -------------------------------------------------------------------------
+  console.log('\nBorrar un mes')
+  // -------------------------------------------------------------------------
+  {
+    const { datos: nuevo } = await llamar('/meses', {
+      metodo: 'POST',
+      cuerpo: { anio: 2031, mes: 5 },
+    })
+    const { datos: p } = await llamar('/extracto/clasificar', {
+      metodo: 'POST',
+      cuerpo: { mesId: nuevo.id, archivo, nombreArchivo: 'del-mes-a-borrar.xlsx' },
+    })
+    await llamar(`/extracto/${p.importacion.id}/aceptar`, {
+      metodo: 'POST',
+      cuerpo: {
+        lineas: p.lineas.map((l) =>
+          l.destino === 'sinClasificar' ? { ...l, destino: 'descartado' } : l,
+        ),
+        conciliaciones: p.conciliaciones,
+        periodo: p.lectura.periodo,
+      },
+    })
+
+    const sinConfirmar = await llamar(`/meses/${nuevo.id}`, { metodo: 'DELETE', cuerpo: {} })
+    comprobar(sinConfirmar.estado === 400, 'borrar un mes sin confirmar no hace nada')
+
+    const borrado = await llamar(`/meses/${nuevo.id}`, {
+      metodo: 'DELETE',
+      cuerpo: { confirmar: true },
+    })
+    comprobar(borrado.estado === 200, 'confirmando sí se borra')
+    comprobar(
+      borrado.datos.importaciones >= 1 && borrado.datos.movimientos > 0,
+      'y dice qué se ha llevado por delante',
+      JSON.stringify(borrado.datos),
+    )
+
+    const yaNo = await llamar('/meses/2031/5')
+    comprobar(yaNo.estado === 404, 'el mes deja de existir')
+
+    // Y su extracto se puede volver a importar en otro mes.
+    const { datos: otroMes } = await llamar('/meses', {
+      metodo: 'POST',
+      cuerpo: { anio: 2031, mes: 6 },
+    })
+    const reintento = await llamar('/extracto/clasificar', {
+      metodo: 'POST',
+      cuerpo: { mesId: otroMes.id, archivo, nombreArchivo: 'reintento.xlsx' },
+    })
+    comprobar(
+      reintento.datos.resumen.duplicados === 0,
+      'y sus huellas se han ido con él',
+      `quedan ${reintento.datos.resumen.duplicados}`,
+    )
+    await llamar(`/extracto/${reintento.datos.importacion.id}`, { metodo: 'DELETE' })
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nFicheros que no se entienden')
   // -------------------------------------------------------------------------
   {

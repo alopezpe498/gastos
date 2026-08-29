@@ -9,6 +9,7 @@ import {
   mesesAbiertos,
   regenerar,
   reiniciar,
+  borrarMes,
   resumenRegeneracion,
 } from '../services/regenerarMes.js'
 import { fallo, ruta, enteroDe, importeDe, textoDe } from '../lib/http.js'
@@ -287,6 +288,26 @@ rutasMeses.post(
 
     const resultado = reiniciar(id)
     return res.json({ ...montarMes(mesesBd.obtener(id)), reinicio: resultado })
+  }),
+)
+
+/**
+ * Borra un mes entero. Exige confirmar, como reiniciar: no hay vuelta atras.
+ *
+ * Se permite aunque este cerrado: borrar un mes cerrado es justo lo que se
+ * quiere cuando se ha importado en el sitio equivocado.
+ */
+rutasMeses.delete(
+  '/:id',
+  ruta((req, res) => {
+    const id = enteroDe(req.params.id)
+    const mes = id ? mesesBd.obtener(id) : null
+    if (!mes) return fallo(res, 404, 'Ese mes ya no existe.')
+    if (req.body?.confirmar !== true) {
+      return fallo(res, 400, 'Borrar un mes entero hay que confirmarlo.')
+    }
+    const r = borrarMes(id)
+    return res.json({ ...r, nombreMes: NOMBRES_MESES[r.mes - 1] })
   }),
 )
 

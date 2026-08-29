@@ -8,8 +8,7 @@ import { ordenDelDiaPrevisto, NOMBRES_MESES } from '../lib/fechas.js'
  *
  *   fijos    = movimientos de conceptos 'fijo', sin contar el objetivo Ahorro
  *   extras   = movimientos de conceptos 'variable'
- *   comida   = el sobre; cuenta por su presupuesto (como en el Excel) o por lo
- *              realmente gastado, segun el ajuste comida_en_total
+ *   comida   = el sobre; ver comidaQueCuenta() aqui abajo
  *   gastos   = fijos + extras + comida
  *   sobrante = ingreso - gastos
  *
@@ -18,6 +17,28 @@ import { ordenDelDiaPrevisto, NOMBRES_MESES } from '../lib/fechas.js'
  */
 
 const suma = (movimientos) => redondear(movimientos.reduce((total, m) => total + m.importe, 0))
+
+/**
+ * LO QUE APORTA EL SOBRE DE LA COMIDA A LOS GASTOS DEL MES.
+ *
+ * Esta funcion es la unica que decide esto, y la usan el resumen del mes, la
+ * tabla anual, el analisis, la analitica, los informes y la exportacion. Si
+ * alguna vez alguien vuelve a calcularlo por su cuenta, los totales dejaran de
+ * cuadrar entre pantallas.
+ *
+ *   'presupuesto' -> max(presupuesto, gastado)
+ *       El sobre se reserva entero aunque no se agote, como en el Excel de
+ *       siempre. Pero si me paso, PASARSE ES UN GASTO: con 500 de presupuesto y
+ *       620 gastados, el mes tiene que sumar 620. Antes sumaba 500 y los 120 de
+ *       exceso desaparecian de las cuentas sin dejar rastro.
+ *
+ *   'gastado'     -> lo gastado, siempre.
+ */
+export function comidaQueCuenta(presupuesto, gastado, criterio) {
+  const presu = redondear(presupuesto ?? 0)
+  const gasto = redondear(gastado ?? 0)
+  return criterio === 'gastado' ? gasto : Math.max(presu, gasto)
+}
 
 /** Porcentaje sobre los ingresos; null si no hay ingresos con los que dividir. */
 function porcentaje(parte, total) {
@@ -33,7 +54,11 @@ export function resumen(mes, movimientos, ajustes) {
   const totalFijos = suma(fijos)
   const totalExtras = suma(variables)
   const comidaGastada = suma(comida)
-  const comidaContada = ajustes.comidaEnTotal === 'gastado' ? comidaGastada : mes.presupuestoComida
+  const comidaContada = comidaQueCuenta(
+    mes.presupuestoComida,
+    comidaGastada,
+    ajustes.comidaEnTotal,
+  )
 
   const gastos = redondear(totalFijos + totalExtras + comidaContada)
   const sobrante = redondear(mes.ingreso - gastos)
@@ -50,6 +75,7 @@ export function resumen(mes, movimientos, ajustes) {
     comida: {
       presupuesto: mes.presupuestoComida,
       gastado: comidaGastada,
+      // Negativo cuando me he pasado: la pantalla lo pinta en rojo como exceso.
       queda: redondear(mes.presupuestoComida - comidaGastada),
       contada: comidaContada,
       criterio: ajustes.comidaEnTotal,
@@ -255,9 +281,11 @@ export function matrizAnual({ anio, meses, movimientos, conceptos, ajustes }) {
         const gastado = movimientos
           .filter((m) => m.numeroMes === mes.mes && m.conceptoId === concepto.id)
           .reduce((t, m) => t + m.importe, 0)
+        // La misma regla que en el resumen del mes: si no, la tabla anual y la
+        // pantalla del mes darian totales distintos para el mismo mes.
         celdas.set(
           mes.mes,
-          redondear(ajustes.comidaEnTotal === 'gastado' ? gastado : mes.presupuestoComida),
+          comidaQueCuenta(mes.presupuestoComida, gastado, ajustes.comidaEnTotal),
         )
       }
       filas.push(construirFila(concepto.nombre, 'sobre', celdas, { conceptoId: concepto.id }))

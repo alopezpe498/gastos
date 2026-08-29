@@ -168,3 +168,25 @@ export function huellasDe(importacionId) {
 export function borrarHuellas(importacionId) {
   bd.prepare('DELETE FROM huellas_banco WHERE importacion_id = ?').run(importacionId)
 }
+
+/**
+ * Marca como deshechas todas las importaciones aceptadas de un mes.
+ *
+ * Es lo que hace que, tras reiniciar o borrar un mes, el mismo extracto se
+ * pueda volver a subir. La comprobacion de duplicados solo mira las huellas de
+ * importaciones ACEPTADAS, asi que con esto quedan liberadas sin borrar el
+ * historial: sigue constando que un dia se importaron.
+ */
+export function liberarHuellasDelMes(mesId) {
+  const info = bd
+    .prepare("UPDATE importaciones SET estado = 'deshecha' WHERE mes_id = ? AND estado = 'aceptada'")
+    .run(mesId)
+  return info.changes
+}
+
+/** Cuantas importaciones aceptadas tiene un mes. Para avisar antes de borrar. */
+export function aceptadasDelMes(mesId) {
+  return bd
+    .prepare("SELECT COUNT(*) AS n FROM importaciones WHERE mes_id = ? AND estado = 'aceptada'")
+    .get(mesId).n
+}

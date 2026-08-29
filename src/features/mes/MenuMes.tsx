@@ -40,6 +40,11 @@ export function MenuMes({ mes, abierto, onCerrar, onCambiado, onCambiarEstado }:
   // El reinicio pide dos confirmaciones: la primera avisa, la segunda ejecuta.
   const [avisoReinicio, setAvisoReinicio] = useState(false)
   const [confirmaReinicio, setConfirmaReinicio] = useState(false)
+  // Borrar el mes entero pide las mismas dos confirmaciones.
+  const [avisoBorrado, setAvisoBorrado] = useState(false)
+  const [confirmaBorrado, setConfirmaBorrado] = useState(false)
+  // Cuántas importaciones aceptadas tiene el mes: se deshacen al reiniciar.
+  const [importaciones, setImportaciones] = useState(0)
 
   const cerrado = mes.estado === 'cerrado'
 
@@ -56,6 +61,7 @@ export function MenuMes({ mes, abierto, onCerrar, onCambiado, onCambiarEstado }:
     try {
       const datos = await api<ResumenRegeneracion>(`/meses/${mes.id}/regeneracion`)
       setResumen(datos)
+      setImportaciones(datos.importacionesAceptadas ?? 0)
       /*
        * Los tres empiezan apagados. El presupuesto de comida se ajusta a mano a
        * menudo ("este mes viene una comunion"), y venir a actualizar los fijos
@@ -106,6 +112,34 @@ export function MenuMes({ mes, abierto, onCerrar, onCambiado, onCambiarEstado }:
     }
   }
 
+  /** Cuenta las importaciones aceptadas sin abrir la vista de regeneración. */
+  const contarImportaciones = async () => {
+    try {
+      const datos = await api<ResumenRegeneracion>(`/meses/${mes.id}/regeneracion`)
+      setImportaciones(datos.importacionesAceptadas ?? 0)
+    } catch {
+      setImportaciones(0)
+    }
+  }
+
+  const borrar = async () => {
+    setConfirmaBorrado(false)
+    setTrabajando(true)
+    try {
+      const r = await api<{ movimientos: number; importaciones: number; nombreMes: string }>(
+        `/meses/${mes.id}`,
+        { metodo: 'DELETE', cuerpo: { confirmar: true } },
+      )
+      avisar(`${r.nombreMes} borrado: ${cuantos(r.movimientos, 'apunte')}.`)
+      await onCambiado()
+      onCerrar()
+    } catch (causa) {
+      avisarError(mensajeDeError(causa))
+    } finally {
+      setTrabajando(false)
+    }
+  }
+
   const reiniciar = async () => {
     setConfirmaReinicio(false)
     setTrabajando(true)
@@ -118,6 +152,9 @@ export function MenuMes({ mes, abierto, onCerrar, onCambiado, onCambiarEstado }:
         `Mes reiniciado: ${cuantos(reinicio.generados, 'fijo')} desde la plantilla` +
           (reinicio.variablesBorrados
             ? `, ${cuantos(reinicio.variablesBorrados, 'variable')} ${reinicio.variablesBorrados === 1 ? 'borrado' : 'borrados'}`
+            : '') +
+          (reinicio.importacionesDeshechas
+            ? `, ${cuantos(reinicio.importacionesDeshechas, 'importación', 'importaciones')} deshechas`
             : ''),
       )
       await onCambiado()
@@ -286,6 +323,23 @@ export function MenuMes({ mes, abierto, onCerrar, onCambiado, onCambiarEstado }:
           </button>
 
           <button
+            className="fila fila-boton peligroso"
+            disabled={trabajando}
+            onClick={() => {
+              void contarImportaciones()
+              setAvisoBorrado(true)
+            }}
+          >
+            <IconoPapelera size={20} />
+            <span className="fila-cuerpo">
+              <span className="fila-titulo">Borrar el mes</span>
+              <span className="fila-detalle">
+                Se va entero: apuntes, importaciones y el propio mes. No se puede deshacer.
+              </span>
+            </span>
+          </button>
+
+          <button
             className="fila fila-boton"
             onClick={() => void onCambiarEstado(cerrado ? 'abierto' : 'cerrado')}
           >
@@ -307,9 +361,12 @@ export function MenuMes({ mes, abierto, onCerrar, onCambiado, onCambiarEstado }:
         abierto={avisoReinicio}
         titulo={`¿Reiniciar ${mes.nombreMes.toLowerCase()}?`}
         mensaje={
-          mes.variables.length > 0
+          (mes.variables.length > 0
             ? `Se ${mes.variables.length === 1 ? 'borrará' : 'borrarán'} ${cuantos(mes.variables.length, 'gasto variable', 'gastos variables')} y todos los cobros marcados. El ingreso, el dinero en cuenta y las notas se conservan.`
-            : 'Se borrarán todos los fijos y se generarán de nuevo. Este mes no tiene gastos variables que perder.'
+            : 'Se borrarán todos los fijos y se generarán de nuevo. Este mes no tiene gastos variables que perder.') +
+          (importaciones > 0
+            ? ` Se ${importaciones === 1 ? 'deshará' : 'desharán'} ${cuantos(importaciones, 'importación', 'importaciones')}, así que el extracto se podrá volver a subir.`
+            : '')
         }
         textoConfirmar="Continuar"
         peligroso={mes.variables.length > 0}
@@ -321,6 +378,35 @@ export function MenuMes({ mes, abierto, onCerrar, onCambiado, onCambiarEstado }:
       />
 
       {/* Segunda: la que ejecuta. */}
+      <Confirmar
+        abierto={avisoBorrado}
+        titulo={`¿Borrar ${mes.nombreMes.toLowerCase()} de ${mes.anio} entero?`}
+        mensaje={
+          `Desaparece el mes con sus ${cuantos(mes.fijos.length + mes.variables.length, 'apunte')}` +
+          (importaciones > 0
+            ? ` y ${cuantos(importaciones, 'importación', 'importaciones')} de extracto`
+            : '') +
+          '. Si solo quieres empezar de cero, usa «Reiniciar el mes».'
+        }
+        textoConfirmar="Continuar"
+        peligroso
+        onConfirmar={() => {
+          setAvisoBorrado(false)
+          setConfirmaBorrado(true)
+        }}
+        onCancelar={() => setAvisoBorrado(false)}
+      />
+
+      <Confirmar
+        abierto={confirmaBorrado}
+        titulo="Esto no se puede deshacer"
+        mensaje={`${mes.nombreMes} de ${mes.anio} dejará de existir. Tendrás que volver a abrirlo desde la plantilla.`}
+        textoConfirmar="Borrar el mes"
+        peligroso
+        onConfirmar={() => void borrar()}
+        onCancelar={() => setConfirmaBorrado(false)}
+      />
+
       <Confirmar
         abierto={confirmaReinicio}
         titulo="Esto no se puede deshacer"
@@ -342,7 +428,12 @@ type ResultadoRegeneracion = {
   valoresAplicados: string[]
 }
 
-type ResultadoReinicio = { borrados: number; variablesBorrados: number; generados: number }
+type ResultadoReinicio = {
+  borrados: number
+  variablesBorrados: number
+  importacionesDeshechas: number
+  generados: number
+}
 
 function BloqueCambios({
   titulo,
