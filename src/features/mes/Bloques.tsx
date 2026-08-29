@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import type { MesCompleto, PanelMes } from '../../lib/tipos'
 import { euros, redondo } from '../../lib/formato'
+import { CampoImporte } from '../../components/Campos'
 
 /**
  * Los cuatro bloques de la cabecera de Mes.
@@ -102,27 +104,63 @@ export function BloquePrincipal({
         </div>
         <div className="principal-nota">La marca es hoy: si la barra la pasa, vas rápido</div>
 
-        <div className="principal-saldo">
-          {mes.resumen.dineroEnCuenta === null ? (
-            <button
-              className="boton-texto"
-              onClick={() => {
-                const valor = window.prompt('Saldo del banco')
-                if (valor === null) return
-                const n = Number(valor.replace(/\./g, '').replace(',', '.'))
-                if (Number.isFinite(n)) void onCambiarSaldo(n)
-              }}
-            >
-              Anotar el saldo del banco
-            </button>
-          ) : (
-            <>
-              Saldo en cuenta {redondo(mes.resumen.dineroEnCuenta)}
-              {descuadre !== null ? ` · ${descuadre < 0 ? '−' : '+'}${redondo(Math.abs(descuadre))}` : ''}
-            </>
-          )}
-        </div>
+        <Saldo
+          saldo={mes.resumen.dineroEnCuenta}
+          descuadre={descuadre}
+          onCambiar={onCambiarSaldo}
+        />
       </div>
+    </div>
+  )
+}
+
+/**
+ * El saldo del banco: texto hasta que lo tocas.
+ *
+ * Nada de ventanas del navegador para pedir un número. En esta app un valor es
+ * texto en reposo y se convierte en campo al pulsarlo, y el saldo no es una
+ * excepción por estar dentro del bloque de color.
+ */
+function Saldo({
+  saldo,
+  descuadre,
+  onCambiar,
+}: {
+  saldo: number | null
+  descuadre: number | null
+  onCambiar: (valor: number | null) => Promise<void>
+}) {
+  const [editando, setEditando] = useState(false)
+
+  if (editando || saldo !== null) {
+    return (
+      <div className="principal-saldo">
+        <span>Saldo en cuenta</span>
+        <CampoImporte
+          valor={saldo}
+          admiteVacio
+          ariaLabel="Saldo en cuenta"
+          className="campo importe campo-en-color"
+          onGuardar={async (valor) => {
+            setEditando(false)
+            await onCambiar(valor)
+          }}
+        />
+        {descuadre !== null ? (
+          <span>
+            · {descuadre < 0 ? '−' : '+'}
+            {redondo(Math.abs(descuadre))}
+          </span>
+        ) : null}
+      </div>
+    )
+  }
+
+  return (
+    <div className="principal-saldo">
+      <button className="boton-texto" onClick={() => setEditando(true)}>
+        Anotar el saldo del banco
+      </button>
     </div>
   )
 }
