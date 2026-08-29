@@ -57,14 +57,11 @@
   padding: var(--e-3) var(--e-4);
   border-radius: var(--radio-l);
   background: var(--tarjeta);
-  box-shadow: var(--sombra-tarjeta);
 }
 
 .resumen-etiqueta {
   font-size: var(--txt-etiqueta);
   font-weight: var(--peso-fuerte);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
   color: var(--texto-3);
 }
 
@@ -118,7 +115,6 @@
   padding: var(--e-4);
   border-radius: var(--radio-l);
   background: var(--tarjeta);
-  box-shadow: var(--sombra-tarjeta);
 }
 
 .sobre-cabecera {
@@ -226,8 +222,6 @@
   min-height: 32px;
   font-size: var(--txt-etiqueta);
   font-weight: var(--peso-fuerte);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
   color: var(--texto-3);
   background: var(--tarjeta-hundida);
 }
@@ -302,7 +296,6 @@
   padding: var(--e-3);
   border-radius: var(--radio-m);
   background: var(--tarjeta);
-  box-shadow: var(--sombra-minima);
 }
 
 .alta-campos {

@@ -10,7 +10,6 @@
   overflow-x: auto;
   border-radius: var(--radio-l);
   background: var(--tarjeta);
-  box-shadow: var(--sombra-tarjeta);
 }
 
 .anual {
@@ -49,8 +48,6 @@
   background: var(--tarjeta-hundida);
   font-size: var(--txt-etiqueta);
   font-weight: var(--peso-fuerte);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--texto-3);
   justify-content: flex-end;
 }

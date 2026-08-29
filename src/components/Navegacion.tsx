@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react'
+import { useState, type ComponentType } from 'react'
 
 /**
  * La navegación de «La libreta».
@@ -53,8 +53,11 @@ export function BarraSuperior<T extends string>({ secciones, activa, onIr, extra
   )
 }
 
-export function BarraInferior<T extends string>({ secciones, activa, onIr, extra }: Props<T>) {
+export function BarraInferior<T extends string>({ secciones, activa, onIr }: Props<T>) {
+  const [mas, setMas] = useState(false)
   const visibles = secciones.filter((s) => s.enMovil !== false)
+  const enElMenu = secciones.filter((s) => s.enMovil === false)
+
   return (
     <nav className="barra-inferior" aria-label="Secciones">
       {visibles.map((s) => {
@@ -71,7 +74,34 @@ export function BarraInferior<T extends string>({ secciones, activa, onIr, extra
           </button>
         )
       })}
-      {extra}
+
+      {/* Las que no caben abajo viven aquí: cinco es el tope con el pulgar. */}
+      {enElMenu.length > 0 ? (
+        <button
+          className={`barra-inferior-boton${enElMenu.some((s) => s.id === activa) ? ' activa' : ''}`}
+          onClick={() => setMas((m) => !m)}
+          aria-expanded={mas}
+        >
+          <span aria-hidden="true">···</span>
+          <span>Más</span>
+        </button>
+      ) : null}
+
+      {mas ? (
+        <div className="barra-mas">
+          {enElMenu.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => {
+                setMas(false)
+                onIr(s.id)
+              }}
+            >
+              {s.nombre}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </nav>
   )
 }

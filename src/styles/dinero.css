@@ -96,7 +96,6 @@
   outline: none;
   background: var(--fondo-elevado);
   border-color: var(--acento);
-  box-shadow: 0 0 0 3px var(--acento-suave);
 }
 
 .campo-linea.texto {

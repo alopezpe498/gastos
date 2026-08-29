@@ -19,7 +19,7 @@ body {
   margin: 0;
   background: var(--papel);
   color: var(--tinta);
-  font-family: var(--texto);
+  font-family: var(--fuente);
   font-size: var(--t-base);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -114,7 +114,7 @@ a:hover {
 }
 
 .titulo-seccion {
-  font-family: var(--texto);
+  font-family: var(--fuente);
   font-size: var(--t-seccion);
   font-weight: 500;
   line-height: 1.25;
@@ -1130,4 +1130,395 @@ th {
   stroke: var(--tinta-3);
   stroke-width: 1;
   opacity: 0.6;
+}
+
+
+/* ---------------------------------------------------------------------------
+ * Movimientos y fijos
+ * ------------------------------------------------------------------------- */
+
+.movimiento {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  border-bottom: var(--borde);
+}
+
+.movimiento-cuerpo {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e3);
+  min-width: 0;
+  padding: var(--e3) 0;
+  text-align: left;
+}
+
+.movimiento-texto {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  min-width: 0;
+}
+
+.movimiento-descripcion {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movimiento-importe {
+  white-space: nowrap;
+}
+
+.movimiento.editando {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) 110px 110px auto;
+  gap: var(--e2);
+  padding: var(--e2) 0;
+}
+
+.movimiento-menu {
+  position: relative;
+}
+
+.movimientos .separador-fecha:first-child {
+  padding-top: 0;
+}
+
+/* Los fijos: una lista de comprobación. */
+.seccion-plegable {
+  width: 100%;
+  text-align: left;
+}
+
+.fijo {
+  display: grid;
+  grid-template-columns: 24px 32px minmax(0, 1fr) 96px;
+  align-items: center;
+  gap: var(--e2);
+  padding: var(--e2) 0;
+  border-bottom: var(--borde);
+}
+
+.fijo-marca svg {
+  display: block;
+}
+
+.fijo-circulo {
+  fill: none;
+  stroke: var(--tinta-3);
+  stroke-width: 1.5;
+  transition: stroke var(--rapido) var(--curva);
+}
+
+/* El tic se dibuja al marcar: 160 ms de trazo, nada más. */
+.fijo-tic {
+  fill: none;
+  stroke: var(--verde);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 12;
+  stroke-dashoffset: 12;
+  transition: stroke-dashoffset var(--rapido) var(--curva);
+}
+
+.fijo-marca.cobrado .fijo-circulo {
+  stroke: var(--verde);
+}
+
+.fijo-marca.cobrado .fijo-tic {
+  stroke-dashoffset: 0;
+}
+
+.fijo-dia {
+  font-size: var(--t-secundario);
+  color: var(--tinta-3);
+  text-align: right;
+}
+
+.fijo-concepto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--t-base);
+}
+
+.fijo-desvio {
+  font-size: var(--t-meta);
+  color: var(--tinta-2);
+}
+
+.tachado {
+  text-decoration: line-through;
+  color: var(--tinta-3);
+}
+
+.fijo-importe {
+  text-align: right;
+  font-size: var(--t-base);
+}
+
+.fijos-pie {
+  margin-top: var(--e3);
+}
+
+
+/* ---------------------------------------------------------------------------
+ * Cabecera de pantalla y navegación de mes
+ * ------------------------------------------------------------------------- */
+
+.cabecera .limite {
+  padding-top: var(--e5);
+  padding-bottom: var(--e3);
+}
+
+.subtitulo {
+  font-size: var(--t-secundario);
+  color: var(--tinta-2);
+  font-family: var(--mono);
+}
+
+/* Las flechas y los desplegables del mes, discretos. */
+.navegacion-mes {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  margin-top: var(--e3);
+}
+
+.navegacion-mes select {
+  border: 1px solid transparent;
+  background: transparent;
+  height: 32px;
+  padding: 0 var(--e4) 0 var(--e2);
+  border-radius: var(--radio);
+  color: var(--tinta);
+  font-size: var(--t-base);
+}
+
+.navegacion-mes select:hover {
+  border-color: var(--linea);
+}
+
+.icono-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radio);
+  color: var(--tinta-2);
+  background: transparent;
+}
+
+.icono-boton:hover:not(:disabled) {
+  background: var(--sello-suave);
+  color: var(--sello);
+}
+
+/* ---------------------------------------------------------------------------
+ * El resto de pantallas: la misma disciplina
+ * ------------------------------------------------------------------------- */
+
+/* Visión anual: una tabla de libreta. Sin rejilla completa ni bandas. */
+.anual-tabla,
+.tabla-anual {
+  border: 0 !important;
+}
+
+.anual-fila,
+.anual-tabla tr {
+  border-bottom: var(--borde);
+}
+
+.anual-fila:nth-child(even),
+.anual-tabla tr:nth-child(even) {
+  background: transparent !important;
+}
+
+.anual-valor,
+.anual-tabla td {
+  text-align: right;
+  font-family: var(--mono);
+  font-size: var(--t-secundario);
+  font-variant-numeric: tabular-nums;
+}
+
+/* La celda del mes en curso, con el sello suave. */
+.anual-actual,
+.anual-valor.actual {
+  background: var(--sello-suave) !important;
+  color: var(--tinta) !important;
+}
+
+/* Los totales, separados por una línea más marcada. */
+.anual-total,
+.anual-media {
+  border-left: 2px solid var(--linea);
+}
+
+/* Gráficos: una sola familia de color. */
+.grafico text,
+.grafico-eje {
+  font-family: var(--mono) !important;
+  font-size: var(--t-meta) !important;
+  fill: var(--tinta-3);
+}
+
+.grafico-rejilla-vertical {
+  display: none;
+}
+
+/* Bloque de trabajo pendiente: sello, no rojo. No es un error. */
+.bloque-extracto.destacado {
+  background: var(--papel-2);
+  border-left: 3px solid var(--sello);
+  border-radius: 0 var(--radio-panel) var(--radio-panel) 0;
+  padding-left: var(--e3);
+}
+
+.bloque-extracto.destacado .bloque-cabecera {
+  color: var(--tinta) !important;
+}
+
+/* Las etiquetas de origen, tres intensidades de azul, no tres colores. */
+.marca-origen.regla {
+  background: var(--sello-suave);
+  color: var(--sello);
+}
+
+.marca-origen.aprendida {
+  background: color-mix(in srgb, var(--sello-suave) 60%, var(--papel));
+  color: var(--sello);
+}
+
+.marca-origen.ia {
+  background: color-mix(in srgb, var(--sello) 22%, var(--papel));
+  color: var(--sello);
+}
+
+/* La pantalla del PIN: papel entero y el sello llenándose. */
+.pin,
+.pantalla-pin {
+  background: var(--papel) !important;
+}
+
+.pin-marca {
+  font-family: var(--display);
+  font-size: var(--t-pantalla);
+  font-weight: 500;
+}
+
+.pin-punto {
+  border-color: var(--sello) !important;
+}
+
+.pin-punto.lleno {
+  background: var(--sello) !important;
+}
+
+
+/* El saldo no puede salirse por la derecha en pantallas medias. */
+.cabecera-mes-secundarias {
+  overflow: hidden;
+}
+
+.cabecera-mes-saldo {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+/* Los títulos de sección van en la fuente de interfaz, no en la display: la
+   serif se reserva para el nombre del mes y la cifra grande. */
+.titulo-seccion,
+.seccion-titulo {
+  font-family: var(--fuente) !important;
+  font-size: var(--t-seccion);
+  font-weight: 500;
+}
+
+
+/* ---------------------------------------------------------------------------
+ * El alta rápida: una línea, no un formulario
+ * ------------------------------------------------------------------------- */
+
+.alta-rapida {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  padding: var(--e2) var(--e3) !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: var(--borde) !important;
+  border-radius: 0 !important;
+}
+
+.alta-rapida .campo,
+.alta-rapida input,
+.alta-rapida .selector-concepto {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* Los accesos a foto, PDF y pegar son terciarios: no compiten con el alta. */
+.acciones-captura .boton,
+.botones-captura .boton {
+  height: auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--sello) !important;
+  font-weight: 400 !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Confirmaciones: una línea que aparece y se va, nunca un modal
+ * ------------------------------------------------------------------------- */
+
+.avisos,
+.aviso {
+  box-shadow: none !important;
+}
+
+.aviso {
+  background: var(--papel-2) !important;
+  border: var(--borde) !important;
+  border-radius: var(--radio) !important;
+  color: var(--tinta) !important;
+  font-size: var(--t-secundario);
+}
+
+
+/* El menú de las secciones que no caben en la barra de abajo. */
+.barra-mas {
+  position: absolute;
+  right: var(--e2);
+  bottom: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  margin-bottom: var(--e2);
+  padding: var(--e1);
+  border: var(--borde);
+  border-radius: var(--radio);
+  background: var(--papel-2);
+}
+
+.barra-mas button {
+  padding: var(--e2) var(--e3);
+  text-align: left;
+  border-radius: var(--radio);
+}
+
+.barra-inferior {
+  position: relative;
+}
+
+/* "hoy" se solapaba con la fecha final cuando caía cerca del borde. */
+.cinta-etiqueta-hoy {
+  background: var(--papel);
+  padding: 0 3px;
 }

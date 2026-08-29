@@ -47,7 +47,6 @@
   padding: var(--e-3);
   border-radius: var(--radio-m);
   background: var(--tarjeta);
-  box-shadow: var(--sombra-minima);
 }
 
 .rango-libre .campo-etiqueta {
@@ -75,7 +74,6 @@
   padding: var(--e-3) var(--e-4);
   border-radius: var(--radio-l);
   background: var(--tarjeta);
-  box-shadow: var(--sombra-tarjeta);
 }
 
 .tarjeta-dato-cifra {
@@ -146,8 +144,6 @@
 .comparativa-fila.cabecera {
   font-size: var(--txt-etiqueta);
   font-weight: var(--peso-fuerte);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--texto-3);
   background: var(--tarjeta-hundida);
 }
@@ -218,8 +214,6 @@
 .ranking-fila.cabecera {
   font-size: var(--txt-etiqueta);
   font-weight: var(--peso-fuerte);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--texto-3);
   background: var(--tarjeta-hundida);
 }
@@ -285,8 +279,6 @@
 .regla-anual.cabecera {
   font-size: var(--txt-etiqueta);
   font-weight: var(--peso-fuerte);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--texto-3);
   background: var(--tarjeta-hundida);
   align-items: center;

@@ -74,7 +74,7 @@
 
   /* ---------- tipografía ---------- */
   --display: 'Fraunces', Georgia, 'Iowan Old Style', serif;
-  --texto: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fuente: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: 'Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   --t-meta: 0.75rem; /* 12 · metadatos */

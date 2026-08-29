@@ -101,7 +101,6 @@
 }
 
 .fila-concepto.encima {
-  box-shadow: inset 0 2px 0 var(--acento);
 }
 
 .etiqueta-mini {
@@ -112,7 +111,6 @@
   color: var(--acento-texto);
   font-size: var(--txt-etiqueta);
   font-weight: var(--peso-fuerte);
-  text-transform: uppercase;
   letter-spacing: 0.4px;
 }
 
@@ -124,7 +122,6 @@
   padding: var(--e-3);
   border-radius: var(--radio-m);
   background: var(--tarjeta);
-  box-shadow: var(--sombra-minima);
 }
 
 .rejilla-previsto {
@@ -188,7 +185,6 @@
 .selector-mes select:focus {
   outline: none;
   border-color: var(--acento);
-  box-shadow: 0 0 0 3px var(--acento-suave);
 }
 
 .grupo {
@@ -196,7 +192,6 @@
   padding: var(--e-3);
   border-radius: var(--radio-m);
   background: var(--tarjeta);
-  box-shadow: var(--sombra-minima);
 }
 
 code {
@@ -227,8 +222,6 @@ code {
   display: block;
   font-size: var(--txt-etiqueta);
   font-weight: var(--peso-fuerte);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
   color: var(--texto-3);
 }
 
@@ -253,8 +246,6 @@ code {
   min-height: 32px;
   font-size: var(--txt-etiqueta);
   font-weight: var(--peso-fuerte);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
   color: var(--texto-3);
   background: var(--tarjeta-hundida);
 }
@@ -269,7 +260,6 @@ code {
 }
 
 .plantilla-fila.encima {
-  box-shadow: inset 0 2px 0 var(--acento);
 }
 
 .plantilla-concepto {

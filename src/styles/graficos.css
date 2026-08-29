@@ -150,7 +150,6 @@
   border-radius: var(--radio-m);
   background: var(--fondo-elevado);
   border: 1px solid var(--separador);
-  box-shadow: var(--sombra-elevada);
   font-size: var(--txt-caption);
   pointer-events: none;
   white-space: nowrap;
@@ -218,7 +217,6 @@
   margin: var(--e-3) 0;
   border-radius: var(--radio-l);
   background: var(--tarjeta);
-  box-shadow: var(--sombra-tarjeta);
 }
 
 .mapa-calor {
@@ -232,8 +230,6 @@
   padding: var(--e-2);
   font-weight: var(--peso-fuerte);
   font-size: var(--txt-etiqueta);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--texto-3);
   background: var(--tarjeta-hundida);
 }
@@ -285,7 +281,6 @@
 
 /* El mes en el que ese concepto se dispara de verdad. */
 .celda-calor.punta {
-  box-shadow: inset 0 0 0 2px var(--pendiente);
 }
 
 /* ---------- Sparkline ---------- */

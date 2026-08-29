@@ -30,10 +30,10 @@ const PESTANAS = [
   { id: 'mes' as const, nombre: 'Mes', icono: IconoCalendario },
   { id: 'analisis' as const, nombre: 'Análisis', icono: IconoTarta },
   { id: 'anual' as const, nombre: 'Año', icono: IconoTabla },
-  { id: 'analitica' as const, nombre: 'Analítica', icono: IconoTendencia },
+  { id: 'analitica' as const, nombre: 'Analítica', icono: IconoTendencia, enMovil: false },
   { id: 'conceptos' as const, nombre: 'Conceptos', icono: IconoEtiquetas },
   { id: 'importar' as const, nombre: 'Importar', icono: IconoSubir },
-  { id: 'ajustes' as const, nombre: 'Ajustes', icono: IconoAjustes },
+  { id: 'ajustes' as const, nombre: 'Ajustes', icono: IconoAjustes, enMovil: false },
 ]
 
 export default function App() {

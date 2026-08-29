@@ -536,6 +536,7 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onVerAnalisis, onImport
   const paneles = {
     fijos: (
       <TablaFijos
+        onRegenerar={() => setMenuAbierto(true)}
         fijos={mes.fijos}
         onCambiarImporte={(id, importe) => cambiarMovimiento(id, { importe })}
         onAlternarCobro={alternarCobro}
@@ -561,6 +562,7 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onVerAnalisis, onImport
           onCambiar={cambiarMovimiento}
           onBorrar={setABorrar}
           mesReferencia={mes.clave}
+          onImportar={() => onImportarExtracto(mes.id)}
         />
       </>
     ),
@@ -592,8 +594,13 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onVerAnalisis, onImport
 
         {escritorio ? (
           <div className="mes-columnas">
-            <div className="mes-columna">{paneles.fijos}</div>
+            {/*
+              Los movimientos mandan y ocupan el ancho; los fijos son una lista
+              de comprobación en una columna estrecha a la derecha. Al revés, lo
+              primero que se leía era una tabla que casi nunca se toca.
+            */}
             <div className="mes-columna">{paneles.variables}</div>
+            <div className="mes-columna">{paneles.fijos}</div>
           </div>
         ) : (
           <>

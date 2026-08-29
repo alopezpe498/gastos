@@ -20,7 +20,6 @@
   list-style: none;
   border-radius: var(--radio-m);
   background: var(--fondo-elevado);
-  box-shadow: var(--sombra-elevada);
   border: 1px solid var(--separador);
 }
 
@@ -49,7 +48,6 @@
 .selector-marca {
   font-size: var(--txt-etiqueta);
   color: var(--texto-3);
-  text-transform: uppercase;
   letter-spacing: 0.4px;
 }
 
@@ -74,7 +72,6 @@
   border-radius: 50%;
   background: var(--acento);
   color: var(--sobre-acento);
-  box-shadow: var(--sombra-elevada);
   transition: transform var(--dur-rapida);
 }
 

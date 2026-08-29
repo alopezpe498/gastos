@@ -41,7 +41,6 @@
   padding: var(--e-8);
   background: var(--tarjeta);
   border-radius: var(--radio-l);
-  box-shadow: var(--sombra-tarjeta);
 }
 
 .informe-cabecera {
@@ -98,8 +97,6 @@
 
 .informe-cifra-etiqueta {
   font-size: var(--txt-etiqueta);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--texto-3);
 }
 
@@ -135,8 +132,6 @@
 .informe-tabla th {
   text-align: left;
   font-size: var(--txt-etiqueta);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--texto-3);
   border-bottom: 1px solid var(--separador-fuerte);
   padding: var(--e-1) var(--e-2);
@@ -206,7 +201,6 @@
     margin: 0;
     padding: 0;
     background: #fff;
-    box-shadow: none;
     border-radius: 0;
     color: #000;
   }

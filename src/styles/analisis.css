@@ -68,7 +68,6 @@
   padding: var(--e-4);
   border-radius: var(--radio-l);
   background: var(--tarjeta);
-  box-shadow: var(--sombra-tarjeta);
 }
 
 .tarta {
@@ -91,8 +90,6 @@
 .tarta-centro-nota {
   font-size: 11px;
   fill: var(--texto-3);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
 }
 
 .tarta-leyenda {

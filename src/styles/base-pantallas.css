@@ -83,7 +83,6 @@
   height: 76px;
   border-radius: 50%;
   background: var(--tarjeta);
-  box-shadow: var(--sombra-tarjeta);
   font-family: var(--fuente-display);
   font-size: var(--txt-numero);
   font-weight: var(--peso-normal);
@@ -135,7 +134,6 @@
 .segmentado button.activo {
   background: var(--fondo-elevado);
   font-weight: var(--peso-fuerte);
-  box-shadow: 0 1px 3px rgba(16, 48, 44, 0.14);
 }
 
 .segmentado.pequeno button {
@@ -170,7 +168,6 @@
   height: 27px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 2px 4px rgba(16, 48, 44, 0.22);
   transition: transform var(--dur-media);
 }
 
@@ -219,7 +216,6 @@
   -webkit-backdrop-filter: blur(20px);
   overflow: hidden;
   animation: aparecerAlerta var(--dur-media) var(--curva-entrada);
-  box-shadow: var(--sombra-elevada);
 }
 
 @keyframes aparecerAlerta {
