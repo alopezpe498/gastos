@@ -1,0 +1,387 @@
+/*
+ * Estilos propios de cada pantalla de Gastos.
+ *
+ * El sistema base (colores, tipografia, botones, filas, sheets) esta en
+ * global.css; las piezas heredadas de la app de menus, en base-pantallas.css;
+ * y todo lo que tiene que ver con escribir dinero, en dinero.css.
+ */
+
+/* ---------- Secciones ---------- */
+
+.seccion {
+  margin-bottom: var(--e-8);
+}
+
+.seccion-cabecera {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--e-4);
+  margin-bottom: var(--e-3);
+}
+
+.seccion-pista {
+  margin-top: 2px;
+  font-size: var(--txt-caption);
+  color: var(--texto-2);
+  max-width: 52ch;
+}
+
+.bloque {
+  margin-top: var(--e-8);
+}
+
+.bloque > .seccion-titulo {
+  margin-top: 0;
+}
+
+.acciones-pie {
+  margin: var(--e-8) 0 var(--e-4);
+}
+
+.pista {
+  margin-top: var(--e-2);
+  font-size: var(--txt-caption);
+  color: var(--texto-2);
+  line-height: 1.45;
+}
+
+.pista.aviso {
+  color: var(--pendiente);
+}
+
+/* ---------- Conceptos ---------- */
+
+.fila-concepto {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  padding-left: var(--e-2);
+}
+
+.fila-concepto.apagada .fila-titulo,
+.fila-concepto.apagada .fila-detalle {
+  color: var(--texto-3);
+}
+
+/* El agarre solo aparece cuando el raton esta encima: en reposo, la lista es
+   una lista, no un panel de control. En tactil no hay hover, asi que se ve
+   siempre. */
+.agarre {
+  display: flex;
+  align-items: center;
+  color: var(--texto-3);
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .agarre {
+    opacity: 0;
+    transition: opacity var(--dur-rapida);
+  }
+  .fila-concepto:hover .agarre {
+    opacity: 1;
+  }
+}
+
+.fila-boton {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: var(--e-1) 0;
+}
+
+.fila-concepto.arrastrando {
+  opacity: 0.4;
+}
+
+.fila-concepto.encima {
+  box-shadow: inset 0 2px 0 var(--acento);
+}
+
+.etiqueta-mini {
+  margin-left: var(--e-2);
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--acento-suave);
+  color: var(--acento-texto);
+  font-size: var(--txt-etiqueta);
+  font-weight: var(--peso-fuerte);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.fila-ajuste {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  margin-top: var(--e-6);
+  padding: var(--e-3);
+  border-radius: var(--radio-m);
+  background: var(--tarjeta);
+  box-shadow: var(--sombra-minima);
+}
+
+.rejilla-previsto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--e-3);
+  margin: var(--e-3) 0 var(--e-4);
+}
+
+.historico {
+  margin-top: var(--e-4);
+}
+
+.etiqueta-quitar {
+  margin-left: 6px;
+  color: var(--texto-3);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.fila-campos {
+  display: flex;
+  gap: var(--e-2);
+  align-items: center;
+  margin-top: var(--e-3);
+}
+
+.fila-campos .campo {
+  flex: 1;
+  min-width: 0;
+}
+
+/* En este proyecto las filas se montan con <span>, que es inline: sin esto, el
+   titulo y el detalle se pegan en la misma linea. */
+.fila-cuerpo > .fila-titulo,
+.fila-cuerpo > .fila-detalle {
+  display: block;
+}
+
+/* ---------- Selector de mes ---------- */
+
+/* El <input type="month"> del navegador escribe los meses en el idioma de
+   Chrome, no en el de la aplicacion: en un Chrome en ingles salia "September
+   2026" en medio de una pantalla en castellano. Dos desplegables propios. */
+.selector-mes {
+  display: flex;
+  gap: var(--e-2);
+}
+
+.selector-mes select {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--alto-control);
+  padding: 0 var(--e-3);
+  border: 1px solid var(--separador);
+  border-radius: var(--radio-m);
+  background: var(--tarjeta);
+  font-size: var(--txt-cuerpo);
+}
+
+.selector-mes select:focus {
+  outline: none;
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px var(--acento-suave);
+}
+
+.grupo {
+  margin-bottom: var(--e-4);
+  padding: var(--e-3);
+  border-radius: var(--radio-m);
+  background: var(--tarjeta);
+  box-shadow: var(--sombra-minima);
+}
+
+code {
+  padding: 1px 5px;
+  border-radius: var(--radio-s);
+  background: var(--tarjeta-hundida);
+  font-size: 0.92em;
+}
+
+
+/* ---------- Plantilla ---------- */
+
+/* El mes desde el que se mira manda sobre toda la pantalla, asi que va arriba
+   del todo y separado de la tabla, no perdido en una esquina. */
+.plantilla-vigencia {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--e-4);
+  padding: var(--e-3);
+  border-radius: var(--radio-m);
+  background: var(--tarjeta-hundida);
+}
+
+.etiqueta-campo {
+  display: block;
+  font-size: var(--txt-etiqueta);
+  font-weight: var(--peso-fuerte);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--texto-3);
+}
+
+.tabla-plantilla {
+  overflow: hidden;
+}
+
+.plantilla-fila {
+  display: grid;
+  grid-template-columns: 46px 1fr 84px 116px 136px 40px;
+  align-items: center;
+  gap: var(--e-2);
+  padding: var(--e-1) var(--e-3);
+  min-height: 48px;
+}
+
+.plantilla-fila + .plantilla-fila {
+  border-top: 1px solid var(--separador);
+}
+
+.plantilla-fila.cabecera {
+  min-height: 32px;
+  font-size: var(--txt-etiqueta);
+  font-weight: var(--peso-fuerte);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--texto-3);
+  background: var(--tarjeta-hundida);
+}
+
+.plantilla-fila.total {
+  font-weight: var(--peso-fuerte);
+  background: var(--tarjeta-hundida);
+}
+
+.plantilla-fila.arrastrando {
+  opacity: 0.4;
+}
+
+.plantilla-fila.encima {
+  box-shadow: inset 0 2px 0 var(--acento);
+}
+
+.plantilla-concepto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--txt-apoyo);
+}
+
+/* De que mes viene el importe que se esta viendo. Solo aparece cuando se
+   arrastra de antes: si es del mes elegido, decirlo seria ruido. */
+.plantilla-origen {
+  font-size: var(--txt-etiqueta);
+  color: var(--texto-3);
+}
+
+.resumen-plantilla {
+  padding: var(--e-3);
+}
+
+.resumen-linea {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-3);
+  padding: var(--e-1) 0;
+  font-size: var(--txt-apoyo);
+  color: var(--texto-2);
+}
+
+.resumen-linea.sobrante {
+  margin-top: var(--e-1);
+  padding-top: var(--e-2);
+  border-top: 1px solid var(--separador);
+  font-size: var(--txt-cuerpo);
+  font-weight: var(--peso-fuerte);
+  color: var(--texto);
+}
+
+/* En movil no caben seis columnas: la fila se parte en dos lineas, con el
+   concepto arriba y el resto debajo. */
+@media (max-width: 700px) {
+  .plantilla-fila {
+    grid-template-columns: 46px 1fr 116px 40px;
+    grid-template-areas:
+      'agarre concepto importe historial'
+      '.      dia      clase   .';
+    row-gap: 2px;
+    padding-top: var(--e-2);
+    padding-bottom: var(--e-2);
+  }
+
+  .plantilla-fila > .plantilla-agarre {
+    grid-area: agarre;
+  }
+  .plantilla-concepto {
+    grid-area: concepto;
+  }
+  .plantilla-fila .plantilla-dia {
+    grid-area: dia;
+  }
+  .plantilla-fila > .dinero {
+    grid-area: importe;
+  }
+  .plantilla-fila > select {
+    grid-area: clase;
+  }
+  .plantilla-fila > .icono-boton {
+    grid-area: historial;
+  }
+
+  /* La cabecera de la tabla sobra en movil: con dos lineas por fila, los
+     rotulos de columna no caen encima de nada. */
+  .plantilla-fila.cabecera {
+    display: none;
+  }
+
+  .plantilla-fila.total {
+    grid-template-columns: 46px 1fr 116px 40px;
+    grid-template-areas: 'agarre concepto importe historial';
+  }
+
+  .plantilla-fila.total > :nth-child(3),
+  .plantilla-fila.total > :nth-child(5),
+  .plantilla-fila.total > :nth-child(6) {
+    display: none;
+  }
+}
+
+/* El numero de orden y el agarre comparten celda: el agarre solo aparece al
+   pasar por encima, para que la columna no sea una fila de iconos. */
+.plantilla-agarre {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--txt-etiqueta);
+  color: var(--texto-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.plantilla-agarre .agarre {
+  opacity: 0;
+  transition: opacity var(--dur-rapida);
+}
+
+.plantilla-fila:hover .plantilla-agarre .agarre {
+  opacity: 1;
+}
+
+/* La cabecera y el total se alinean con la columna de importes, que va a la
+   derecha porque los numeros se leen en vertical. */
+.plantilla-titulo-importe,
+.plantilla-fila.total .dinero {
+  text-align: right;
+}

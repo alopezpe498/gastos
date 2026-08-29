@@ -1,0 +1,125 @@
+/*
+ * Como se escribe el dinero en esta aplicacion.
+ *
+ * Una sola regla manda sobre todas las demas: las cifras van en cifras
+ * tabulares. En una tabla de doce meses, sin eso las columnas bailan y la vista
+ * pierde la vertical, que es justo lo que se venia a mirar.
+ */
+
+.dinero {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  white-space: nowrap;
+}
+
+/* La serif para las cifras que se leen de un vistazo: las del resumen del mes.
+   Fraunces trae numeros de la misma altura, que es lo que hace falta. */
+.dinero-titular {
+  font-family: var(--fuente-display);
+  font-variation-settings: 'opsz' 36;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.4px;
+  white-space: nowrap;
+}
+
+/* El signo se dice con color, pero nunca SOLO con color: el sobrante negativo
+   lleva ademas su menos delante, que es lo que de verdad lo distingue. */
+.positivo {
+  color: var(--positivo);
+}
+
+.negativo {
+  color: var(--negativo);
+}
+
+/* Un importe cero no es una noticia: se apaga para que no compita con el resto. */
+.cero {
+  color: var(--texto-3);
+}
+
+/* ---------- Estado de cobro ---------- */
+
+.pendiente-punto {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pendiente);
+  flex-shrink: 0;
+}
+
+/* La marca del pendiente: el amarillo del Excel, pero como banda lateral en vez
+   de como fondo. Tenir la fila entera de amarillo, con quince filas seguidas,
+   deja de decir nada. */
+.fila-pendiente {
+  position: relative;
+  background: var(--pendiente-suave);
+}
+
+.fila-pendiente::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--pendiente);
+}
+
+/* ---------- Campo de importe editable en linea ---------- */
+
+/*
+ * Todo se edita escribiendo encima, sin boton de guardar. Mientras no tiene el
+ * foco, un importe es texto normal; al entrar en el, se convierte en un campo.
+ * El cambio de aspecto tiene que ser el minimo imprescindible, o cada fila de
+ * la tabla parecera un formulario.
+ */
+.campo-linea {
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radio-s);
+  background: transparent;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  transition:
+    background var(--dur-rapida),
+    border-color var(--dur-rapida);
+}
+
+.campo-linea:hover {
+  border-color: var(--separador);
+}
+
+.campo-linea:focus {
+  outline: none;
+  background: var(--fondo-elevado);
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px var(--acento-suave);
+}
+
+.campo-linea.texto {
+  text-align: left;
+  font-variant-numeric: normal;
+}
+
+/* Mientras se guarda, un latido muy leve: confirma sin robar la atencion. */
+.guardando {
+  animation: latidoGuardado var(--dur-media) ease-out;
+}
+
+@keyframes latidoGuardado {
+  from {
+    background: var(--especial-suave);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guardando {
+    animation: none;
+  }
+}

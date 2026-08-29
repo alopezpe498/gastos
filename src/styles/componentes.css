@@ -1,0 +1,133 @@
+/* Piezas compartidas entre pantallas que no son parte del sistema base. */
+
+/* ---------- Selector de concepto con busqueda ---------- */
+
+.selector-concepto {
+  position: relative;
+  min-width: 0;
+}
+
+.selector-lista {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--e-1);
+  list-style: none;
+  border-radius: var(--radio-m);
+  background: var(--fondo-elevado);
+  box-shadow: var(--sombra-elevada);
+  border: 1px solid var(--separador);
+}
+
+.selector-opcion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-2);
+  width: 100%;
+  min-height: var(--alto-control-s);
+  padding: 0 var(--e-2);
+  border-radius: var(--radio-s);
+  font-size: var(--txt-apoyo);
+  text-align: left;
+}
+
+.selector-opcion.resaltada {
+  background: var(--acento-suave);
+}
+
+.selector-opcion.elegida {
+  font-weight: var(--peso-fuerte);
+  color: var(--acento-texto);
+}
+
+.selector-marca {
+  font-size: var(--txt-etiqueta);
+  color: var(--texto-3);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.selector-vacio {
+  padding: var(--e-3);
+  font-size: var(--txt-caption);
+  color: var(--texto-2);
+}
+
+/* ---------- Boton flotante ---------- */
+
+.flotante {
+  position: fixed;
+  right: max(16px, var(--der));
+  bottom: calc(var(--alto-barra) + var(--abajo) + 16px);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--acento);
+  color: var(--sobre-acento);
+  box-shadow: var(--sombra-elevada);
+  transition: transform var(--dur-rapida);
+}
+
+.flotante:active {
+  transform: scale(0.94);
+}
+
+/* ---------- Botones compactos de cabecera ---------- */
+
+.boton-compacto {
+  min-height: 34px;
+  padding: 0 var(--e-4);
+  font-size: var(--txt-caption);
+}
+
+/* ---------- Campo de fecha ---------- */
+
+.campo-fecha {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.campo-fecha .campo-linea {
+  flex: 1;
+  min-width: 0;
+}
+
+.campo-fecha-boton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: var(--radio-s);
+  color: var(--texto-3);
+  transition: color var(--dur-rapida);
+}
+
+.campo-fecha-boton:hover {
+  color: var(--acento);
+}
+
+/* El input nativo solo existe para abrir el calendario del sistema: no se ve
+   nunca, pero tiene que seguir en el layout para que showPicker() funcione. */
+.campo-fecha-nativo {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}

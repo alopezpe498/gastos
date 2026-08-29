@@ -1,0 +1,469 @@
+/* Pantalla del mes en curso. */
+
+/* ---------- Navegacion entre meses ---------- */
+
+.navegacion-mes {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  padding-bottom: var(--e-2);
+}
+
+.selector-mes-cabecera {
+  min-height: var(--alto-control-s);
+  padding: 0 var(--e-2);
+  border: 1px solid var(--separador);
+  border-radius: var(--radio-s);
+  background: var(--tarjeta);
+  font-size: var(--txt-apoyo);
+  font-weight: var(--peso-medio);
+}
+
+/* El mes y el año de la cabecera: dos desplegables pegados, para poder saltar
+   a cualquier mes sin ir de uno en uno con las flechas. */
+.navegacion-mes .selector-mes {
+  flex: 0 1 auto;
+  gap: var(--e-1);
+}
+
+.navegacion-mes .selector-mes select {
+  min-height: var(--alto-control-s);
+  font-size: var(--txt-apoyo);
+  font-weight: var(--peso-medio);
+}
+
+/* Un mes fuera del rango navegable sigue en la lista, pero apagado: se ve que
+   existe y que ahí no se puede ir. */
+.navegacion-mes .selector-mes option:disabled {
+  color: var(--texto-3);
+}
+
+/* ---------- Cuadro resumen ---------- */
+
+.resumen {
+  margin: var(--e-4) 0 var(--e-6);
+}
+
+.resumen-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--e-3);
+}
+
+.resumen-celda {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--radio-l);
+  background: var(--tarjeta);
+  box-shadow: var(--sombra-tarjeta);
+}
+
+.resumen-etiqueta {
+  font-size: var(--txt-etiqueta);
+  font-weight: var(--peso-fuerte);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--texto-3);
+}
+
+.resumen-cifra {
+  font-size: var(--txt-numero);
+  /* Las cifras del resumen se alinean a la izquierda, bajo su etiqueta: no son
+     una columna de tabla, son cuatro titulares. */
+  text-align: left;
+  padding-left: 0;
+}
+
+.resumen-nota {
+  font-size: var(--txt-caption);
+  color: var(--texto-3);
+}
+
+.desglose {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-4) var(--e-8);
+  margin-top: var(--e-4);
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--radio-m);
+  background: var(--tarjeta-hundida);
+}
+
+.desglose-trozo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.desglose-etiqueta {
+  font-size: var(--txt-caption);
+  color: var(--texto-2);
+}
+
+.desglose-nota {
+  color: var(--texto-3);
+}
+
+.desglose-cifra {
+  font-size: var(--txt-cuerpo);
+  font-weight: var(--peso-medio);
+}
+
+/* ---------- Sobre de la comida ---------- */
+
+.sobre {
+  margin-bottom: var(--e-6);
+  padding: var(--e-4);
+  border-radius: var(--radio-l);
+  background: var(--tarjeta);
+  box-shadow: var(--sombra-tarjeta);
+}
+
+.sobre-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-4);
+}
+
+.sobre-cabecera .seccion-titulo {
+  margin: 0;
+}
+
+.sobre-presupuesto {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+
+.sobre-etiqueta {
+  font-size: var(--txt-caption);
+  color: var(--texto-2);
+}
+
+.sobre-presupuesto .campo-linea {
+  width: 120px;
+}
+
+.sobre-barra {
+  height: 10px;
+  margin: var(--e-3) 0 var(--e-2);
+  border-radius: 999px;
+  background: var(--tarjeta-hundida);
+  overflow: hidden;
+}
+
+.sobre-relleno {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--acento);
+  transition:
+    width var(--dur-media) var(--curva),
+    background var(--dur-media);
+}
+
+.sobre-relleno.justo {
+  background: var(--pendiente);
+}
+
+.sobre-relleno.pasado {
+  background: var(--negativo);
+}
+
+.sobre-cifras {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e-4);
+  font-size: var(--txt-apoyo);
+  color: var(--texto-2);
+}
+
+/* ---------- Paneles de fijos y variables ---------- */
+
+.panel {
+  margin-bottom: var(--e-6);
+}
+
+.panel-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-4);
+  margin-bottom: var(--e-3);
+}
+
+.panel-cabecera .seccion-titulo {
+  margin: 0;
+}
+
+.panel-nota {
+  font-size: var(--txt-caption);
+  color: var(--texto-2);
+}
+
+/* ---------- Tabla de fijos ---------- */
+
+.tabla-fijos {
+  overflow: hidden;
+}
+
+.fijo-fila {
+  display: grid;
+  grid-template-columns: 46px 1fr 104px 124px;
+  align-items: center;
+  gap: var(--e-2);
+  padding: var(--e-1) var(--e-3);
+  min-height: 46px;
+}
+
+.fijo-fila + .fijo-fila {
+  border-top: 1px solid var(--separador);
+}
+
+.fijo-fila.cabecera {
+  min-height: 32px;
+  font-size: var(--txt-etiqueta);
+  font-weight: var(--peso-fuerte);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--texto-3);
+  background: var(--tarjeta-hundida);
+}
+
+.fijo-fila.total {
+  font-weight: var(--peso-fuerte);
+  background: var(--tarjeta-hundida);
+}
+
+.fijo-dia {
+  font-size: var(--txt-caption);
+  color: var(--texto-2);
+}
+
+.fijo-concepto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--txt-apoyo);
+}
+
+.fijo-previsto {
+  font-size: var(--txt-etiqueta);
+  color: var(--pendiente);
+}
+
+/* En la cabecera y en el total, "Importe" no es un campo: es texto, y se
+   alinea a mano donde se alinean las cifras de los campos de arriba. */
+.fijo-fila.cabecera .fijo-importe,
+.fijo-fila.total .fijo-importe {
+  text-align: right;
+  padding-right: var(--e-2);
+}
+
+.fijo-cobro {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  justify-content: flex-end;
+}
+
+.fijo-fecha {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: var(--txt-etiqueta);
+  color: var(--texto-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.fijo-fecha:focus {
+  outline: 2px solid var(--acento);
+  border-radius: var(--radio-s);
+}
+
+/* En movil no cabe la fecha al lado de la casilla; la casilla sola ya dice si
+   esta cobrado, que es lo que se mira desde el movil. */
+@media (max-width: 560px) {
+  .fijo-fila {
+    grid-template-columns: 38px 1fr 96px 34px;
+  }
+  .fijo-fecha {
+    display: none;
+  }
+}
+
+/* ---------- Alta rapida ---------- */
+
+.alta-rapida {
+  margin-bottom: var(--e-4);
+  padding: var(--e-3);
+  border-radius: var(--radio-m);
+  background: var(--tarjeta);
+  box-shadow: var(--sombra-minima);
+}
+
+.alta-campos {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.2fr) 110px 140px minmax(120px, 1fr) auto;
+  gap: var(--e-2);
+  align-items: center;
+}
+
+.alta-importe {
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .alta-campos {
+    grid-template-columns: 1fr 1fr;
+  }
+  .alta-descripcion,
+  .alta-boton {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---------- Lista de variables ---------- */
+
+.variable-fila {
+  display: grid;
+  grid-template-columns: 96px minmax(120px, 1.1fr) minmax(90px, 1fr) 110px 36px;
+  align-items: center;
+  gap: var(--e-2);
+  padding: var(--e-1) var(--e-2);
+  min-height: 46px;
+}
+
+.variable-fila + .variable-fila {
+  border-top: 1px solid var(--separador);
+}
+
+.variable-fecha {
+  font-size: var(--txt-caption);
+  color: var(--texto-2);
+}
+
+.variable-concepto .campo {
+  min-height: 34px;
+  padding: 0 var(--e-2);
+  font-size: var(--txt-apoyo);
+}
+
+/* La papelera solo aparece al pasar por encima: en sesenta filas seguidas, una
+   papelera por linea es una invitacion al accidente. En tactil no hay hover,
+   asi que se deja visible pero apagada. */
+.variable-borrar {
+  opacity: 0.55;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .variable-borrar {
+    opacity: 0;
+    transition: opacity var(--dur-rapida);
+  }
+  .variable-fila:hover .variable-borrar,
+  .variable-fila:focus-within .variable-borrar {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 620px) {
+  .variable-fila {
+    grid-template-columns: 92px 1fr 100px 32px;
+  }
+  .variable-descripcion {
+    grid-column: 2 / 4;
+    grid-row: 2;
+  }
+}
+
+/* ---------- Escritorio: dos columnas ---------- */
+
+@media (min-width: 1024px) {
+  /*
+   * Los fijos a la izquierda, que se leen de arriba abajo marcando cobros, y
+   * los variables a la derecha, que es donde se escribe. Los fijos son quince
+   * filas y no crecen; los variables pueden ser sesenta, asi que la columna de
+   * la derecha se lleva el espacio que sobra.
+   */
+  .mes-columnas {
+    display: grid;
+    grid-template-columns: minmax(420px, 5fr) minmax(420px, 7fr);
+    gap: var(--e-6);
+    align-items: start;
+  }
+
+  .mes-columna {
+    min-width: 0;
+  }
+
+  /* Con sitio de sobra, las cuatro cifras del resumen van en una sola fila. */
+  .app-escritorio .resumen-rejilla {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Entre 1024 y 1400 las dos columnas quedan demasiado estrechas para la tabla
+   de fijos y la de variables a la vez: mejor una encima de otra. */
+@media (min-width: 1024px) and (max-width: 1399.98px) {
+  .mes-columnas {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* En una pantalla estrecha, el titulo y los botones de la cabecera no caben en
+   la misma linea: el titulo se partia en dos para dejarles sitio. Los botones
+   bajan a su propia fila y ocupan el ancho. */
+@media (max-width: 620px) {
+  .cabecera-fila {
+    flex-wrap: wrap;
+  }
+
+  .cabecera-acciones {
+    width: 100%;
+    margin-top: var(--e-2);
+  }
+
+  .cabecera-acciones .boton {
+    flex: 1;
+  }
+}
+
+/* Las entradas que no son teclear: foto y portapapeles. Van pegadas al alta
+   rápida porque son la misma acción por otro camino. */
+.captura-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2);
+  margin-bottom: var(--e-4);
+}
+
+
+/* Las comparaciones con el año pasado y con la media, bajo las cifras grandes. */
+.comparaciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-1) var(--e-3);
+  margin-top: 2px;
+}
+
+.comparacion {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.comparacion-nota {
+  font-size: var(--txt-etiqueta);
+  color: var(--texto-3);
+}
+
+/* Un fijo que se sale más de un 15 % de lo previsto: el ámbar ya avisaba, aquí
+   se refuerza para que destaque entre quince filas. */
+.fijo-previsto.desviado {
+  font-weight: var(--peso-fuerte);
+  color: var(--negativo);
+}

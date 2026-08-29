@@ -1,0 +1,324 @@
+/* Estilos propios de cada pantalla. El sistema base esta en global.css. */
+
+/* ---------- Pantalla del PIN ---------- */
+
+.pin-pantalla {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100%;
+  padding: calc(var(--arriba) + 48px) max(20px, var(--izq)) calc(var(--abajo) + 24px)
+    max(20px, var(--der));
+}
+
+.pin-cabecera {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.pin-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  background: var(--acento-suave);
+  color: var(--acento-texto);
+}
+
+.pin-titulo {
+  font-family: var(--fuente-display);
+  font-size: var(--txt-numero);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: -0.4px;
+  font-variation-settings: 'opsz' 36;
+}
+
+.pin-texto {
+  font-size: var(--txt-apoyo);
+  color: var(--texto-2);
+  min-height: 21px;
+  max-width: 30ch;
+}
+
+.pin-puntos {
+  display: flex;
+  gap: 16px;
+  margin: 32px 0 auto;
+}
+
+.pin-punto {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid var(--separador-fuerte);
+  transition:
+    background var(--dur-rapida),
+    transform var(--dur-rapida);
+}
+
+.pin-punto.lleno {
+  background: var(--acento);
+  border-color: var(--acento);
+  transform: scale(1.1);
+}
+
+.pin-teclado {
+  display: grid;
+  grid-template-columns: repeat(3, 76px);
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.pin-tecla {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--tarjeta);
+  box-shadow: var(--sombra-tarjeta);
+  font-family: var(--fuente-display);
+  font-size: var(--txt-numero);
+  font-weight: var(--peso-normal);
+  font-variation-settings: 'opsz' 36;
+  transition:
+    background var(--dur-rapida),
+    transform var(--dur-rapida);
+}
+
+.pin-tecla:active {
+  background: var(--pildora);
+  transform: scale(0.94);
+}
+
+.pin-pie {
+  width: 100%;
+  max-width: 320px;
+}
+
+/* ---------- Cabecera y navegacion de semana ---------- */
+
+.cabecera-acciones {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+
+.segmentado {
+  display: flex;
+  padding: 4px;
+  border-radius: var(--radio-m);
+  background: var(--pildora);
+}
+
+.segmentado button {
+  flex: 1;
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radio-s);
+  font-size: var(--txt-caption);
+  font-weight: var(--peso-medio);
+  color: var(--texto);
+  transition: background var(--dur-rapida);
+  white-space: nowrap;
+}
+
+.segmentado button.activo {
+  background: var(--fondo-elevado);
+  font-weight: var(--peso-fuerte);
+  box-shadow: 0 1px 3px rgba(16, 48, 44, 0.14);
+}
+
+.segmentado.pequeno button {
+  min-height: 28px;
+  padding: 0 12px;
+  font-size: var(--txt-caption);
+}
+
+
+/* ---------- Ajustes ---------- */
+
+.interruptor {
+  position: relative;
+  width: 51px;
+  height: 31px;
+  margin-left: 8px;
+  border-radius: 999px;
+  background: var(--separador-fuerte);
+  transition: background var(--dur-media);
+  flex-shrink: 0;
+}
+
+.interruptor.activo {
+  background: var(--exito);
+}
+
+.interruptor span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(16, 48, 44, 0.22);
+  transition: transform var(--dur-media);
+}
+
+.interruptor.activo span {
+  transform: translateX(20px);
+}
+
+.progreso {
+  margin-top: 16px;
+}
+
+.progreso-barra {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--acento-suave);
+  overflow: hidden;
+}
+
+.progreso-relleno {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--acento);
+  transition: width var(--dur-media) ease;
+}
+
+.pie-version {
+  margin: 32px 0 8px;
+  text-align: center;
+  font-size: var(--txt-caption);
+  color: var(--texto-3);
+}
+
+
+/* ---------- Alertas ---------- */
+
+.alerta {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 101;
+  width: min(300px, calc(100vw - 64px));
+  transform: translate(-50%, -50%);
+  border-radius: var(--radio-l);
+  background: color-mix(in srgb, var(--fondo-elevado) 96%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  overflow: hidden;
+  animation: aparecerAlerta var(--dur-media) var(--curva-entrada);
+  box-shadow: var(--sombra-elevada);
+}
+
+@keyframes aparecerAlerta {
+  from {
+    opacity: 0;
+    /* 0.97 y no 0.94: el salto justo para que se sienta que llega. */
+    transform: translate(-50%, -50%) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.alerta-texto {
+  padding: 24px 16px 16px;
+  text-align: center;
+}
+
+.alerta-titulo {
+  font-family: var(--fuente-display);
+  font-size: var(--txt-titulo);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: -0.2px;
+  margin-bottom: 4px;
+  font-variation-settings: 'opsz' 24;
+}
+
+.alerta-mensaje {
+  font-size: var(--txt-caption);
+  line-height: 1.45;
+  color: var(--texto-2);
+}
+
+.alerta-botones {
+  display: flex;
+  border-top: 1px solid var(--separador);
+}
+
+.alerta-botones.vertical {
+  flex-direction: column;
+}
+
+.alerta-boton {
+  flex: 1;
+  min-height: var(--alto-control);
+  padding: 0 12px;
+  font-size: var(--txt-cuerpo);
+  color: var(--acento-texto);
+}
+
+.alerta-botones:not(.vertical) .alerta-boton + .alerta-boton {
+  border-left: 1px solid var(--separador);
+}
+
+.alerta-botones.vertical .alerta-boton + .alerta-boton {
+  border-top: 1px solid var(--separador);
+}
+
+.alerta-boton.principal {
+  font-weight: var(--peso-fuerte);
+}
+
+.alerta-boton.peligro {
+  color: var(--peligro);
+}
+
+.alerta-boton:active {
+  background: var(--tarjeta-hundida);
+}
+
+.sheet-accion {
+  min-width: 68px;
+  display: flex;
+  align-items: center;
+}
+
+.sheet-accion.derecha {
+  justify-content: flex-end;
+}
+
+
+.casilla {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--separador-fuerte);
+  color: #fff;
+  transition:
+    background var(--dur-rapida),
+    border-color var(--dur-rapida);
+}
+
+.casilla.marcada {
+  background: var(--acento);
+  border-color: var(--acento);
+}
+

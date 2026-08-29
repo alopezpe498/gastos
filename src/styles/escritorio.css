@@ -1,0 +1,267 @@
+/*
+ * Presentacion de escritorio (>= 1024px).
+ *
+ * Todo lo de este archivo vive dentro de una media query: por debajo del corte
+ * no se aplica nada y el diseno movil queda exactamente como estaba. El tablet
+ * vertical (768-1023px) solo recibe unos margenes mas comodos.
+ */
+
+/* ---------- Tablet vertical: el diseno movil con mas aire ---------- */
+
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .limite {
+    max-width: 620px;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .sheet-cuerpo {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* ---------- Estructura general ---------- */
+
+  .app-escritorio {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .app-escritorio .contenido {
+    flex: 1;
+    min-width: 0;
+    padding-bottom: 0;
+    /* La barra lateral es fija, asi que el contenido se desplaza solo. */
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .app-escritorio .limite {
+    max-width: 1180px;
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+
+  /* La tabla semanal se lee mejor cuanto mas ancha, dentro de un limite. */
+  .app-escritorio .limite.limite-ancho,
+  .app-escritorio .cabecera .limite.limite-ancho {
+    max-width: 1560px;
+  }
+
+  .app-escritorio .cabecera {
+    padding-top: 0;
+  }
+
+
+
+  /* ---------- Barra lateral ---------- */
+
+  .lateral {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 200px;
+    height: 100vh;
+    flex-shrink: 0;
+    padding: 16px 12px;
+    background: var(--fondo-elevado);
+    border-right: 1px solid var(--separador);
+    /* Los tooltips del modo iconos se salen por la derecha. */
+    overflow: visible;
+    transition: width var(--dur-media) var(--curva);
+  }
+
+  /*
+   * Modo iconos: lo justo para el icono y su area de toque. El contenido gana
+   * el ancho en el mismo movimiento, porque la barra es un flex item y el
+   * contenido es el que crece.
+   */
+  .lateral.iconos {
+    width: 64px;
+    align-items: center;
+    padding: 16px 8px;
+  }
+
+  .lateral.iconos .lateral-boton {
+    justify-content: center;
+    width: 48px;
+    padding: 0;
+  }
+
+  /*
+   * En modo iconos la barra lateral del indicador sobra y ademas asomaba
+   * recortada contra el borde: el fondo tenido del boton ya dice cual es la
+   * pestana activa, y con mas contraste que en modo completo.
+   */
+  .lateral.iconos .lateral-boton.activa::before {
+    display: none;
+  }
+
+  .lateral.iconos .lateral-boton.activa {
+    background: var(--acento-medio);
+  }
+
+  .lateral-texto {
+    /* Al plegar, el texto se va antes que el ancho: si no, se ve apretujarse. */
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  /* El boton de la marca en modo iconos: la olla es el boton de abrir. */
+  .lateral-marca-boton {
+    margin-bottom: 12px;
+  }
+
+  .lateral-marca-boton .lateral-icono {
+    width: 32px;
+    height: 32px;
+  }
+
+  .lateral-marca-boton:hover .lateral-icono {
+    background: var(--acento-medio);
+  }
+
+  /* ---------- Tooltips del modo iconos ----------
+   *
+   * El nombre sigue en el DOM (oculto con .solo-lectores), asi que el lector de
+   * pantalla ya lo lee y el boton tiene nombre accesible. Esto es solo lo que
+   * ve el raton, y aparece tambien con el foco de teclado.
+   */
+  .lateral.iconos .lateral-boton {
+    position: relative;
+  }
+
+  .lateral.iconos .lateral-boton::after {
+    content: attr(data-nombre);
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%) translateX(-4px);
+    z-index: 60;
+    padding: 0 12px;
+    min-height: var(--alto-control-s);
+    display: flex;
+    align-items: center;
+    border-radius: var(--radio-s);
+    background: var(--texto);
+    color: var(--fondo-elevado);
+    font-size: var(--txt-caption);
+    font-weight: var(--peso-medio);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition:
+      opacity var(--dur-rapida) var(--curva-entrada),
+      transform var(--dur-rapida) var(--curva-entrada);
+  }
+
+  .lateral.iconos .lateral-boton:hover::after,
+  .lateral.iconos .lateral-boton:focus-visible::after {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+
+  .lateral-marca {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 4px 12px 8px;
+    min-height: var(--alto-control);
+  }
+
+  .lateral-plegar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-left: auto;
+    border-radius: var(--radio-s);
+    color: var(--texto-3);
+    flex-shrink: 0;
+    transition:
+      background var(--dur-rapida),
+      color var(--dur-rapida);
+  }
+
+  .lateral-plegar:hover {
+    background: var(--tarjeta-hundida);
+    color: var(--texto-2);
+  }
+
+  .lateral-icono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: var(--radio-s);
+    background: var(--acento-suave);
+    color: var(--acento);
+  }
+
+  .lateral-nombre {
+    font-family: var(--fuente-display);
+    font-size: var(--txt-apoyo);
+    font-weight: var(--peso-fuerte);
+    letter-spacing: -0.2px;
+    font-variation-settings: 'opsz' 20;
+    /* En 200px la marca y el boton de plegar comparten linea: sin esto el
+       nombre se parte en dos y el bloque deja de ser compacto. */
+    white-space: nowrap;
+  }
+
+  .lateral-boton {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: var(--radio-s);
+    color: var(--texto);
+    font-size: var(--txt-apoyo);
+    font-weight: var(--peso-medio);
+    text-align: left;
+    transition: background var(--dur-rapida);
+  }
+
+  /* Los iconos de navegacion llevan el color de la casa, activos o no. */
+  .lateral-boton svg {
+    color: var(--acento);
+    flex-shrink: 0;
+  }
+
+  .lateral-boton:not(.activa) svg {
+    opacity: 0.7;
+  }
+
+  .lateral-boton:hover {
+    background: var(--tarjeta-hundida);
+  }
+
+  .lateral-boton.activa {
+    position: relative;
+    background: var(--acento-suave);
+    color: var(--acento-texto);
+    font-weight: var(--peso-fuerte);
+  }
+
+  .lateral-boton.activa::before {
+    content: '';
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    border-radius: 0 3px 3px 0;
+    background: var(--acento);
+  }
+}

@@ -1,0 +1,161 @@
+/* Visión anual: la matriz concepto × mes. */
+
+/*
+ * El marco es el que se desplaza en horizontal cuando doce meses no caben; la
+ * rejilla de dentro conserva su ancho para que la primera columna pueda quedarse
+ * fija con position: sticky.
+ */
+.anual-marco {
+  margin: var(--e-4) 0 var(--e-8);
+  overflow-x: auto;
+  border-radius: var(--radio-l);
+  background: var(--tarjeta);
+  box-shadow: var(--sombra-tarjeta);
+}
+
+.anual {
+  display: grid;
+  min-width: max-content;
+  font-size: var(--txt-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.anual-celda {
+  display: flex;
+  align-items: center;
+  padding: var(--e-2) var(--e-2);
+  min-height: 36px;
+  border-bottom: 1px solid var(--separador);
+}
+
+/* La columna de conceptos se queda quieta: sin ella, al desplazarse a
+   diciembre ya no se sabe de qué fila es cada cifra. */
+.anual-primera {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--tarjeta);
+  border-right: 1px solid var(--separador);
+  font-weight: var(--peso-medio);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.anual-cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--tarjeta-hundida);
+  font-size: var(--txt-etiqueta);
+  font-weight: var(--peso-fuerte);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--texto-3);
+  justify-content: flex-end;
+}
+
+.anual-cabecera.anual-primera {
+  z-index: 4;
+  justify-content: flex-start;
+}
+
+.anual-valor {
+  justify-content: flex-end;
+  text-align: right;
+  color: var(--texto);
+  transition: background var(--dur-rapida);
+}
+
+button.anual-valor:not(:disabled):hover {
+  background: var(--acento-suave);
+}
+
+.anual-valor.vacia {
+  color: var(--texto-3);
+}
+
+.anual-valor.negativo {
+  color: var(--negativo);
+}
+
+/* Total y media cierran la fila: mismo peso visual que la cabecera, porque son
+   resumen y no un mes más. */
+.anual-total,
+.anual-media {
+  background: var(--tarjeta-hundida);
+  font-weight: var(--peso-medio);
+}
+
+.anual-media {
+  color: var(--texto-2);
+}
+
+/* Las tres filas de totales (Gastos, Ingresos, Ahorro) se separan del resto. */
+.anual-fila.total {
+  font-weight: var(--peso-fuerte);
+  background: var(--tarjeta-hundida);
+}
+
+.anual-fila.total.anual-primera {
+  background: var(--tarjeta-hundida);
+}
+
+.anual-fila.otros.anual-primera {
+  background: var(--acento-suave);
+}
+
+.anual-fila.otros:not(.anual-primera) {
+  background: var(--acento-suave);
+}
+
+.anual-fila.sangrada {
+  color: var(--texto-2);
+  background: var(--fondo);
+}
+
+.anual-fila.sangrada.anual-primera {
+  padding-left: var(--e-6);
+  background: var(--fondo);
+  font-weight: var(--peso-normal);
+}
+
+.anual-desplegar {
+  display: flex;
+  align-items: center;
+  gap: var(--e-1);
+  font-size: inherit;
+  font-weight: inherit;
+  color: var(--acento-texto);
+}
+
+/* La fila destacada de la lista de móvil: los totales, otra vez. */
+.fila.destacada .fila-titulo {
+  font-weight: var(--peso-fuerte);
+}
+
+
+/* Sparkline y comparación con el año anterior. */
+.anual-spark {
+  justify-content: center;
+  padding: 0 var(--e-1);
+}
+
+.anual-anterior {
+  color: var(--texto-2);
+  background: var(--tarjeta-hundida);
+}
+
+.anual-delta {
+  background: var(--tarjeta-hundida);
+  font-weight: var(--peso-medio);
+}
+
+/* Solo se tiñe lo que se mueve de verdad: más de un 10 % arriba o abajo. */
+.anual-delta.sube {
+  color: var(--negativo);
+}
+
+.anual-delta.baja {
+  color: var(--positivo);
+}

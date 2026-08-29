@@ -1,0 +1,292 @@
+/*
+ * Informe imprimible.
+ *
+ * En pantalla es una capa sobre la aplicación; en papel es la única cosa que
+ * existe. De ahí los dos bloques: el de arriba para verlo y el @media print
+ * para imprimirlo.
+ */
+
+.informe-capa {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  overflow-y: auto;
+  background: var(--fondo);
+  padding-bottom: var(--e-12);
+}
+
+.informe-barra {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-4);
+  padding: var(--e-3) var(--e-4);
+  background: color-mix(in srgb, var(--fondo) 92%, transparent);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--separador);
+}
+
+.informe-pista {
+  font-size: var(--txt-caption);
+  color: var(--texto-2);
+}
+
+/* La hoja: ancho de A4 con sus márgenes, centrada. */
+.informe {
+  max-width: 860px;
+  margin: var(--e-6) auto;
+  padding: var(--e-8);
+  background: var(--tarjeta);
+  border-radius: var(--radio-l);
+  box-shadow: var(--sombra-tarjeta);
+}
+
+.informe-cabecera {
+  padding-bottom: var(--e-4);
+  margin-bottom: var(--e-6);
+  border-bottom: 2px solid var(--texto);
+}
+
+.informe-cabecera h1 {
+  font-family: var(--fuente-display);
+  font-size: var(--txt-display);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: -0.5px;
+}
+
+.informe-subtitulo {
+  font-size: var(--txt-caption);
+  color: var(--texto-2);
+}
+
+.informe-seccion {
+  margin-bottom: var(--e-8);
+  /* Una sección no se parte entre dos páginas si se puede evitar. */
+  break-inside: avoid;
+}
+
+.informe-seccion h2 {
+  font-family: var(--fuente-display);
+  font-size: var(--txt-titulo);
+  font-weight: var(--peso-fuerte);
+  margin-bottom: var(--e-2);
+}
+
+.informe-dos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e-6);
+  align-items: start;
+}
+
+.informe-cifras {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--e-3);
+}
+
+.informe-cifra {
+  display: flex;
+  flex-direction: column;
+  padding: var(--e-3);
+  border: 1px solid var(--separador);
+  border-radius: var(--radio-m);
+}
+
+.informe-cifra-etiqueta {
+  font-size: var(--txt-etiqueta);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--texto-3);
+}
+
+.informe-cifra strong {
+  font-family: var(--fuente-display);
+  font-size: var(--txt-titulo);
+}
+
+.informe-cifras.secundarias {
+  margin-top: var(--e-3);
+}
+
+.informe-cifras.secundarias .informe-cifra strong {
+  font-family: var(--fuente);
+  font-size: var(--txt-cuerpo);
+}
+
+.informe-nota {
+  margin-top: var(--e-3);
+  font-size: var(--txt-caption);
+  color: var(--texto-2);
+}
+
+/* ---------- Tablas ---------- */
+
+.informe-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--txt-caption);
+  margin-bottom: var(--e-4);
+}
+
+.informe-tabla th {
+  text-align: left;
+  font-size: var(--txt-etiqueta);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--texto-3);
+  border-bottom: 1px solid var(--separador-fuerte);
+  padding: var(--e-1) var(--e-2);
+}
+
+.informe-tabla th.dinero,
+.informe-tabla td.dinero {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.informe-tabla td {
+  padding: var(--e-1) var(--e-2);
+  border-bottom: 1px solid var(--separador);
+}
+
+.informe-tabla tr.informe-total td {
+  font-weight: var(--peso-fuerte);
+  border-top: 1.5px solid var(--separador-fuerte);
+  border-bottom: none;
+}
+
+.informe-destacado {
+  font-weight: var(--peso-fuerte);
+}
+
+.informe-concepto {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-2);
+  white-space: nowrap;
+}
+
+.informe-matriz {
+  font-size: 10px;
+}
+
+.informe-matriz td,
+.informe-matriz th {
+  padding: 2px 4px;
+}
+
+/* ---------- Impresión ---------- */
+
+@media print {
+  /*
+   * Al imprimir solo existe la hoja. Se oculta la aplicación entera y la capa
+   * pasa a ser contenido normal, sin posición fija ni scroll propio: si no, el
+   * navegador imprime solo la primera pantalla.
+   */
+  .app,
+  .avisos,
+  .informe-barra {
+    display: none !important;
+  }
+
+  .informe-capa {
+    position: static;
+    overflow: visible;
+    background: #fff;
+    padding: 0;
+  }
+
+  .informe {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    box-shadow: none;
+    border-radius: 0;
+    color: #000;
+  }
+
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  /* En papel no hay modo oscuro ni fondos de color: negro sobre blanco. */
+  .informe * {
+    color: #000 !important;
+    background: transparent !important;
+  }
+
+  .informe .negativo {
+    /* El rojo sí se conserva: distinguir un número negativo importa más que
+       ahorrar tinta, y con el signo delante se entiende aunque se imprima en
+       blanco y negro. */
+    color: #a00 !important;
+  }
+
+  .informe-tabla th,
+  .informe-tabla td {
+    border-color: #999 !important;
+  }
+
+  .informe-cifra {
+    border-color: #666 !important;
+  }
+
+  .informe-cabecera {
+    border-bottom-color: #000 !important;
+  }
+
+  /* Las tablas largas repiten su cabecera en cada página. */
+  .informe-tabla thead {
+    display: table-header-group;
+  }
+
+  .informe-tabla tr {
+    break-inside: avoid;
+  }
+
+  .informe-seccion {
+    break-inside: avoid;
+  }
+
+  /* La tarta se imprime: es lo único gráfico del informe del mes. */
+  .tarta-trozo {
+    stroke: #000 !important;
+  }
+
+  .tarta-leyenda li {
+    border-color: #ccc !important;
+  }
+}
+
+/* ---------- Móvil ---------- */
+
+@media (max-width: 760px) {
+  .informe {
+    margin: var(--e-3);
+    padding: var(--e-4);
+  }
+
+  .informe-dos {
+    grid-template-columns: 1fr;
+  }
+
+  .informe-cifras {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .informe-barra {
+    flex-wrap: wrap;
+  }
+
+  .informe-pista {
+    order: 3;
+    width: 100%;
+  }
+}

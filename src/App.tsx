@@ -1,0 +1,226 @@
+import { useCallback, useEffect, useState } from 'react'
+import { api, cuandoCaduqueLaSesion, leerToken } from './lib/api'
+import { Cargando } from './components/Basicos'
+import { ProveedorAvisos } from './components/Avisos'
+import {
+  IconoAjustes,
+  IconoBarras,
+  IconoCalendario,
+  IconoEtiquetas,
+  IconoPanelIzquierdo,
+  IconoTabla,
+  IconoTarta,
+  IconoTendencia,
+} from './components/Iconos'
+import { useEsEscritorio } from './lib/tamano'
+import { useLateralColapsada } from './lib/lateral'
+import { PantallaPin } from './features/auth/PantallaPin'
+import { PantallaMes } from './features/mes/PantallaMes'
+import { PantallaAnalisis } from './features/analisis/PantallaAnalisis'
+import { PantallaAnual } from './features/anual/PantallaAnual'
+import { PantallaAnalitica } from './features/analitica/PantallaAnalitica'
+import { PantallaConceptos } from './features/conceptos/PantallaConceptos'
+import { PantallaAjustes } from './features/ajustes/PantallaAjustes'
+
+type Pestana = 'mes' | 'analisis' | 'anual' | 'analitica' | 'conceptos' | 'ajustes'
+type Sesion = 'comprobando' | 'bloqueada' | 'abierta'
+
+const PESTANAS = [
+  { id: 'mes' as const, nombre: 'Mes', icono: IconoCalendario },
+  { id: 'analisis' as const, nombre: 'Análisis', icono: IconoTarta },
+  { id: 'anual' as const, nombre: 'Año', icono: IconoTabla },
+  { id: 'analitica' as const, nombre: 'Analítica', icono: IconoTendencia },
+  { id: 'conceptos' as const, nombre: 'Conceptos', icono: IconoEtiquetas },
+  { id: 'ajustes' as const, nombre: 'Ajustes', icono: IconoAjustes },
+]
+
+export default function App() {
+  const [lateralColapsada, alternarLateral] = useLateralColapsada()
+  const [sesion, setSesion] = useState<Sesion>('comprobando')
+  const [protegido, setProtegido] = useState(false)
+  const [pestana, setPestana] = useState<Pestana>('mes')
+  // Se incrementa cuando cambia algo que afecta a varias pantallas (el
+  // catalogo, los ajustes, una importacion) para que todas recarguen.
+  const [version, setVersion] = useState(0)
+  // Mes al que hay que saltar desde otra pantalla: al pulsar una celda de la
+  // vision anual, o al abrir el analisis del mes que se esta viendo.
+  const [mesElegido, setMesElegido] = useState<{ anio: number; mes: number } | null>(null)
+  // Año al que saltar desde la analítica.
+  const [anioElegido, setAnioElegido] = useState<number | null>(null)
+  const escritorio = useEsEscritorio()
+
+  const refrescarTodo = useCallback(() => setVersion((v) => v + 1), [])
+
+  useEffect(() => {
+    cuandoCaduqueLaSesion(() => setSesion('bloqueada'))
+  }, [])
+
+  useEffect(() => {
+    const comprobar = async () => {
+      try {
+        const { protegido: hayPin } = await api<{ protegido: boolean }>('/auth/estado', {
+          sinAuth: true,
+        })
+        setProtegido(hayPin)
+        if (!hayPin) {
+          setSesion('abierta')
+          return
+        }
+        if (!leerToken()) {
+          setSesion('bloqueada')
+          return
+        }
+        const { valido } = await api<{ valido: boolean }>('/auth/comprobar')
+        setSesion(valido ? 'abierta' : 'bloqueada')
+      } catch {
+        // Sin respuesta del servidor se pide el PIN: es lo mas seguro.
+        setSesion('bloqueada')
+      }
+    }
+    void comprobar()
+  }, [])
+
+  const irAlMes = useCallback((anio: number, mes: number) => {
+    setMesElegido({ anio, mes })
+    setPestana('mes')
+  }, [])
+
+  if (sesion === 'comprobando') {
+    return (
+      <div className="app">
+        <Cargando />
+      </div>
+    )
+  }
+
+  if (sesion === 'bloqueada') {
+    return (
+      <ProveedorAvisos>
+        <PantallaPin onDesbloqueado={() => setSesion('abierta')} />
+      </ProveedorAvisos>
+    )
+  }
+
+  return (
+    <ProveedorAvisos>
+      <div className={`app${escritorio ? ' app-escritorio' : ''}`}>
+        {escritorio ? (
+          <nav className={`lateral${lateralColapsada ? ' iconos' : ''}`} aria-label="Navegación">
+            {/*
+              En modo iconos las barras dejan de ser un adorno y pasan a ser el
+              boton de abrir; en modo completo vuelve la marca con su boton de
+              plegar al lado.
+            */}
+            {lateralColapsada ? (
+              <button
+                className="lateral-boton lateral-marca-boton"
+                onClick={alternarLateral}
+                aria-label="Expandir el menú"
+                aria-expanded={false}
+                data-nombre="Expandir el menú"
+              >
+                <span className="lateral-icono" aria-hidden="true">
+                  <IconoBarras size={20} />
+                </span>
+              </button>
+            ) : (
+              <div className="lateral-marca">
+                <span className="lateral-icono" aria-hidden="true">
+                  <IconoBarras size={20} />
+                </span>
+                <span className="lateral-nombre">Gastos</span>
+                <button
+                  className="lateral-plegar"
+                  onClick={alternarLateral}
+                  aria-label="Contraer el menú"
+                  aria-expanded
+                >
+                  <IconoPanelIzquierdo size={18} />
+                </button>
+              </div>
+            )}
+
+            {PESTANAS.map(({ id, nombre, icono: Icono }) => (
+              <button
+                key={id}
+                className={`lateral-boton${pestana === id ? ' activa' : ''}`}
+                onClick={() => setPestana(id)}
+                aria-current={pestana === id ? 'page' : undefined}
+                data-nombre={nombre}
+              >
+                <Icono size={20} />
+                {/*
+                  El nombre no se quita del DOM al colapsar: se oculta a la
+                  vista pero sigue ahi, que es lo que lee el lector de pantalla
+                  y lo que da nombre accesible al boton.
+                */}
+                <span className={lateralColapsada ? 'solo-lectores' : 'lateral-texto'}>
+                  {nombre}
+                </span>
+              </button>
+            ))}
+          </nav>
+        ) : null}
+
+        <main className="contenido">
+          {pestana === 'mes' ? (
+            <PantallaMes
+              key={version}
+              mesElegido={mesElegido}
+              onCambioDeMes={setMesElegido}
+              onVerAnalisis={() => setPestana('analisis')}
+              onImportarExtracto={() => setPestana('ajustes')}
+            />
+          ) : null}
+          {pestana === 'analisis' ? (
+            <PantallaAnalisis key={version} mesElegido={mesElegido} onCambioDeMes={setMesElegido} />
+          ) : null}
+          {pestana === 'anual' ? (
+            <PantallaAnual key={version} onAbrirMes={irAlMes} anioElegido={anioElegido} />
+          ) : null}
+          {pestana === 'analitica' ? (
+            <PantallaAnalitica
+              key={version}
+              onAbrirMes={irAlMes}
+              onAbrirAnio={(anio) => {
+                setAnioElegido(anio)
+                setPestana('anual')
+              }}
+            />
+          ) : null}
+          {/*
+            Conceptos no lleva key={version}: se recarga sola y es ella la que
+            llama a refrescarTodo. Remontarla cerraria la ficha que acabas de
+            guardar, y con ella el aviso de los meses que hay que regenerar.
+          */}
+          {pestana === 'conceptos' ? (
+            <PantallaConceptos onCambioGlobal={refrescarTodo} onIrAMes={irAlMes} />
+          ) : null}
+          {pestana === 'ajustes' ? (
+            <PantallaAjustes
+              key={version}
+              protegido={protegido}
+              onBloquear={() => setSesion('bloqueada')}
+              onCambioGlobal={refrescarTodo}
+            />
+          ) : null}
+        </main>
+
+        {escritorio ? null : (
+          <nav className="barra">
+            {PESTANAS.map(({ id, nombre, icono: Icono }) => (
+              <button
+                key={id}
+                className={pestana === id ? 'activa' : ''}
+                onClick={() => setPestana(id)}
+              >
+                <Icono size={24} />
+                {nombre}
+              </button>
+            ))}
+          </nav>
+        )}
+      </div>
+    </ProveedorAvisos>
+  )
+}

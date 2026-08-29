@@ -1,0 +1,310 @@
+/*
+ * Gráficos.
+ *
+ * Los colores de serie salen de la misma familia que la tarta del análisis del
+ * mes (analisis.css): el verde azulado de la casa como color principal y el
+ * resto girando hacia el ámbar y el violeta. Están pensados para distinguirse
+ * también en gris, porque un gráfico que solo se lee por color no se lee.
+ */
+
+:root {
+  --serie-1: #14746a;
+  --serie-2: #b08a2e;
+  --serie-3: #7a6fb0;
+  --serie-4: #4f9d86;
+  --serie-5: #a8562e;
+  --serie-6: #4a6d8c;
+  --grafico-rejilla: rgba(22, 60, 55, 0.12);
+  --grafico-eje: rgba(22, 32, 30, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --serie-1: #57c4b4;
+    --serie-2: #e8b53a;
+    --serie-3: #a79ae0;
+    --serie-4: #7fd8b2;
+    --serie-5: #e89b6a;
+    --serie-6: #86b3d8;
+    --grafico-rejilla: rgba(226, 240, 237, 0.14);
+    --grafico-eje: rgba(232, 240, 238, 0.55);
+  }
+}
+
+.serie-1 { --color-serie: var(--serie-1); }
+.serie-2 { --color-serie: var(--serie-2); }
+.serie-3 { --color-serie: var(--serie-3); }
+.serie-4 { --color-serie: var(--serie-4); }
+.serie-5 { --color-serie: var(--serie-5); }
+.serie-6 { --color-serie: var(--serie-6); }
+.media   { --color-serie: var(--texto-3); }
+.previsto { --color-serie: var(--pendiente); }
+.necesario { --color-serie: var(--serie-1); }
+.prescindible { --color-serie: var(--serie-2); }
+.ahorro { --color-serie: var(--serie-3); }
+
+/* ---------- Marco ---------- */
+
+.grafico {
+  position: relative;
+  margin: var(--e-3) 0;
+}
+
+.grafico svg {
+  display: block;
+  width: 100%;
+  /* La altura la fija el viewBox; en móvil el gráfico se encoge de ancho pero
+     no se aplasta hasta ser ilegible. */
+  height: auto;
+  min-height: 180px;
+  overflow: visible;
+}
+
+.rejilla {
+  stroke: var(--grafico-rejilla);
+  stroke-width: 1;
+}
+
+/* La línea del cero se marca más: es la que dice si algo suma o resta. */
+.rejilla.cero {
+  stroke: var(--separador-fuerte);
+  stroke-width: 1.5;
+}
+
+.eje-etiqueta {
+  fill: var(--grafico-eje);
+  font-size: 11px;
+  font-family: var(--fuente);
+  font-variant-numeric: tabular-nums;
+}
+
+.grafico-resalte {
+  fill: var(--acento-suave);
+}
+
+/* ---------- Líneas y puntos ---------- */
+
+.linea {
+  fill: none;
+  stroke: var(--color-serie);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.linea.discontinua {
+  stroke-width: 1.6;
+  stroke-dasharray: 5 4;
+}
+
+.punto {
+  fill: var(--color-serie);
+}
+
+/* ---------- Barras ---------- */
+
+.barra {
+  fill: var(--color-serie);
+  transition: opacity var(--dur-rapida);
+}
+
+.barra.positiva {
+  fill: var(--positivo);
+}
+
+.barra.negativa {
+  fill: var(--negativo);
+}
+
+.barra.pulsable {
+  cursor: pointer;
+}
+
+.barra.pulsable:hover {
+  opacity: 0.75;
+}
+
+/* ---------- Área apilada ---------- */
+
+.area {
+  fill: var(--color-serie);
+  opacity: 0.85;
+}
+
+/* ---------- Tooltip ---------- */
+
+/*
+ * Es HTML, no SVG: así hereda la tipografía de la app y las cifras salen con
+ * el mismo formato español que en el resto de las pantallas.
+ */
+.grafico-tooltip {
+  position: absolute;
+  top: 8px;
+  z-index: 5;
+  transform: translateX(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 130px;
+  padding: var(--e-2) var(--e-3);
+  border-radius: var(--radio-m);
+  background: var(--fondo-elevado);
+  border: 1px solid var(--separador);
+  box-shadow: var(--sombra-elevada);
+  font-size: var(--txt-caption);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Cerca del borde derecho el tooltip se sale: se pone al otro lado. */
+.grafico-tooltip.izquierda {
+  transform: translateX(calc(-100% - 10px));
+}
+
+.tooltip-linea {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tooltip-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--color-serie);
+  flex-shrink: 0;
+}
+
+.tooltip-nota {
+  color: var(--texto-3);
+}
+
+/* ---------- Leyenda ---------- */
+
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-4);
+  margin-top: var(--e-2);
+  font-size: var(--txt-caption);
+  color: var(--texto-2);
+}
+
+.leyenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.leyenda i {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-serie);
+}
+
+.leyenda i.punteada {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-serie) 0 4px,
+    transparent 4px 7px
+  );
+}
+
+/* ---------- Mapa de calor ---------- */
+
+.mapa-calor-marco {
+  overflow-x: auto;
+  margin: var(--e-3) 0;
+  border-radius: var(--radio-l);
+  background: var(--tarjeta);
+  box-shadow: var(--sombra-tarjeta);
+}
+
+.mapa-calor {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 520px;
+  font-size: var(--txt-caption);
+}
+
+.mapa-calor th {
+  padding: var(--e-2);
+  font-weight: var(--peso-fuerte);
+  font-size: var(--txt-etiqueta);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--texto-3);
+  background: var(--tarjeta-hundida);
+}
+
+.mapa-calor thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* La columna de conceptos se queda fija al desplazarse en horizontal. */
+.mapa-calor tbody th {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 140px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: var(--txt-caption);
+  color: var(--texto);
+  background: var(--tarjeta);
+  border-right: 1px solid var(--separador);
+}
+
+/*
+ * Cada celda se tiñe con la intensidad de su fila, no de la tabla entera: así
+ * se ve que los regalos se disparan en diciembre aunque la hipoteca sea diez
+ * veces mayor todos los meses.
+ */
+.celda-calor {
+  height: 30px;
+  min-width: 34px;
+  border: 1px solid var(--fondo);
+  background: color-mix(in srgb, var(--serie-1) calc(var(--intensidad, 0) * 82%), transparent);
+}
+
+.celda-calor.vacia {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0 4px,
+    var(--separador) 4px 5px
+  );
+}
+
+/* El mes en el que ese concepto se dispara de verdad. */
+.celda-calor.punta {
+  box-shadow: inset 0 0 0 2px var(--pendiente);
+}
+
+/* ---------- Sparkline ---------- */
+
+.sparkline {
+  display: block;
+  width: 96px;
+  height: 22px;
+}
+
+.sparkline path {
+  fill: none;
+  stroke: var(--acento);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sparkline-vacia {
+  display: inline-block;
+  width: 96px;
+}
