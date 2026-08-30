@@ -383,6 +383,13 @@ select.campo {
   color: var(--coral-tinta);
 }
 
+/* Dentro del bloque de color el selector hereda la tinta del bloque. */
+.principal .selector-de-mes,
+.principal .nombre-mes,
+.principal .flecha-mes {
+  color: inherit;
+}
+
 .principal-cabecera {
   display: flex;
   justify-content: space-between;
@@ -518,12 +525,33 @@ select.campo {
   background: var(--coral);
 }
 
+/* Las barritas de extras: el viewBox va en días, el alto en píxeles. */
+.extras-grafico {
+  display: block;
+  width: 100%;
+  height: 34px;
+  margin: 2px 0 6px;
+}
+
 .bloque-ahorro {
   background: var(--azul-suave);
 }
 
 .bloque-ahorro .t12 {
   color: var(--azul-texto);
+}
+
+/* Un mes en el que no ahorras no es un matiz del azul: es otra cosa. */
+.bloque-ahorro.sin-ahorro {
+  background: var(--coral-suave);
+}
+
+.bloque-ahorro.sin-ahorro .t12 {
+  color: var(--coral-texto);
+}
+
+.bloque-ahorro.sin-ahorro .cifra {
+  color: var(--coral-tinta);
 }
 
 .bloque-ahorro .cifra {

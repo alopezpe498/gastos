@@ -773,6 +773,7 @@ pruebas/
 src/
   lib/                  cliente de API, tipos, formato español, colores
   components/           sheet, alertas, avisos, iconos, campos que guardan solos
+                        y el selector de mes (flechas + calendario de doce)
     graficos/           líneas, barras, área apilada, mapa de calor, sparkline
   features/
     auth/               pantalla del PIN

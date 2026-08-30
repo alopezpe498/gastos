@@ -7,6 +7,7 @@ import { useEsEscritorio } from '../../lib/tamano'
 import { MatrizAnual } from './MatrizAnual'
 import { VistaConcepto } from './VistaConcepto'
 import { InformeAnual } from '../informe/Informe'
+import { SelectorDeAnio } from '../../components/SelectorDeMes'
 
 type Props = {
   onAbrirMes: (anio: number, mes: number) => void
@@ -103,20 +104,13 @@ export function PantallaAnual({ onAbrirMes, anioElegido = null }: Props) {
       .sort((a, b) => b.total - a.total)
   }, [datos])
 
+  /*
+   * Los años que hay son pocos y caben todos a la vista: se pulsa el que sea,
+   * sin desplegar nada. Las flechas están para el teclado y para el pulgar.
+   */
   const selector =
-    anios && anios.length > 0 ? (
-      <select
-        className="selector-mes-cabecera"
-        aria-label="Año"
-        value={anio ?? ''}
-        onChange={(e) => setAnio(Number(e.target.value))}
-      >
-        {anios.map((a) => (
-          <option key={a} value={a}>
-            {a}
-          </option>
-        ))}
-      </select>
+    anios && anios.length > 0 && anio ? (
+      <SelectorDeAnio anio={anio} anios={anios} onIr={setAnio} />
     ) : null
 
   if (error) {

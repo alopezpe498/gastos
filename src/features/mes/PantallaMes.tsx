@@ -6,6 +6,7 @@ import { useAvisos } from '../../components/Avisos'
 import { cuantos, hoyIso, NOMBRES_MESES } from '../../lib/formato'
 import { BloquePrincipal, BloqueFijos, BloqueComida, BloqueExtras, BloqueAhorro } from './Bloques'
 import { ListaMovimientos, ListaFijos } from './Listas'
+import { registrarConceptos } from '../../lib/colores'
 import { Analisis } from './Analisis'
 import { MenuMes } from './MenuMes'
 import { Acciones } from '../../components/Navegacion'
@@ -53,6 +54,8 @@ export function PantallaMes({
     try {
       const catalogo = await api<Concepto[]>('/conceptos?activos=1')
       setConceptos(catalogo)
+      // El reparto de colores se rehace con el catálogo entero delante.
+      registrarConceptos(catalogo)
 
       // Navegar no crea nada: si el mes no existe, se ofrece abrirlo.
       const datos = mesElegido
@@ -154,12 +157,6 @@ export function PantallaMes({
     }
   }
 
-  const irA = (delta: number) => {
-    if (!mes) return
-    const n = mes.anio * 12 + (mes.mes - 1) + delta
-    onCambioDeMes({ anio: Math.floor(n / 12), mes: (n % 12) + 1 })
-  }
-
   // ---- estados que no son el mes ----
 
   if (error) {
@@ -229,8 +226,7 @@ export function PantallaMes({
         <BloquePrincipal
           mes={mes}
           panel={panel}
-          onMesAnterior={() => irA(-1)}
-          onMesSiguiente={() => irA(1)}
+          onIr={(anio, numeroMes) => onCambioDeMes({ anio, mes: numeroMes })}
           onCambiarSaldo={(valor) => cambiarMes({ dineroEnCuenta: valor })}
         />
         <BloqueFijos panel={panel} />

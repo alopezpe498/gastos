@@ -436,7 +436,7 @@ export function RevisionExtracto({
           <Cifra n={cuenta.descartados} que="descartados" />
           <Cifra n={cuenta.duplicados} que="duplicados" />
           {cuenta.sinClasificar > 0 ? (
-            <button className="cifra pendiente" onClick={irAlPrimeroPendiente}>
+            <button className="recuento pendiente" onClick={irAlPrimeroPendiente}>
               <strong>{cuenta.sinClasificar}</strong> sin clasificar · ir al primero
             </button>
           ) : null}
@@ -748,7 +748,7 @@ export function RevisionExtracto({
 function Cifra({ n, que }: { n: number; que: string }) {
   if (n === 0) return null
   return (
-    <span className="cifra">
+    <span className="recuento">
       <strong>{n}</strong> {que}
     </span>
   )

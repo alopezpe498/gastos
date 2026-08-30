@@ -24,6 +24,12 @@ import { ETIQUETAS_CLASIFICACION } from './PantallaConceptos'
  * plantilla no lo mueve solo (para eso está «Regenerar desde la plantilla» en
  * el menú del mes).
  */
+/** Necesario → Prescindible → Ahorro → Necesario. */
+function siguienteClasificacion(actual: Clasificacion): Clasificacion {
+  const orden: Clasificacion[] = ['necesario', 'prescindible', 'ahorro']
+  return orden[(orden.indexOf(actual) + 1) % orden.length]
+}
+
 export function PantallaPlantilla({ onCambioGlobal }: { onCambioGlobal: () => void }) {
   const { avisarError } = useAvisos()
   const [desde, setDesde] = useState('')
@@ -147,16 +153,6 @@ export function PantallaPlantilla({ onCambioGlobal }: { onCambioGlobal: () => vo
 
   return (
     <div className="limite">
-      <div className="plantilla-vigencia">
-        <div>
-          <span className="etiqueta-campo">Vigente desde</span>
-          <p className="seccion-pista">
-            Lo que se vea y lo que se cambie vale a partir de ese mes. Lo anterior no se toca.
-          </p>
-        </div>
-        <SelectorMes valor={desde} onCambiar={irA} ariaLabel="Plantilla vigente desde" />
-      </div>
-
       <section className="seccion">
         <div className="seccion-cabecera">
           <div>
@@ -168,14 +164,27 @@ export function PantallaPlantilla({ onCambioGlobal }: { onCambioGlobal: () => vo
           </div>
         </div>
 
-        <div className="tarjeta tabla-plantilla">
-          <div className="plantilla-fila cabecera" aria-hidden="true">
-            <span className="plantilla-agarre">#</span>
+        <div className="bloque tabla-plantilla">
+          {/*
+            La vigencia manda sobre toda la tabla, así que vive en su cabecera y
+            no en un bloque aparte: lo que se ve y lo que se cambia vale a partir
+            de ese mes, y lo anterior se queda como está.
+          */}
+          <div className="plantilla-cabecera">
+            <span className="titulo-bloque">Vigente desde</span>
+            <SelectorMes valor={desde} onCambiar={irA} ariaLabel="Plantilla vigente desde" />
+            <span className="t12 plantilla-cabecera-nota">
+              Lo anterior no se toca: cambiar aquí crea una versión nueva.
+            </span>
+          </div>
+
+          <div className="plantilla-fila cabecera">
+            <span className="plantilla-orden">Orden</span>
             <span>Concepto</span>
             <span>Día</span>
             <span className="plantilla-titulo-importe">Importe</span>
             <span>Clasificación</span>
-            <span />
+            <span className="solo-lectores">Histórico</span>
           </div>
 
           {fijos.map((linea, indice) => (
@@ -201,19 +210,21 @@ export function PantallaPlantilla({ onCambioGlobal }: { onCambioGlobal: () => vo
                 void soltar(linea.conceptoId)
               }}
             >
-              {/* El numero dice en que orden salen en el mes; se cambia
+              {/* El número dice en qué orden salen en el mes; se cambia
                   arrastrando la fila, como en la pestaña de al lado. */}
-              <span className="plantilla-agarre" aria-hidden="true">
-                <span className="agarre">
+              <span className="plantilla-orden">
+                <span className="agarre" aria-hidden="true">
                   <IconoArrastrar size={16} />
                 </span>
-                <span className="plantilla-orden">{indice + 1}</span>
+                {indice + 1}
               </span>
 
               <span className="plantilla-concepto">
-                {linea.nombre}
-                {linea.heredado && linea.vigenteDesde ? (
-                  <span className="plantilla-origen">desde {claveLegible(linea.vigenteDesde)}</span>
+                <strong>{linea.nombre}</strong>
+                {linea.vigenteDesde ? (
+                  <span className="plantilla-origen">
+                    vigente desde {claveLegible(linea.vigenteDesde).toLowerCase()}
+                  </span>
                 ) : null}
               </span>
 
@@ -222,35 +233,32 @@ export function PantallaPlantilla({ onCambioGlobal }: { onCambioGlobal: () => vo
                 ariaLabel={`Día previsto de ${linea.nombre}`}
                 placeholder="—"
                 maxLength={20}
-                className="plantilla-dia"
+                className="campo plantilla-dia"
                 onGuardar={(dia) => void guardarLinea(linea, { diaPrevisto: dia })}
               />
 
               <CampoImporte
                 valor={linea.importePrevisto}
                 ariaLabel={`Importe previsto de ${linea.nombre}`}
-                onGuardar={(importe) =>
-                  void guardarLinea(linea, { importePrevisto: importe ?? 0 })
-                }
+                className="campo importe"
+                onGuardar={(importe) => void guardarLinea(linea, { importePrevisto: importe ?? 0 })}
               />
 
-              <select
-                className="campo-linea"
-                aria-label={`Clasificación de ${linea.nombre}`}
-                value={linea.clasificacion}
-                onChange={(e) =>
-                  void cambiarClasificacion(linea, e.target.value as Clasificacion)
-                }
+              {/*
+                La clasificación son tres valores y se pulsa poco: un chip que
+                cicla ocupa lo que ocupa la palabra, y un desplegable ocupaba una
+                caja con flecha para decir lo mismo.
+              */}
+              <button
+                className={`chip chip-clasificacion ${linea.clasificacion}`}
+                aria-label={`Clasificación de ${linea.nombre}: ${ETIQUETAS_CLASIFICACION[linea.clasificacion]}. Pulsa para cambiarla.`}
+                onClick={() => void cambiarClasificacion(linea, siguienteClasificacion(linea.clasificacion))}
               >
-                {(Object.keys(ETIQUETAS_CLASIFICACION) as Clasificacion[]).map((c) => (
-                  <option key={c} value={c}>
-                    {ETIQUETAS_CLASIFICACION[c]}
-                  </option>
-                ))}
-              </select>
+                {ETIQUETAS_CLASIFICACION[linea.clasificacion]}
+              </button>
 
               <button
-                className="icono-boton"
+                className="boton-icono"
                 aria-label={`Histórico de ${linea.nombre}`}
                 title={`${cuantos(linea.versiones, 'importe')} en el histórico`}
                 onClick={() => setHistorial(linea)}
@@ -261,10 +269,12 @@ export function PantallaPlantilla({ onCambioGlobal }: { onCambioGlobal: () => vo
           ))}
 
           <div className="plantilla-fila total">
-            <span className="plantilla-agarre" />
-            <span className="plantilla-concepto">Total de fijos</span>
+            <span className="plantilla-orden" />
+            <span className="plantilla-concepto">
+              <strong>Total de fijos</strong>
+            </span>
             <span />
-            <span className="dinero">{euros(resumen.totalFijos)}</span>
+            <span className="importe">{euros(resumen.totalFijos)}</span>
             <span />
             <span />
           </div>

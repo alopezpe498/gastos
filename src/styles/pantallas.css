@@ -80,8 +80,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+/* El título no se parte en dos líneas para dejarle sitio a un buscador. */
+.seccion-cabecera > .seccion-titulo {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.seccion-cabecera > .campo-buscar {
+  width: auto;
+  flex: 1;
+  min-width: 160px;
+  max-width: 320px;
 }
 
 .seccion-titulo,
@@ -118,6 +132,7 @@
 
 .grupo {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -167,6 +182,10 @@
   white-space: nowrap;
 }
 
+/*
+ * Fondo `--fondo` y no blanco: casi todos viven dentro de un bloque blanco, y
+ * ahí un botón blanco no se ve. Sobre el fondo de la página se sigue leyendo.
+ */
 .boton-secundario,
 .boton-compacto,
 .icono-boton {
@@ -176,7 +195,7 @@
   height: 28px;
   padding: 0 12px;
   border-radius: var(--radio-pastilla);
-  background: var(--blanco);
+  background: var(--fondo);
   font-size: var(--t12);
   font-weight: 600;
   white-space: nowrap;
@@ -184,7 +203,7 @@
 
 .boton-secundario:hover:not(:disabled),
 .boton-compacto:hover:not(:disabled) {
-  background: var(--linea);
+  background: var(--hueco);
 }
 
 .boton-ancho {
@@ -362,6 +381,166 @@
   transform: translateX(16px);
 }
 
+/*
+ * Las pestañas de una pantalla. Se dibujan como las secciones de la barra de
+ * arriba —negro y subrayado de 2 px— porque son lo mismo: dónde estás. Un
+ * recuadro alrededor se lee como un anillo de foco, y el foco es otra cosa.
+ */
+.pestanas {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.pestanas button {
+  color: var(--tinta-2);
+  font-size: var(--t14);
+  font-weight: 600;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+  transition: color var(--rapido) var(--curva);
+}
+
+.pestanas button:hover {
+  color: var(--tinta);
+}
+
+.pestanas button.activo,
+.pestanas button.activa {
+  color: var(--tinta);
+  border-bottom-color: var(--tinta);
+}
+
+/* ---------------------------------------------------------------------------
+ * Moverse por los meses
+ * ------------------------------------------------------------------------- */
+
+.selector-de-mes {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Área de toque de 32 px: pasar de mes es lo que más se hace en esta app. */
+.flecha-mes {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  font-size: 18px;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.7;
+  transition:
+    background var(--rapido) var(--curva),
+    opacity var(--rapido) var(--curva);
+}
+
+.flecha-mes:hover:not(:disabled) {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.nombre-mes {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: var(--t14);
+  color: inherit;
+  transition: background var(--rapido) var(--curva);
+}
+
+.nombre-mes:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.selector-de-mes.grande .nombre-mes {
+  font-size: var(--t16);
+}
+
+.ir-a-hoy {
+  margin-left: 8px;
+  font-size: var(--t12);
+  color: inherit;
+  opacity: 0.75;
+}
+
+/* Los doce meses de un año, para saltar de agosto a enero en un solo clic. */
+.calendario {
+  position: absolute;
+  z-index: 35;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 268px;
+  padding: 10px;
+  border-radius: var(--radio);
+  background: var(--blanco);
+  border: 1px solid var(--linea);
+  color: var(--tinta);
+}
+
+.calendario-anio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--t14);
+  margin-bottom: 6px;
+}
+
+.calendario-meses {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.calendario-mes {
+  height: 34px;
+  border-radius: 10px;
+  font-size: var(--t12);
+  font-weight: 600;
+  color: var(--tinta-2);
+  transition:
+    background var(--rapido) var(--curva),
+    color var(--rapido) var(--curva);
+}
+
+.calendario-mes:hover:not(:disabled) {
+  background: var(--fondo);
+  color: var(--tinta);
+}
+
+.calendario-mes.elegido {
+  background: var(--tinta);
+  color: var(--blanco);
+}
+
+/* El mes de hoy lleva un punto debajo: se encuentra sin leer los números. */
+.calendario-mes.hoy:not(.elegido) {
+  color: var(--tinta);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
+}
+
+.anios {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.anios .calendario-mes {
+  padding: 0 12px;
+}
+
 /* Un grupo de opciones excluyentes. La activa lleva el fondo, no un borde. */
 .segmentado {
   display: inline-flex;
@@ -465,21 +644,26 @@
 }
 
 .fila-detalle {
+  margin-left: auto;
   font-size: var(--t12);
   color: var(--tinta-2);
   white-space: nowrap;
 }
 
-/* Los seis colores que puede tener un concepto. */
+/* Los diez colores que puede tener un concepto. */
 .colores {
   display: flex;
   gap: 8px;
   margin: 6px 0 4px;
 }
 
+.colores {
+  flex-wrap: wrap;
+}
+
 .color {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   display: inline-flex;
   align-items: center;
@@ -489,6 +673,37 @@
 
 .color.elegido {
   border-color: var(--tinta);
+}
+
+/* El punto de color es un botón: se toca y se elige otro. */
+.punto-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 50%;
+  transition: background var(--rapido) var(--curva);
+}
+
+.punto-boton:hover {
+  background: var(--fondo);
+}
+
+.punto-boton .punto {
+  width: 10px;
+  height: 10px;
+}
+
+.fila-nombre {
+  font-weight: 500;
+}
+
+.chip-tipo {
+  flex: none;
+  background: var(--fondo);
+  color: var(--tinta-2);
 }
 
 /* El asa de arrastrar: gris, y solo se enciende al pasar por encima. */
@@ -770,6 +985,31 @@
   gap: 6px;
 }
 
+/* Los desplegables nativos, con la misma piel que el resto de campos. */
+.selector-mes select,
+.selector-mes-cabecera select {
+  height: 32px;
+  padding: 0 26px 0 10px;
+  border: 1px solid var(--linea);
+  border-radius: 10px;
+  background-color: var(--blanco);
+  font-size: var(--t14);
+  font-weight: 600;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--tinta-2) 50%),
+    linear-gradient(135deg, var(--tinta-2) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 14px,
+    calc(100% - 9px) 14px;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.selector-mes select:hover,
+.selector-mes-cabecera select:hover {
+  border-color: var(--hueco);
+}
+
 /* ---------------------------------------------------------------------------
  * Gráficos
  * ------------------------------------------------------------------------- */
@@ -895,7 +1135,6 @@
 .comparativa-fila,
 .regla-fila,
 .conciliacion-fila,
-.plantilla-fila,
 .previa-fila,
 .revision-fila,
 .linea-simple,
@@ -914,7 +1153,6 @@
 .comparativa-fila:first-of-type,
 .regla-fila:first-of-type,
 .conciliacion-fila:first-of-type,
-.plantilla-fila:first-of-type,
 .previa-fila:first-of-type,
 .revision-fila:first-of-type,
 .linea-simple:first-of-type,
@@ -925,7 +1163,6 @@
 .ranking-nombre,
 .comparativa-nombre,
 .conciliacion-concepto,
-.plantilla-concepto,
 .linea-concepto,
 .revision-concepto {
   flex: 1;
@@ -956,28 +1193,52 @@
  * Importar y revisión del extracto
  * ------------------------------------------------------------------------- */
 
-.zona-archivo,
-.zona-pegado {
+/*
+ * El bloque de carga. La zona de soltar es lo único grande de la pantalla, con
+ * borde discontinuo, porque es lo que hay que hacer: traer el archivo del banco.
+ */
+.zona-archivo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.zona-mes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.zona-archivo-caja {
   display: grid;
   justify-items: center;
   gap: 6px;
-  padding: 30px 20px;
+  padding: 34px 20px;
   border: 1px dashed var(--hueco);
-  border-radius: var(--radio);
-  background: var(--blanco);
+  border-radius: 14px;
+  background: var(--fondo);
   text-align: center;
-  width: 100%;
+  transition:
+    border-color var(--rapido) var(--curva),
+    background var(--rapido) var(--curva);
 }
 
-.zona-archivo.encima,
-.zona-pegado.encima {
+/* Con un archivo encima, la zona lo dice: si no, se arrastra a ciegas. */
+.zona-archivo.encima .zona-archivo-caja {
   border-color: var(--tinta);
-  background: var(--fondo);
+  border-style: solid;
+  background: var(--blanco);
+}
+
+.zona-archivo-icono {
+  color: var(--tinta-2);
 }
 
 .zona-archivo-titulo,
 .zona-pegado-titulo {
   font-weight: 600;
+  font-size: var(--t16);
 }
 
 .zona-archivo-texto,
@@ -987,6 +1248,21 @@
   color: var(--tinta-2);
 }
 
+.zona-archivo-caja .fila-botones {
+  margin-top: 8px;
+  justify-content: center;
+}
+
+.zona-archivo-pie {
+  text-align: center;
+}
+
+.zona-pegado {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
 .revision-extracto {
   display: grid;
   gap: 12px;
@@ -994,10 +1270,16 @@
 
 .revision-fecha,
 .linea-fecha {
-  width: 44px;
   flex: none;
   font-size: var(--t12);
   color: var(--tinta-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* En la lista de movimientos de Mes la fecha es corta y sí tiene ancho fijo. */
+.fila > .fila-fecha {
+  width: 44px;
 }
 
 .revision-descripcion,
@@ -1025,12 +1307,8 @@
 
 .previa-marca,
 .marca-origen,
-.plantilla-origen,
-.plantilla-vigencia,
 .regla-usos,
 .regla-orden,
-.plantilla-orden,
-.plantilla-dia,
 .estado-fijo {
   font-size: var(--t12);
   color: var(--tinta-2);
@@ -1473,6 +1751,177 @@ code {
 }
 
 /* ---------------------------------------------------------------------------
+ * La tabla de la plantilla
+ * ------------------------------------------------------------------------- */
+
+/*
+ * Una rejilla y no una tabla: las celdas llevan campos y botones, y con grid la
+ * cabecera cuadra con las filas escribiendo las columnas una sola vez.
+ */
+.tabla-plantilla {
+  padding: 14px 18px 8px;
+}
+
+.plantilla-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+}
+
+.plantilla-cabecera-nota {
+  flex: 1;
+  min-width: 180px;
+  text-align: right;
+}
+
+.plantilla-fila {
+  display: grid;
+  grid-template-columns: 64px minmax(160px, 1fr) 76px 110px 118px 34px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--linea);
+  font-size: var(--t14);
+}
+
+/* La cabecera de la tabla: gris, pequeña y sin línea encima. */
+.plantilla-fila.cabecera {
+  border-top: 0;
+  padding-bottom: 6px;
+  font-size: var(--t12);
+  color: var(--tinta-2);
+  font-weight: 600;
+}
+
+.plantilla-fila.total {
+  border-top: 1px solid var(--hueco);
+  font-weight: 600;
+}
+
+.plantilla-fila.arrastrando {
+  opacity: 0.4;
+}
+
+.plantilla-fila.encima {
+  border-top-color: var(--tinta);
+}
+
+/* El asa va delante del número y solo se enciende al pasar por la fila. */
+.plantilla-orden {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tinta-2);
+  font-size: var(--t12);
+  font-variant-numeric: tabular-nums;
+}
+
+.plantilla-fila .agarre {
+  color: var(--hueco);
+  cursor: grab;
+}
+
+.plantilla-fila:hover .agarre {
+  color: var(--tinta-2);
+}
+
+/* Nombre arriba, vigencia debajo y separada: son dos cosas distintas. */
+.plantilla-concepto {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.plantilla-concepto strong {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plantilla-origen {
+  font-size: var(--t12);
+  color: var(--tinta-2);
+}
+
+.plantilla-dia {
+  text-align: center;
+}
+
+.plantilla-titulo-importe {
+  text-align: right;
+  margin-bottom: 0;
+}
+
+/* Un chip que además cambia de valor al pulsarlo. */
+.chip-clasificacion {
+  justify-content: center;
+  background: var(--fondo);
+  color: var(--tinta-2);
+  cursor: pointer;
+  transition:
+    background var(--rapido) var(--curva),
+    color var(--rapido) var(--curva);
+}
+
+.chip-clasificacion.necesario {
+  background: var(--azul-suave);
+  color: var(--azul-texto);
+}
+
+.chip-clasificacion.prescindible {
+  background: var(--ambar-suave);
+  color: var(--ambar-texto);
+}
+
+.chip-clasificacion.ahorro {
+  background: var(--verde-suave);
+  color: var(--verde-texto);
+}
+
+@media (max-width: 760px) {
+  /* En móvil no caben seis columnas: concepto arriba, el resto debajo. */
+  .plantilla-fila {
+    grid-template-columns: 40px 1fr 76px 110px;
+    grid-template-areas:
+      'orden concepto concepto concepto'
+      'orden dia importe clase';
+    row-gap: 4px;
+  }
+
+  .plantilla-fila.cabecera {
+    display: none;
+  }
+
+  .plantilla-orden {
+    grid-area: orden;
+    align-self: start;
+  }
+
+  .plantilla-concepto {
+    grid-area: concepto;
+  }
+
+  .plantilla-dia {
+    grid-area: dia;
+  }
+
+  .plantilla-fila .campo.importe {
+    grid-area: importe;
+  }
+
+  .chip-clasificacion {
+    grid-area: clase;
+  }
+
+  .plantilla-fila > .boton-icono {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
  * Móvil
  * ------------------------------------------------------------------------- */
 
@@ -1505,5 +1954,514 @@ code {
   .informe {
     border-radius: 0;
     padding: 0;
+  }
+}
+
+/* Un bloque plegable de la revisión: el título, cuántos hay y el más/menos. */
+.bloque-extracto + .bloque-extracto {
+  margin-top: 14px;
+}
+
+.bloque-extracto .bloque-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 10px;
+  padding: 4px 2px 8px;
+}
+
+.bloque-extracto .seccion-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.bloque-cuenta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radio-pastilla);
+  background: var(--fondo);
+  font-size: var(--t11);
+  font-weight: 700;
+  color: var(--tinta);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El bloque que pide atención (lo que falta por clasificar) lo dice en ámbar. */
+.bloque-extracto.destacado .seccion-titulo {
+  color: var(--ambar-texto);
+}
+
+.bloque-extracto.destacado .bloque-cuenta {
+  background: var(--ambar-suave);
+  color: var(--ambar-texto);
+}
+
+/* ---------------------------------------------------------------------------
+ * La revisión del extracto
+ *
+ * Es la pantalla más densa de la aplicación —setenta líneas que hay que mirar
+ * una a una— así que sigue el mismo lenguaje que Mes pero apretado: la misma
+ * fila con línea fina, el mismo chip, el mismo importe en cifras tabulares.
+ * Lo único que cambia es que aquí la fila tiene dos alturas, porque debajo de
+ * la descripción limpia va la del banco, que es la que hay que poder cotejar.
+ * ------------------------------------------------------------------------- */
+
+.revision-extracto {
+  display: grid;
+  /*
+   * `minmax(0, 1fr)` y no `auto`: una columna automática se estira hasta el
+   * contenido más ancho que haya dentro, y con setenta descripciones del banco
+   * eso saca la página entera de la pantalla en el móvil.
+   */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+/* El marcador se queda arriba: dice cuánto falta, y eso hay que verlo siempre. */
+.marcador {
+  min-width: 0;
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  display: grid;
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: var(--radio);
+  background: var(--blanco);
+}
+
+.marcador-arriba {
+  display: grid;
+  gap: 2px;
+}
+
+.marcador-periodo {
+  font-size: var(--t14);
+}
+
+.marcador-frase {
+  font-size: var(--t12);
+  color: var(--tinta-2);
+}
+
+/* Mientras quede algo sin clasificar, la frase lo dice en ámbar. */
+.marcador-frase.pendiente {
+  color: var(--ambar-texto);
+  font-weight: 600;
+}
+
+.marcador-cifras {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: var(--t12);
+  color: var(--tinta-2);
+}
+
+.recuento {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radio-pastilla);
+  background: var(--fondo);
+  font-size: var(--t12);
+  white-space: nowrap;
+}
+
+.recuento strong {
+  font-weight: 700;
+  color: var(--tinta);
+  font-variant-numeric: tabular-nums;
+}
+
+.recuento.pendiente {
+  background: var(--ambar-suave);
+  color: var(--ambar-texto);
+  cursor: pointer;
+}
+
+.recuento.pendiente strong {
+  color: var(--ambar-texto);
+}
+
+.marcador-aviso {
+  font-size: var(--t12);
+  color: var(--tinta-2);
+}
+
+.barra-seleccion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--tinta);
+  color: var(--blanco);
+  font-size: var(--t12);
+}
+
+.barra-seleccion .boton-secundario,
+.barra-seleccion .boton-texto {
+  color: var(--blanco);
+  background: transparent;
+}
+
+.barra-seleccion .boton-secundario:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* Una línea del extracto: casilla, fecha, texto en dos alturas, importe,
+   concepto y el menú de la derecha. */
+.linea-extracto {
+  display: grid;
+  grid-template-columns: 20px 80px minmax(0, 1fr) 104px 210px 30px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--linea);
+  font-size: var(--t14);
+}
+
+.linea-extracto:first-of-type {
+  border-top: 0;
+}
+
+.linea-extracto.seleccionada {
+  background: var(--fondo);
+}
+
+.linea-extracto.enfocada {
+  box-shadow: inset 2px 0 0 var(--tinta);
+}
+
+/* Lo que se acaba de tocar se enciende un momento: sin esto, con setenta
+   líneas iguales, no se sabe cuál se ha cambiado. */
+.linea-extracto.recien {
+  background: var(--lima-suave, #f2fbd0);
+}
+
+input.casilla {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--tinta);
+}
+
+.linea-texto {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+/*
+ * En bloque y no en flex: `text-overflow: ellipsis` no recorta a los hijos de
+ * un contenedor flex, así que la descripción se salía de la fila. El chip de
+ * «abono» va dentro, en línea, que es donde tiene que estar.
+ */
+.linea-limpia {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.linea-limpia .etiqueta-mini {
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+
+.linea-fecha {
+  overflow: hidden;
+}
+
+.linea-original {
+  font-size: var(--t11);
+  color: var(--tinta-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linea-nota {
+  font-size: var(--t11);
+  color: var(--ambar-texto);
+}
+
+.linea-importe {
+  margin-left: 0;
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.linea-importe.negativo {
+  color: var(--verde-texto);
+}
+
+.linea-concepto {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.linea-acciones {
+  position: relative;
+  display: inline-flex;
+  justify-content: flex-end;
+}
+
+.menu-linea {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  right: 0;
+  display: grid;
+  min-width: 190px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--blanco);
+  border: 1px solid var(--linea);
+}
+
+.menu-linea button {
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-align: left;
+  font-size: var(--t14);
+  white-space: nowrap;
+}
+
+.menu-linea button:hover {
+  background: var(--fondo);
+}
+
+/* De dónde viene la clasificación: regla, alias, IA. Nunca en rojo. */
+.marca-origen {
+  flex: none;
+  padding: 2px 7px;
+  border-radius: var(--radio-pastilla);
+  background: var(--fondo);
+  font-size: var(--t11);
+  font-weight: 600;
+  color: var(--tinta-2);
+}
+
+.marca-origen.ia {
+  background: var(--lavanda-chip);
+  color: var(--lavanda-texto);
+  cursor: pointer;
+}
+
+.marca-origen.ia.baja {
+  background: var(--ambar-suave);
+  color: var(--ambar-texto);
+}
+
+.etiqueta-mini {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: var(--radio-pastilla);
+  background: var(--fondo);
+  font-size: var(--t11);
+  font-weight: 600;
+  color: var(--tinta-2);
+}
+
+.etiqueta-mini.abono {
+  background: var(--verde-suave);
+  color: var(--verde-texto);
+}
+
+.linea-simple,
+.detalle-fijo {
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  /* En móvil la línea se parte en dos alturas: texto arriba, lo demás debajo. */
+  .linea-extracto {
+    grid-template-columns: 18px 76px minmax(0, 1fr) 92px;
+    grid-template-areas:
+      'casilla fecha texto texto'
+      'casilla fecha concepto importe';
+    row-gap: 6px;
+  }
+
+  .linea-extracto > input.casilla {
+    grid-area: casilla;
+    align-self: start;
+    margin-top: 3px;
+  }
+
+  .linea-fecha {
+    grid-area: fecha;
+    align-self: start;
+  }
+
+  .linea-texto {
+    grid-area: texto;
+  }
+
+  .linea-concepto {
+    grid-area: concepto;
+  }
+
+  .linea-importe {
+    grid-area: importe;
+  }
+
+  .linea-acciones {
+    display: none;
+  }
+
+  .marcador {
+    padding: 12px 14px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Ajustes: los porcentajes y la tabla de reglas
+ * ------------------------------------------------------------------------- */
+
+/*
+ * Los tres porcentajes van juntos en una fila y estrechos: son dos cifras cada
+ * uno y tienen que sumar cien, así que se leen de un vistazo o no se leen.
+ */
+.fila-porcentajes {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.fila-porcentajes > div {
+  display: grid;
+  gap: 2px;
+}
+
+.fila-porcentajes .campo {
+  width: 96px;
+  height: 34px;
+  padding: 0 12px;
+  border-color: var(--linea);
+  background: var(--blanco);
+  border-radius: 10px;
+  text-align: right;
+}
+
+/* La tabla de reglas, con las mismas filas que Movimientos. */
+.tabla-reglas {
+  padding: 14px 18px 8px;
+}
+
+.regla-fila {
+  display: grid;
+  grid-template-columns: 66px minmax(140px, 1.4fr) minmax(120px, 1fr) 150px 54px 44px 30px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--linea);
+  font-size: var(--t14);
+}
+
+.regla-fila.cabecera {
+  border-top: 0;
+  padding-bottom: 6px;
+  font-size: var(--t12);
+  font-weight: 600;
+  color: var(--tinta-2);
+}
+
+.regla-fila.arrastrando {
+  opacity: 0.4;
+}
+
+.regla-fila.encima {
+  border-top-color: var(--tinta);
+}
+
+/* Una regla apagada sigue en la lista, pero no grita. */
+.regla-fila.apagada {
+  color: var(--tinta-2);
+}
+
+.regla-orden {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tinta-2);
+  font-size: var(--t12);
+  font-variant-numeric: tabular-nums;
+}
+
+.regla-fila .agarre {
+  color: var(--hueco);
+  cursor: grab;
+}
+
+.regla-fila:hover .agarre {
+  color: var(--tinta-2);
+}
+
+.regla-usos {
+  text-align: right;
+  font-size: var(--t12);
+  color: var(--tinta-2);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+  /* Siete columnas no caben: el texto arriba y sus datos debajo. */
+  .regla-fila {
+    grid-template-columns: 52px minmax(0, 1fr) 44px 30px;
+    grid-template-areas:
+      'orden texto texto texto'
+      'orden concepto activa borrar';
+    row-gap: 6px;
+  }
+
+  .regla-fila.cabecera {
+    display: none;
+  }
+
+  .regla-orden {
+    grid-area: orden;
+    align-self: start;
+  }
+
+  .regla-fila > .campo:first-of-type {
+    grid-area: texto;
+  }
+
+  .regla-fila > select:first-of-type {
+    grid-area: concepto;
+  }
+
+  /* El modo de encaje se decide una vez y casi nunca se toca. */
+  .regla-fila > select:last-of-type,
+  .regla-usos {
+    display: none;
+  }
+
+  .regla-fila > .interruptor {
+    grid-area: activa;
+  }
+
+  .regla-fila > .boton-icono {
+    grid-area: borrar;
   }
 }

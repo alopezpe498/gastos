@@ -41,7 +41,7 @@ export function SeccionCalculo({ ajustes, conceptos, onGuardado }: Props) {
           Contra qué se compara el reparto real del mes. La regla clásica es 50 / 30 / 20.
         </p>
 
-        <div className="rejilla-previsto">
+        <div className="fila-porcentajes">
           {(['necesario', 'prescindible', 'ahorro'] as const).map((clave) => (
             <div key={clave}>
               <label className="campo-etiqueta" htmlFor={`ideal-${clave}`}>

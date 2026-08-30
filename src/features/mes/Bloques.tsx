@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { MesCompleto, PanelMes } from '../../lib/tipos'
 import { euros, redondo } from '../../lib/formato'
 import { CampoImporte } from '../../components/Campos'
+import { SelectorDeMes } from '../../components/SelectorDeMes'
 
 /**
  * Los cuatro bloques de la cabecera de Mes.
@@ -18,8 +19,7 @@ import { CampoImporte } from '../../components/Campos'
 type PropsPrincipal = {
   mes: MesCompleto
   panel: PanelMes
-  onMesAnterior: () => void
-  onMesSiguiente: () => void
+  onIr: (anio: number, mes: number) => void
   onCambiarSaldo: (valor: number | null) => Promise<void>
 }
 
@@ -30,13 +30,7 @@ type PropsPrincipal = {
  * alto pero aún queda, coral si ya te has pasado. En ningún otro sitio hay
  * rojos sueltos.
  */
-export function BloquePrincipal({
-  mes,
-  panel,
-  onMesAnterior,
-  onMesSiguiente,
-  onCambiarSaldo,
-}: PropsPrincipal) {
+export function BloquePrincipal({ mes, panel, onIr, onCambiarSaldo }: PropsPrincipal) {
   const queda = mes.resumen.sobrante
   const { diasQueQuedan, dias, diaActual } = panel.periodo
 
@@ -48,17 +42,26 @@ export function BloquePrincipal({
 
   const estado = pasado ? 'pasado' : rapido ? 'rapido' : ''
 
-  // La frase. Se calcula con lo que queda y los días que faltan.
+  /*
+   * La frase. Cambia de tiempo verbal cuando el periodo se acaba: un mes
+   * terminado no admite consejos («te sobran X al día» sobre cero días es una
+   * división por cero disfrazada de recomendación). Y en un mes cerrado los
+   * fijos que faltaran ya no van a llegar, así que no se nombran.
+   */
+  const terminado = diasQueQuedan === 0 && diaActual > 0
   const alDia = diasQueQuedan > 0 ? queda / diasQueQuedan : queda
   const fijosPendientes = mes.resumen.fijosPendientes.importe
-  const frase = pasado
-    ? `Te has pasado ${redondo(Math.abs(queda))}` +
-      (fijosPendientes > 0 ? `; los fijos que faltan suman ${redondo(fijosPendientes)}` : '')
-    : rapido
-      ? `Cuidado: a este ritmo te quedas sin nada antes de la nómina`
-      : diasQueQuedan > 0
-        ? `Vas bien: te sobran ${redondo(alDia)} al día hasta la nómina`
-        : `Mes cerrado: te han sobrado ${redondo(queda)}`
+  const nombre = mes.nombreMes.toLowerCase()
+  const frase = terminado
+    ? pasado
+      ? `Cerraste ${nombre} con ${redondo(Math.abs(queda))} de más`
+      : `Cerraste ${nombre} con ${redondo(queda)} de sobra`
+    : pasado
+      ? `Te has pasado ${redondo(Math.abs(queda))}` +
+        (fijosPendientes > 0 ? `; los fijos que faltan suman ${redondo(fijosPendientes)}` : '')
+      : rapido
+        ? 'Cuidado: a este ritmo te quedas sin nada antes de la nómina'
+        : `Vas bien: te sobran ${redondo(alDia)} al día hasta la nómina`
 
   const descuadre =
     mes.resumen.dineroEnCuenta === null
@@ -69,15 +72,7 @@ export function BloquePrincipal({
     <div className={`bloque principal ${estado}`}>
       <div>
         <div className="principal-cabecera">
-          <span className="principal-mes">
-            <button className="boton-icono" onClick={onMesAnterior} aria-label="Mes anterior">
-              ‹
-            </button>
-            {mes.nombreMes}
-            <button className="boton-icono" onClick={onMesSiguiente} aria-label="Mes siguiente">
-              ›
-            </button>
-          </span>
+          <SelectorDeMes anio={mes.anio} mes={mes.mes} onIr={onIr} tamano="grande" />
           <span className="principal-periodo">
             {corta(panel.periodo.desde)} → {corta(panel.periodo.hasta)}
             {diaActual > 0 ? ` · día ${diaActual} de ${dias}` : ''}
@@ -102,7 +97,11 @@ export function BloquePrincipal({
             <div className="principal-hoy" style={{ left: `${partePeriodo * 100}%` }} />
           ) : null}
         </div>
-        <div className="principal-nota">La marca es hoy: si la barra la pasa, vas rápido</div>
+        {/* En un mes terminado no hay «hoy», así que la marca no está y la
+            explicación sobraría. */}
+        {terminado ? null : (
+          <div className="principal-nota">La marca es hoy: si la barra la pasa, vas rápido</div>
+        )}
 
         <Saldo
           saldo={mes.resumen.dineroEnCuenta}
@@ -225,39 +224,57 @@ export function BloqueComida({ mes }: { mes: MesCompleto }) {
   )
 }
 
-/** Barritas por día. Las que pasan del doble de la media, en lavanda intensa. */
+/**
+ * Una barrita por día del periodo.
+ *
+ * El viewBox se mide en días, no en píxeles: así una barra ocupa siempre lo
+ * mismo tenga el mes 28 días o 31, y no hay que calcular anchos a mano. Las
+ * que pasan del doble de la media van en lavanda intensa, que es la forma de
+ * ver «ese día se fue de madre» sin leer una cifra.
+ */
 export function BloqueExtras({ panel }: { panel: PanelMes }) {
   const dias = panel.puntos
   const conGasto = dias.filter((d) => d.extras > 0)
   const media = conGasto.length > 0 ? panel.extras.total / conGasto.length : 0
   const maximo = Math.max(...dias.map((d) => d.extras), 1)
 
-  const ancho = 160
+  // Un día = una unidad de ancho. La barra ocupa el 62 % y deja el resto de aire.
   const alto = 34
-  const paso = dias.length > 0 ? ancho / dias.length : 0
-  const grosor = Math.max(2, Math.min(8, paso - 4))
+  const ancho = Math.max(dias.length, 1)
 
   return (
     <div className="bloque">
       <div className="t12">Extras</div>
       <div className="cifra">{redondo(panel.extras.total)}</div>
-      <svg viewBox={`0 0 ${ancho} ${alto}`} width="100%" height={alto} role="img">
-        <title>Extras por día</title>
+
+      <svg
+        className="extras-grafico"
+        viewBox={`0 0 ${ancho} ${alto}`}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={
+          conGasto.length === 0
+            ? 'Todavía no hay extras este mes'
+            : `Extras por día: ${conGasto.length} días con gasto, el mayor de ${euros(maximo)}`
+        }
+      >
         {dias.map((d, i) => {
-          const altura = d.extras > 0 ? Math.max(2, (d.extras / maximo) * alto) : 0
-          if (altura === 0) return null
+          if (d.extras <= 0) return null
+          // Mínimo de 2 px para que un día con 3 € siga viéndose.
+          const altura = Math.max(2, (d.extras / maximo) * alto)
           return (
             <rect
               key={d.dia}
-              x={i * paso}
+              x={i + 0.19}
               y={alto - altura}
-              width={grosor}
+              width={0.62}
               height={altura}
               fill={d.extras > media * 2 ? 'var(--lavanda)' : 'var(--lavanda-suave)'}
             />
           )
         })}
       </svg>
+
       <div className="t12">
         {panel.extras.mayor
           ? `${panel.extras.mayor.concepto} se lleva el ${panel.extras.mayor.porcentaje} %`
@@ -267,6 +284,14 @@ export function BloqueExtras({ panel }: { panel: PanelMes }) {
   )
 }
 
+/**
+ * El ahorro real del mes, contra el objetivo de la plantilla.
+ *
+ * El objetivo sale del concepto marcado como `esObjetivo` —es lo que dice la
+ * plantilla que se quiere apartar— y no de un número suelto en Ajustes. Si el
+ * ahorro sale negativo el bloque se vuelve coral: no es un matiz, es que ese
+ * mes has vivido de lo ahorrado.
+ */
 export function BloqueAhorro({ mes }: { mes: MesCompleto }) {
   const queda = mes.resumen.sobrante
   const porcentaje = mes.ingreso > 0 ? Math.round((queda / mes.ingreso) * 100) : 0
@@ -275,16 +300,20 @@ export function BloqueAhorro({ mes }: { mes: MesCompleto }) {
       ? Math.round((mes.objetivoAhorro / mes.ingreso) * 100)
       : null
 
+  const enRojo = queda < 0
+
   return (
-    <div className="bloque bloque-ahorro">
+    <div className={`bloque bloque-ahorro${enRojo ? ' sin-ahorro' : ''}`}>
       <div className="t12">Ahorro real</div>
       <div className="cifra">{porcentaje} %</div>
       <div className="t12">
-        {objetivo === null
-          ? 'Sin objetivo puesto'
-          : porcentaje >= objetivo
-            ? `Objetivo ${objetivo} % · lo vas a cumplir`
-            : `Objetivo ${objetivo} % · te faltan ${objetivo - porcentaje} puntos`}
+        {enRojo
+          ? 'Este mes no ahorras'
+          : objetivo === null
+            ? 'Sin objetivo puesto'
+            : porcentaje >= objetivo
+              ? `Objetivo ${objetivo} % · lo vas a cumplir`
+              : `Objetivo ${objetivo} % · te faltan ${objetivo - porcentaje} puntos`}
       </div>
     </div>
   )

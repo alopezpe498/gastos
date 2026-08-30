@@ -8,7 +8,18 @@ export const CLASIFICACIONES = ['necesario', 'prescindible', 'ahorro']
  * Los colores que se pueden elegir a mano. Son los mismos que reparte sola la
  * aplicacion: aqui no se inventan tintas nuevas, solo se cambia cual toca.
  */
-export const COLORES = ['lavanda', 'ambar', 'verde', 'gris', 'coral', 'azul']
+export const COLORES = [
+  'lavanda',
+  'ambar',
+  'verde',
+  'turquesa',
+  'rosa',
+  'oliva',
+  'tierra',
+  'azul',
+  'coral',
+  'gris',
+]
 
 function aConcepto(c) {
   return {

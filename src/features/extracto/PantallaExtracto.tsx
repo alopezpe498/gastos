@@ -3,7 +3,8 @@ import { api, mensajeDeError } from '../../lib/api'
 import type { Importacion, Mes, PropuestaExtracto } from '../../lib/tipos'
 import { Confirmar } from '../../components/Basicos'
 import { useAvisos } from '../../components/Avisos'
-import { IconoDocumento, IconoPortapapeles } from '../../components/Iconos'
+import { SelectorDeMes } from '../../components/SelectorDeMes'
+import { IconoSubir, IconoDocumento, IconoPortapapeles } from '../../components/Iconos'
 import { cuantos, fecha as fechaCorta, NOMBRES_MESES } from '../../lib/formato'
 import { RevisionExtracto } from './RevisionExtracto'
 
@@ -43,11 +44,24 @@ export function PantallaExtracto({
   const [error, setError] = useState('')
   // Sube al aceptar, deshacer o volver del historial: fuerza a releerlo.
   const [refrescos, setRefrescos] = useState(0)
+  // Se enciende mientras hay un archivo encima: sin esto la zona no dice que
+  // acepta lo que estás arrastrando, y arrastrar a ciegas no lo hace nadie.
+  const [arrastrando, setArrastrando] = useState(false)
   const archivo = useRef<HTMLInputElement>(null)
   const botonArchivo = useRef<HTMLButtonElement>(null)
 
   const mes = meses.find((m) => m.id === mesId) ?? null
   const cerrado = mes?.estado === 'cerrado'
+
+  /*
+   * El desplegable habla de años y meses; aquí se trabaja con ids. Si el mes al
+   * que apunta no existe todavía no se cambia nada: importar solo tiene sentido
+   * sobre un mes abierto, y abrirlo es una decisión que se toma en Mes.
+   */
+  const irAlMes = (anio: number, numeroMes: number) => {
+    const destino = meses.find((m) => m.anio === anio && m.mes === numeroMes)
+    if (destino) setMesId(destino.id)
+  }
 
   /*
    * Al llegar desde el botón del mes, lo único que se quiere es elegir el
@@ -143,23 +157,33 @@ export function PantallaExtracto({
           </div>
         </div>
 
-        <div className="tarjeta bloque-carga">
-          <label className="etiqueta-campo" htmlFor="mes-extracto">
-            Mes al que va
-          </label>
-          <select
-            id="mes-extracto"
-            className="campo-linea"
-            value={mesId}
-            onChange={(e) => setMesId(Number(e.target.value))}
-          >
-            {meses.map((m) => (
-              <option key={m.id} value={m.id}>
-                {NOMBRES_MESES[m.mes - 1]} {m.anio}
-                {m.estado === 'cerrado' ? ' (cerrado)' : ''}
-              </option>
-            ))}
-          </select>
+        <div
+          className={`bloque zona-archivo${arrastrando ? ' encima' : ''}`}
+          onDragOver={(e) => {
+            e.preventDefault()
+            if (!cerrado) setArrastrando(true)
+          }}
+          onDragLeave={() => setArrastrando(false)}
+          onDrop={(e) => {
+            e.preventDefault()
+            setArrastrando(false)
+            const fichero = e.dataTransfer.files?.[0]
+            if (fichero && !cerrado) void subir(fichero)
+          }}
+        >
+          {/*
+            El mes va arriba del todo y con el mismo desplegable que la pantalla
+            Mes: es la primera decisión y no puede parecer un detalle de un
+            formulario. Si el mes elegido no está abierto, se dice aquí.
+          */}
+          <div className="zona-mes">
+            <span className="titulo-bloque">Mes al que va</span>
+            {mes ? (
+              <SelectorDeMes anio={mes.anio} mes={mes.mes} onIr={irAlMes} />
+            ) : (
+              <span className="t12">No hay ningún mes abierto todavía</span>
+            )}
+          </div>
 
           {cerrado ? (
             <p className="banda-aviso">
@@ -167,24 +191,31 @@ export function PantallaExtracto({
             </p>
           ) : null}
 
-          <div className="fila-botones">
-            <button
-              ref={botonArchivo}
-              className="boton boton-principal"
-              disabled={cargando || cerrado}
-              onClick={() => archivo.current?.click()}
-            >
-              <IconoDocumento size={18} />
-              {cargando ? 'Leyendo…' : 'Elegir archivo'}
-            </button>
-            <button
-              className="boton boton-secundario"
-              disabled={cargando || cerrado}
-              onClick={() => setPegando((p) => !p)}
-            >
-              <IconoPortapapeles size={18} />
-              Pegar una tabla
-            </button>
+          <div className="zona-archivo-caja">
+            <IconoSubir size={26} className="zona-archivo-icono" />
+            <p className="zona-archivo-titulo">Arrastra aquí el archivo del banco</p>
+            <p className="zona-archivo-texto">.xls, .xlsx o .csv — o si lo prefieres:</p>
+
+            <div className="fila-botones">
+              <button
+                ref={botonArchivo}
+                className="boton boton-negro"
+                disabled={cargando || cerrado}
+                onClick={() => archivo.current?.click()}
+              >
+                <IconoDocumento size={16} />
+                {cargando ? 'Leyendo…' : 'Elegir archivo'}
+              </button>
+              <button
+                className="boton"
+                disabled={cargando || cerrado}
+                onClick={() => setPegando((p) => !p)}
+              >
+                <IconoPortapapeles size={16} />
+                Pegar una tabla
+              </button>
+            </div>
+
             <input
               ref={archivo}
               type="file"
@@ -198,8 +229,6 @@ export function PantallaExtracto({
             />
           </div>
 
-          <p className="pista">Admite .xls, .xlsx y .csv, o una tabla copiada de la web del banco.</p>
-
           {pegando ? (
             <div className="zona-pegado">
               <textarea
@@ -210,7 +239,7 @@ export function PantallaExtracto({
                 onChange={(e) => setTexto(e.target.value)}
               />
               <button
-                className="boton boton-principal"
+                className="boton boton-negro"
                 disabled={!texto.trim() || cargando}
                 onClick={() => void enviar({ texto })}
               >
@@ -219,12 +248,12 @@ export function PantallaExtracto({
             </div>
           ) : null}
 
-          {error ? <p className="banda-aviso">{error}</p> : null}
+          {error ? <p className="banda-aviso alerta">{error}</p> : null}
 
           {onVerReglas ? (
-            <p className="pista">
+            <p className="pista zona-archivo-pie">
               Lo que reconoce cada movimiento son las reglas.{' '}
-              <button className="boton boton-texto boton-compacto" onClick={onVerReglas}>
+              <button className="boton-texto" onClick={onVerReglas}>
                 Ver reglas
               </button>
             </p>

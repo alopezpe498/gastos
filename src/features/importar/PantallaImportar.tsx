@@ -63,7 +63,7 @@ export function PantallaImportar({
   useEffect(() => setPestana(pestanaInicial), [pestanaInicial])
 
   const pestanas = (
-    <div className="segmentado">
+    <div className="pestanas">
       {PESTANAS.map((p) => (
         <button
           key={p.id}

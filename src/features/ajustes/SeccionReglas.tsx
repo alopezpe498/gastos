@@ -197,15 +197,15 @@ export function SeccionReglas({ conceptos }: { conceptos: Concepto[] }) {
           />
         </div>
 
-        <div className="tarjeta tabla-reglas">
-          <div className="regla-fila cabecera" aria-hidden="true">
-            <span>#</span>
+        <div className="bloque tabla-reglas">
+          <div className="regla-fila cabecera">
+            <span className="regla-orden">Orden</span>
             <span>Texto que busca</span>
             <span>Concepto</span>
             <span>Encaje</span>
-            <span>Usos</span>
+            <span className="regla-usos">Usos</span>
             <span>Activa</span>
-            <span />
+            <span className="solo-lectores">Borrar</span>
           </div>
 
           {visibles.map((regla, indice) => (
@@ -232,22 +232,23 @@ export function SeccionReglas({ conceptos }: { conceptos: Concepto[] }) {
                 void soltar(regla.id)
               }}
             >
-              <span className="regla-orden" aria-hidden="true">
-                <span className="agarre">
+              <span className="regla-orden">
+                <span className="agarre" aria-hidden="true">
                   <IconoArrastrar size={16} />
                 </span>
-                <span>{filtro ? regla.prioridad : indice + 1}</span>
+                {filtro ? regla.prioridad : indice + 1}
               </span>
 
               <CampoTextoLinea
                 valor={regla.texto}
                 ariaLabel={`Texto de la regla ${regla.texto}`}
                 maxLength={60}
+                className="campo"
                 onGuardar={(texto) => void cambiar(regla, { texto })}
               />
 
               <select
-                className="campo-linea"
+                className="campo"
                 aria-label={`Concepto de la regla ${regla.texto}`}
                 value={regla.conceptoId ?? ''}
                 onChange={(e) => {
@@ -267,7 +268,7 @@ export function SeccionReglas({ conceptos }: { conceptos: Concepto[] }) {
               </select>
 
               <select
-                className="campo-linea"
+                className="campo"
                 aria-label={`Cómo encaja la regla ${regla.texto}`}
                 value={regla.coincidencia}
                 onChange={(e) =>
@@ -289,7 +290,7 @@ export function SeccionReglas({ conceptos }: { conceptos: Concepto[] }) {
               />
 
               <button
-                className="icono-boton"
+                className="boton-icono"
                 aria-label={`Borrar la regla ${regla.texto}`}
                 onClick={() => setABorrar(regla)}
               >

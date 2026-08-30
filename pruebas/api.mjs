@@ -683,6 +683,41 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nColor de un concepto')
+  // -------------------------------------------------------------------------
+  {
+    const { datos: todos } = await llamar('/conceptos')
+    const cualquiera = todos.find((c) => c.tipo === 'variable')
+
+    comprobar(cualquiera.color === null, 'un concepto nace sin color propio')
+
+    const puesto = await llamar(`/conceptos/${cualquiera.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { color: 'turquesa' },
+    })
+    comprobar(puesto.datos?.color === 'turquesa', 'se le puede poner uno a mano')
+
+    const malo = await llamar(`/conceptos/${cualquiera.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { color: 'morado' },
+    })
+    comprobar(malo.estado === 400, 'un color que no existe se rechaza')
+    comprobar((malo.datos?.error ?? '').includes('morado'), 'y el error dice cual era')
+
+    const quitado = await llamar(`/conceptos/${cualquiera.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { color: null },
+    })
+    comprobar(quitado.datos?.color === null, 'y se puede volver al automatico')
+
+    const otro = await llamar(`/conceptos/${cualquiera.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { nombre: cualquiera.nombre },
+    })
+    comprobar(otro.datos?.color === null, 'tocar otra cosa no le inventa un color')
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nErrores')
   // -------------------------------------------------------------------------
   {

@@ -94,7 +94,7 @@ export function PantallaAnalitica({
         anchaEnEscritorio
         debajo={
           <>
-            <div className="segmentado">
+            <div className="pestanas">
               {PESTANAS.map((p) => (
                 <button
                   key={p.id}

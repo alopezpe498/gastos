@@ -71,9 +71,10 @@ regla 50/30/20. `esObjetivo` marca el concepto de ahorro: no es un gasto, es lo
 que se querría apartar.
 
 `color` es el color con el que se reconoce el concepto en las listas, y vale
-uno de `lavanda`, `ambar`, `verde`, `gris`, `coral` o `azul`. Es opcional: con
-`null` la aplicación reparte una paleta por el `id` del concepto, que no cambia
-nunca. Solo se guarda cuando se elige a mano.
+uno de `lavanda`, `ambar`, `verde`, `turquesa`, `rosa`, `oliva`, `tierra`,
+`azul`, `coral` o `gris`. Es opcional: con `null` la aplicación reparte los
+ocho colores automáticos por posición dentro del catálogo ordenado por `id`, de
+forma que no se repiten hasta agotarlos. Solo se guarda cuando se elige a mano.
 
 | Método | Ruta | Notas |
 | --- | --- | --- |
