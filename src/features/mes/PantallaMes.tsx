@@ -1,24 +1,38 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ErrorApi, mensajeDeError } from '../../lib/api'
 import type { Concepto, MesCompleto, MesPorAbrir, Movimiento, PanelMes } from '../../lib/tipos'
-import { useAvisos } from '../../components/Avisos'
-import { cuantos, euros, hoyIso, NOMBRES_MESES } from '../../lib/formato'
-import { BloquePrincipal, BloqueFijos, BloqueComida, BloqueExtras, BloqueAhorro } from './Bloques'
-import { ListaMovimientos, ListaFijos } from './Listas'
-import { registrarConceptos } from '../../lib/colores'
-import { Analisis } from './Analisis'
+import { cuantos, euros, hoyIso, NOMBRES_MESES, redondo } from '../../lib/formato'
+import { iconoDe, paletaDeId, registrarConceptos } from '../../lib/conceptos'
+import { BotonPrimario, BotonTexto, Card, Check, IconoConcepto, MenuFila, Tile, Vacio } from '../../components/ui/Basicos'
+import { CampoImporte, CampoTexto, SelectorConcepto, ValorEditable } from '../../components/ui/Campos'
+import { Dialogo } from '../../components/ui/Dialogo'
+import {
+  Anillos,
+  BarraProgreso,
+  CifraQueCuenta,
+  Leyenda,
+  LeyendaItem,
+  Puntos,
+  SegmentBar,
+  Sparkline,
+} from '../../components/ui/Graficos'
+import { Fila, GrupoFilas, Importe } from '../../components/ui/Fila'
+import { Acciones } from '../../components/ui/Navegacion'
+import { SelectorDeMes } from '../../components/ui/SelectorDeMes'
+import { useAvisos } from '../../components/ui/Toast'
+import { Icono } from '../../components/ui/Icono'
+import { AltaRapida } from './AltaRapida'
 import { MenuMes } from './MenuMes'
-import { Acciones } from '../../components/Navegacion'
-import { IconoCandado } from '../../components/Iconos'
+import { Analisis } from './Analisis'
 
 /**
  * La pantalla Mes.
  *
- * Arriba, cinco bloques que responden a «¿cómo voy?» sin leer una sola tabla:
- * lo que queda, los fijos, la comida, los extras y el ahorro. Abajo, las dos
- * listas con las que se trabaja. El análisis del mes vive aquí dentro, como una
- * sección desplegable: era una pantalla entera para algo que se mira de vez en
- * cuando.
+ * Arriba, una sola cifra: lo que te queda. Debajo, tres tiles que responden a
+ * las tres preguntas de después —¿cuánto se va solo?, ¿cómo va el sobre?, ¿en
+ * qué se me va lo demás?— y abajo las dos listas con las que se trabaja.
+ *
+ * El análisis vive aquí dentro, plegado: se mira de vez en cuando, no cada día.
  */
 
 type Props = {
@@ -28,12 +42,7 @@ type Props = {
   onBloquear: () => void
 }
 
-export function PantallaMes({
-  mesElegido,
-  onCambioDeMes,
-  onImportarExtracto,
-  onBloquear,
-}: Props) {
+export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onBloquear }: Props) {
   const { avisar, avisarError } = useAvisos()
   const [mes, setMes] = useState<MesCompleto | null>(null)
   const [panel, setPanel] = useState<PanelMes | null>(null)
@@ -42,9 +51,6 @@ export function PantallaMes({
   const [error, setError] = useState('')
   const [abriendo, setAbriendo] = useState(false)
   const [menuAbierto, setMenuAbierto] = useState(false)
-  // Sube cada vez que se pulsa «Apuntar»: la lista lo mira para poner el foco
-  // en su línea. Un número y no un booleano, porque hay que poder pulsarlo dos
-  // veces seguidas.
   const [pedirApunte, setPedirApunte] = useState(0)
 
   const cargar = useCallback(async () => {
@@ -52,7 +58,6 @@ export function PantallaMes({
     try {
       const catalogo = await api<Concepto[]>('/conceptos?activos=1')
       setConceptos(catalogo)
-      // El reparto de colores se rehace con el catálogo entero delante.
       registrarConceptos(catalogo)
 
       // Navegar no crea nada: si el mes no existe, se ofrece abrirlo.
@@ -129,9 +134,9 @@ export function PantallaMes({
   /**
    * Borra un apunte y ofrece deshacerlo.
    *
-   * No hay «papelera» en la API, así que deshacer es volver a crearlo con lo
-   * que tenía. Pierde el id, que es lo de menos: lo que importa es que el
-   * dinero vuelva a estar donde estaba.
+   * No hay papelera en la API, así que deshacer es volver a crearlo con lo que
+   * tenía. Pierde el id, que es lo de menos: lo que importa es que el dinero
+   * vuelva a estar donde estaba.
    */
   const borrar = async (cual: Movimiento) => {
     try {
@@ -182,116 +187,556 @@ export function PantallaMes({
   // ---- estados que no son el mes ----
 
   if (error) {
-    return (
-      <div className="vacio">
-        <p>{error}</p>
-        <button className="boton-texto" onClick={() => void cargar()}>
-          Reintentar
-        </button>
-      </div>
-    )
+    return <Vacio icono="aviso" frase={error} accion="Reintentar" onAccion={() => void cargar()} />
   }
 
   if (porAbrir) {
     const nombre = NOMBRES_MESES[porAbrir.mes - 1]
     return (
-      <div className="bloque vacio">
-        <p style={{ fontWeight: 600 }}>
-          {nombre} de {porAbrir.anio} todavía no está abierto
-        </p>
-        <p className="t12">
-          {porAbrir.intermedios.length > 0
-            ? `Al abrirlo se crearán también ${porAbrir.intermedios.map((m) => m.nombre.toLowerCase()).join(', ')}.`
-            : 'Al abrirlo se generan los fijos activos, pendientes de cobro.'}
-        </p>
-        <button
-          className="boton boton-negro"
-          style={{ marginTop: 12 }}
-          disabled={abriendo}
-          onClick={() => void abrir(porAbrir.anio, porAbrir.mes)}
-        >
-          {abriendo ? 'Abriendo…' : 'Abrir este mes'}
-        </button>
-      </div>
+      <Card>
+        <div className="vacio">
+          <span className="ico">
+            <Icono nombre="calendario" size={16} />
+          </span>
+          <p className="vacio-frase">
+            {nombre} de {porAbrir.anio} todavía no está abierto
+          </p>
+          <p className="muted">
+            {porAbrir.intermedios.length > 0
+              ? `Al abrirlo se crearán también ${porAbrir.intermedios
+                  .map((m) => m.nombre.toLowerCase())
+                  .join(', ')}.`
+              : 'Al abrirlo se generan los fijos activos, pendientes de cobro.'}
+          </p>
+          <span style={{ marginTop: 8 }}>
+            <BotonPrimario disabled={abriendo} onClick={() => void abrir(porAbrir.anio, porAbrir.mes)}>
+              {abriendo ? 'Abriendo…' : 'Abrir este mes'}
+            </BotonPrimario>
+          </span>
+        </div>
+      </Card>
     )
   }
 
-  if (!mes || !panel) {
-    return <div className="cargando">Un momento…</div>
-  }
+  if (!mes || !panel) return <div className="cargando">Un momento…</div>
 
-  const variables = mes.variables
-  const conceptosVariables = conceptos.filter((c) => c.tipo !== 'fijo' || c.esObjetivo === false)
+  // ---- lo que dice el hero ----
+
+  const { diasQueQuedan, dias, diaActual } = panel.periodo
+  const cerrado = mes.estado === 'cerrado'
+  const terminado = (diasQueQuedan === 0 && diaActual > 0) || cerrado
+  /*
+   * El ritmo se mide solo con lo PAGADO. Meter lo comprometido diría que vas
+   * fatal el día 1, cuando lo único que pasa es que los recibos aún no han
+   * llegado.
+   */
+  const parteGasto = mes.ingreso > 0 ? panel.pagado / mes.ingreso : 0
+  const partePeriodo = dias > 0 ? diaActual / dias : 0
+  const pasado = panel.libre < 0
+  const rapido = !pasado && !terminado && parteGasto > partePeriodo + 0.08
+
+  const alDia = diasQueQuedan > 0 ? panel.libre / diasQueQuedan : panel.libre
+  const nombreMes = mes.nombreMes.toLowerCase()
+  const frase = terminado
+    ? pasado
+      ? `Cerraste ${nombreMes} con ${redondo(Math.abs(panel.libre))} de más.`
+      : `Cerraste ${nombreMes} con ${redondo(panel.libre)} de sobra.`
+    : pasado
+      ? `Te has pasado ${redondo(Math.abs(panel.libre))} de lo que entra este mes.`
+      : rapido
+        ? 'Cuidado: llevas gastado más de lo que llevas de mes.'
+        : diasQueQuedan === 1
+          ? `Vas bien. Te queda ${redondo(panel.libre)} para el último día.`
+          : `Vas bien. Con lo que llevas, te sobran ${redondo(alDia)} al día hasta la nómina.`
+
+  const cobrados = panel.fijos.filter((f) => f.cobrado).length
+  const excesoComida = panel.comida.gastado > panel.comida.presupuesto && panel.comida.presupuesto > 0
+  const porDia = agruparPorDia(mes.variables)
 
   return (
     <>
       <Acciones>
-        <button className="boton" onClick={() => onImportarExtracto(mes.id)}>
-          Importar extracto
-        </button>
-        <button className="boton boton-negro" onClick={() => setPedirApunte((n) => n + 1)}>
-          + Apuntar
-        </button>
+        <BotonTexto onClick={() => onImportarExtracto(mes.id)}>Importar extracto</BotonTexto>
+        <BotonPrimario onClick={() => setPedirApunte((n) => n + 1)}>+ Apuntar</BotonPrimario>
         <button
-          className="boton-icono"
+          className="btn-icono"
           aria-label="Más cosas de este mes"
           onClick={() => setMenuAbierto(true)}
         >
-          ···
+          <Icono nombre="puntos" size={16} />
         </button>
-        <button className="boton-icono" aria-label="Bloquear la aplicación" onClick={onBloquear}>
-          <IconoCandado size={18} />
+        <button className="btn-icono" aria-label="Bloquear la aplicación" onClick={onBloquear}>
+          <Icono nombre="candado" size={16} />
         </button>
       </Acciones>
 
-      <div className="rejilla-arriba">
-        <BloquePrincipal
-          mes={mes}
-          panel={panel}
-          onIr={(anio, numeroMes) => onCambioDeMes({ anio, mes: numeroMes })}
-          onCambiarSaldo={(valor) => cambiarMes({ dineroEnCuenta: valor })}
-          onCambiarIngreso={(valor) => cambiarMes({ ingreso: valor })}
+      {/* ---------- hero ---------- */}
+      <div className={`card hero ${pasado ? 'pasado' : rapido ? 'rapido' : ''}`.trim()}>
+        <div>
+          <div className="hero-mes">
+            <SelectorDeMes
+              anio={mes.anio}
+              mes={mes.mes}
+              onIr={(anio, numeroMes) => onCambioDeMes({ anio, mes: numeroMes })}
+            />
+            <span className="muted" style={{ fontWeight: 500 }}>
+              · {corta(panel.periodo.desde)} → {corta(panel.periodo.hasta)}
+              {diaActual > 0 && !terminado ? ` · día ${diaActual}` : ''}
+            </span>
+          </div>
+
+          <div className="muted" style={{ marginTop: 16 }}>
+            {pasado ? 'Te has pasado' : terminado ? 'Te sobró' : 'Te queda'}
+          </div>
+          <div className="big">
+            <CifraQueCuenta valor={Math.abs(panel.libre)} formato={(n) => redondo(n)} />
+          </div>
+          <div className="hero-frase">{frase}</div>
+
+          <SegmentBar
+            segmentos={[
+              { nombre: 'Pagado', valor: panel.pagado, color: 'var(--tinta)' },
+              { nombre: 'Comprometido', valor: panel.comprometido, color: '#C9C9C4' },
+              { nombre: 'Libre', valor: Math.max(0, panel.libre), color: 'var(--acento-suave)' },
+            ]}
+          />
+          <Leyenda>
+            <LeyendaItem color="var(--tinta)">Pagado {redondo(panel.pagado)}</LeyendaItem>
+            <LeyendaItem color="#C9C9C4">Comprometido {redondo(panel.comprometido)}</LeyendaItem>
+            <LeyendaItem color="var(--acento-suave)">
+              Libre {redondo(Math.max(0, panel.libre))}
+            </LeyendaItem>
+            <span className="leg-derecha">
+              <ValorEditable
+                valor={mes.ingreso}
+                prefijo="Nómina"
+                etiqueta="Nómina del mes"
+                onGuardar={(v) => cambiarMes({ ingreso: v ?? 0 })}
+              />
+              {/*
+                El saldo del banco es la única cifra que no sale de los apuntes:
+                se anota a mano y sirve para ver si la cuenta cuadra con la
+                realidad. Va aquí, junto a la nómina, porque es del mismo orden.
+              */}
+              <ValorEditable
+                valor={mes.resumen.dineroEnCuenta}
+                prefijo="Saldo"
+                vacio="Anotar el saldo del banco"
+                etiqueta="Saldo en cuenta"
+                onGuardar={(v) => cambiarMes({ dineroEnCuenta: v })}
+              />
+            </span>
+          </Leyenda>
+        </div>
+
+        <Anillos
+          partePeriodo={partePeriodo}
+          parteGasto={parteGasto}
+          centro={`${Math.round(parteGasto * 100)}%`}
+          pie={`usado · ${Math.round(partePeriodo * 100)}% del mes`}
         />
-        <BloqueFijos panel={panel} />
-        <BloqueComida
-          mes={mes}
-          onCambiarPresupuesto={(valor) => cambiarMes({ presupuestoComida: valor })}
-        />
-        <BloqueExtras panel={panel} />
-        <BloqueAhorro mes={mes} onCambiarObjetivo={(valor) => cambiarMes({ objetivoAhorro: valor })} />
       </div>
 
-      <div className="rejilla-abajo">
-        <ListaMovimientos
-          variables={variables}
-          conceptos={conceptosVariables}
-          mesReferencia={mes.clave}
-          onCambiar={cambiarMovimiento}
-          onBorrar={borrar}
-          onCrear={apuntar}
-          onImportar={() => onImportarExtracto(mes.id)}
-          pedirApunte={pedirApunte}
-        />
-        <ListaFijos
-          panel={panel}
-          onAlternarCobro={alternarCobro}
-          onCambiarImporte={(id, importe) => cambiarMovimiento(id, { importe })}
-        />
+      {/* ---------- tiles ---------- */}
+      <div className="tiles">
+        <Tile
+          icono="check"
+          etiqueta="Fijos"
+          cifra={redondo(panel.fijos.reduce((t, f) => t + f.importe, 0))}
+          frase={
+            panel.pendientes === 0
+              ? 'Todos cobrados'
+              : `${cobrados} de ${panel.fijos.length} cobrados${
+                  panel.siguienteFijo
+                    ? ` · el siguiente, ${panel.siguienteFijo.concepto} el día ${panel.siguienteFijo.dia}`
+                    : ''
+                }`
+          }
+        >
+          <Puntos
+            total={panel.fijos.length}
+            llenos={cobrados}
+            titulo={`${cobrados} de ${panel.fijos.length} cobrados`}
+          />
+        </Tile>
+
+        <Tile
+          icono="comida"
+          color="var(--comida)"
+          suave="var(--comida-suave)"
+          etiqueta="Comida"
+          cifra={redondo(panel.comida.gastado)}
+          sufijo={
+            panel.comida.presupuesto > 0 ? `/ ${Math.round(panel.comida.presupuesto)}` : undefined
+          }
+          /* En blanco hasta que se agota el sobre: el coral es para cuando pasa. */
+          className={excesoComida ? 'sobre-agotado' : ''}
+          frase={
+            panel.comida.presupuesto <= 0 ? (
+              <ValorEditable
+                valor={panel.comida.presupuesto}
+                vacio="Poner un presupuesto"
+                etiqueta="Presupuesto de comida"
+                onGuardar={(v) => cambiarMes({ presupuestoComida: v ?? 0 })}
+              />
+            ) : excesoComida ? (
+              `Sobre agotado, ${euros(panel.comida.gastado - panel.comida.presupuesto)} de más`
+            ) : (
+              `Te quedan ${redondo(panel.comida.presupuesto - panel.comida.gastado)}${
+                diasQueQuedan > 1 ? `, unos ${redondo(panel.comida.alDia)} al día` : ''
+              }`
+            )
+          }
+        >
+          <BarraProgreso
+            parte={panel.comida.presupuesto > 0 ? panel.comida.gastado / panel.comida.presupuesto : 0}
+            titulo="Sobre de comida"
+          />
+        </Tile>
+
+        <Tile
+          icono="carro"
+          color="var(--extras)"
+          suave="var(--extras-suave)"
+          etiqueta="Extras"
+          cifra={redondo(panel.extras.total)}
+          frase={fraseExtras(panel)}
+        >
+          {/* Una línea plana no dice nada: si no hay extras, no se dibuja. */}
+          {panel.extras.total > 0 ? (
+            <Sparkline
+              valores={acumular(panel.puntos.map((p) => p.extras))}
+              titulo="Extras acumulados por día"
+            />
+          ) : null}
+        </Tile>
+      </div>
+
+      {/* ---------- las dos listas ---------- */}
+      <div className="dos-columnas">
+        <Card
+          titulo="Movimientos"
+          derecha={
+            <span className="muted">
+              {mes.variables.length} · {redondo(mes.variables.reduce((t, v) => t + v.importe, 0))}
+            </span>
+          }
+        >
+          <AltaRapida
+            conceptos={conceptos}
+            onCrear={apuntar}
+            pedirApunte={pedirApunte}
+            onImportar={() => onImportarExtracto(mes.id)}
+          />
+
+          {mes.variables.length === 0 ? (
+            <Vacio
+              frase="Aún no hay apuntes este mes."
+              accion="Importa el extracto del banco"
+              onAccion={() => onImportarExtracto(mes.id)}
+            />
+          ) : (
+            porDia.map(([etiqueta, movimientos]) => (
+              <div key={etiqueta}>
+                <GrupoFilas>{etiqueta}</GrupoFilas>
+                {movimientos.map((m) => (
+                  <FilaMovimiento
+                    key={m.id}
+                    movimiento={m}
+                    conceptos={conceptos}
+                    onCambiar={cambiarMovimiento}
+                    onBorrar={borrar}
+                    onDuplicar={() =>
+                      apuntar({
+                        conceptoId: m.conceptoId,
+                        importe: m.importe,
+                        descripcion: m.descripcion,
+                      })
+                    }
+                  />
+                ))}
+              </div>
+            ))
+          )}
+        </Card>
+
+        <Card
+          titulo="Fijos"
+          derecha={
+            <span className="muted">
+              {panel.pendientes === 0 ? 'todos cobrados' : `${panel.pendientes} pendientes`}
+            </span>
+          }
+        >
+          {panel.fijos.map((f) => (
+            <Fila
+              key={f.movimientoId}
+              izquierda={
+                <Check
+                  marcado={f.cobrado}
+                  tarde={f.tarde}
+                  etiqueta={`${f.cobrado ? 'Desmarcar' : 'Marcar como cobrado'} ${f.concepto}`}
+                  onClick={() => void alternarCobro(f.movimientoId)}
+                />
+              }
+              titulo={f.concepto}
+              detalle={detalleFijo(f)}
+              detalleTarde={f.tarde}
+              importe={
+                <span style={{ width: 104, marginLeft: 'auto' }}>
+                  <CampoImporte
+                    valor={f.importe}
+                    etiqueta={`Importe de ${f.concepto}`}
+                    apagado={!f.cobrado}
+                    onGuardar={(v) => void cambiarMovimiento(f.movimientoId, { importe: v })}
+                  />
+                </span>
+              }
+            />
+          ))}
+        </Card>
       </div>
 
       <Analisis mesId={mes.id} conceptos={conceptos} />
 
-      <MenuMes
-        mes={mes}
-        abierto={menuAbierto}
-        onCerrar={() => setMenuAbierto(false)}
-        onCambiado={recargar}
-        onCambiarEstado={async (estado) => {
-          await cambiarMes({ estado })
-          avisar(estado === 'cerrado' ? 'Mes cerrado' : 'Mes reabierto')
-        }}
-      />
-
+      {menuAbierto ? (
+        <MenuMes
+          mes={mes}
+          onCerrar={() => setMenuAbierto(false)}
+          onCambiado={recargar}
+          onCambiarEstado={async (estado) => {
+            await cambiarMes({ estado })
+            avisar(estado === 'cerrado' ? 'Mes cerrado' : 'Mes reabierto')
+          }}
+        />
+      ) : null}
     </>
   )
+}
+
+// ---------------------------------------------------------------------------
+// Piezas de la pantalla
+// ---------------------------------------------------------------------------
+
+function FilaMovimiento({
+  movimiento,
+  conceptos,
+  onCambiar,
+  onBorrar,
+  onDuplicar,
+}: {
+  movimiento: Movimiento
+  conceptos: Concepto[]
+  onCambiar: (id: number, cambios: Record<string, unknown>) => Promise<void>
+  onBorrar: (m: Movimiento) => Promise<void>
+  onDuplicar: () => void
+}) {
+  const [borrando, setBorrando] = useState(false)
+  const [editando, setEditando] = useState(false)
+  const concepto = conceptos.find((c) => c.id === movimiento.conceptoId) ?? null
+  const paleta = paletaDeId(movimiento.conceptoId, movimiento.tipo === 'sobre', concepto?.color)
+
+  /*
+   * La pregunta va en la propia fila: es donde estás mirando y ahí se ve de
+   * cuál se trata, que es justo lo que un diálogo en medio no te dice.
+   */
+  if (borrando) {
+    return (
+      <Fila
+        confirmando
+        titulo={`¿Borrar este apunte de ${euros(Math.abs(movimiento.importe))}?`}
+        importe={
+          <span className="fila-campos" style={{ gap: 8, marginLeft: 'auto' }}>
+            <BotonPrimario
+              peligro
+              onClick={() => {
+                setBorrando(false)
+                void onBorrar(movimiento)
+              }}
+            >
+              Borrar
+            </BotonPrimario>
+            <BotonTexto onClick={() => setBorrando(false)}>Cancelar</BotonTexto>
+          </span>
+        }
+      />
+    )
+  }
+
+  return (
+    <>
+      {editando ? (
+        <FichaMovimiento
+          movimiento={movimiento}
+          conceptos={conceptos}
+          onCerrar={() => setEditando(false)}
+          onCambiar={onCambiar}
+        />
+      ) : null}
+    <Fila
+      onAbrir={() => setEditando(true)}
+      izquierda={
+        <IconoConcepto
+          icono={concepto ? iconoDe(concepto) : 'etiqueta'}
+          color={paleta.color}
+          suave={paleta.suave}
+        />
+      }
+      titulo={movimiento.descripcion || movimiento.concepto}
+      detalle={movimiento.descripcion ? movimiento.concepto : undefined}
+      importe={
+        <Importe abono={movimiento.importe < 0}>
+          {movimiento.importe < 0 ? '−' : ''}
+          {euros(Math.abs(movimiento.importe))}
+        </Importe>
+      }
+      acciones={
+        <MenuFila
+          etiqueta={`Más acciones para ${movimiento.concepto}`}
+          opciones={[
+            { id: 'editar', nombre: 'Editar', icono: 'lapiz' },
+          { id: 'duplicar', nombre: 'Duplicar', icono: 'copiar' },
+            { id: 'borrar', nombre: 'Borrar', icono: 'papelera', peligro: true },
+          ]}
+          onElegir={(id) => {
+            if (id === 'editar') setEditando(true)
+            if (id === 'duplicar') onDuplicar()
+            if (id === 'borrar') setBorrando(true)
+          }}
+        />
+      }
+    />
+    </>
+  )
+}
+
+/**
+ * La ficha de un movimiento: concepto, descripción, fecha e importe.
+ *
+ * En un diálogo y no en la propia fila porque son cuatro campos y la fila mide
+ * lo que mide; meterlos ahí obligaba a encogerlos hasta que no se leían.
+ */
+function FichaMovimiento({
+  movimiento,
+  conceptos,
+  onCerrar,
+  onCambiar,
+}: {
+  movimiento: Movimiento
+  conceptos: Concepto[]
+  onCerrar: () => void
+  onCambiar: (id: number, cambios: Record<string, unknown>) => Promise<void>
+}) {
+  return (
+    <Dialogo titulo="Editar el apunte" onCerrar={onCerrar}>
+      <label className="campo-etiqueta">Concepto</label>
+      <SelectorConcepto
+        conceptos={conceptos}
+        valor={movimiento.conceptoId}
+        etiqueta="Concepto del apunte"
+        onElegir={(conceptoId) => void onCambiar(movimiento.id, { conceptoId })}
+      />
+
+      <label className="campo-etiqueta">Descripción</label>
+      <CampoTexto
+        valor={movimiento.descripcion}
+        visible
+        etiqueta="Descripción del apunte"
+        placeholder="Lo que fue, si hace falta"
+        onGuardar={(descripcion) => void onCambiar(movimiento.id, { descripcion })}
+      />
+
+      <div className="fila-campos" style={{ marginTop: 14, alignItems: 'flex-end' }}>
+        <span>
+          <label className="campo-etiqueta" style={{ marginTop: 0 }}>
+            Fecha
+          </label>
+          <input
+            className="campo visible"
+            type="date"
+            aria-label="Fecha del apunte"
+            value={movimiento.fechaCobro ?? ''}
+            onChange={(e) => void onCambiar(movimiento.id, { fechaCobro: e.target.value })}
+          />
+        </span>
+        <span style={{ width: 140 }}>
+          <label className="campo-etiqueta" style={{ marginTop: 0 }}>
+            Importe
+          </label>
+          <CampoImporte
+            valor={movimiento.importe}
+            visible
+            etiqueta="Importe del apunte"
+            onGuardar={(importe) => void onCambiar(movimiento.id, { importe })}
+          />
+        </span>
+      </div>
+    </Dialogo>
+  )
+}
+
+/** «cobrado el 31», «era el día 1», «día 19 · 176 € el mes pasado». */
+function detalleFijo(f: PanelMes['fijos'][number]): string {
+  const dia = String(f.diaPrevisto ?? '')
+    .split(/[^0-9]+/)
+    .filter(Boolean)[0]
+  if (f.cobrado) return dia ? `cobrado el ${dia}` : 'cobrado'
+  if (f.tarde) return `era el día ${dia}`
+  const partes: string[] = []
+  if (dia) partes.push(`día ${dia}`)
+  if (f.importeMesAnterior !== null) partes.push(`${redondo(f.importeMesAnterior)} el mes pasado`)
+  return partes.join(' · ')
+}
+
+function fraseExtras(panel: PanelMes): string {
+  if (panel.extras.total === 0) return 'Todavía no hay extras este mes'
+  // Solo se compara si ese mes existe: inventarse una mejora no vale.
+  if (panel.extras.anoPasado && panel.extras.anoPasado > 0) {
+    const variacion = Math.round(
+      ((panel.extras.total - panel.extras.anoPasado) / panel.extras.anoPasado) * 100,
+    )
+    if (Math.abs(variacion) >= 5) {
+      return `Un ${Math.abs(variacion)} % ${variacion < 0 ? 'menos' : 'más'} que el año pasado`
+    }
+    return 'Casi igual que el año pasado'
+  }
+  return panel.extras.mayor
+    ? `${panel.extras.mayor.concepto} se lleva el ${panel.extras.mayor.porcentaje} %`
+    : ''
+}
+
+/** «Hoy», «Ayer» y luego la fecha: es como se recuerda un gasto. */
+function agruparPorDia(variables: Movimiento[]): [string, Movimiento[]][] {
+  const hoy = hoyIso()
+  const ayer = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+  const grupos = new Map<string, Movimiento[]>()
+
+  for (const m of [...variables].sort((a, b) =>
+    String(b.fechaCobro ?? '').localeCompare(String(a.fechaCobro ?? '')),
+  )) {
+    const dia = String(m.fechaCobro ?? '')
+    const etiqueta = dia === hoy ? 'Hoy' : dia === ayer ? 'Ayer' : largo(dia)
+    grupos.set(etiqueta, [...(grupos.get(etiqueta) ?? []), m])
+  }
+  return [...grupos.entries()]
+}
+
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+function corta(iso: string | null) {
+  if (!iso) return '—'
+  const [, m, d] = iso.split('-')
+  return `${Number(d)} ${MESES[Number(m) - 1]}`
+}
+
+function largo(iso: string) {
+  if (!iso) return 'Sin fecha'
+  const [, m, d] = iso.split('-')
+  return `${Number(d)} de ${NOMBRES_MESES[Number(m) - 1].toLowerCase()}`
+}
+
+/** La sparkline de extras enseña el acumulado: la forma dice si se dispara. */
+function acumular(valores: number[]): number[] {
+  let suma = 0
+  return valores.map((v) => (suma += v))
 }

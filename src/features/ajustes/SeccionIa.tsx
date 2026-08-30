@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { ConfigIa, PruebaIa } from '../../lib/tipos'
-import { useAvisos } from '../../components/Avisos'
-import { IconoAviso, IconoChispa, IconoComprobado } from '../../components/Iconos'
+import { useAvisos } from '../../components/ui/Toast'
+import { Icono } from '../../components/ui/Icono'
 
 const MODELOS_SUGERIDOS: Record<ConfigIa['proveedor'], string> = {
   anthropic: 'claude-sonnet-4-6',
@@ -160,14 +160,14 @@ export function SeccionIa({ config, onCambio }: Props) {
           onClick={() => void probar()}
           disabled={probando || !config?.configurada}
         >
-          <IconoChispa size={18} />
+          <Icono nombre="chispa" size={18} />
           {probando ? 'Probando…' : 'Probar conexión'}
         </button>
       </div>
 
       {prueba ? (
         <p className={`banda-aviso${prueba.ok ? ' bien' : ''}`} role="status">
-          {prueba.ok ? <IconoComprobado size={18} /> : <IconoAviso size={18} />}
+          {prueba.ok ? <Icono nombre="check" size={18} /> : <Icono nombre="aviso" size={18} />}
           <span>{prueba.mensaje}</span>
         </p>
       ) : null}

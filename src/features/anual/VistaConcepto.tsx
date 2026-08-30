@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Anual, FilaAnual } from '../../lib/tipos'
-import { IconoChevron } from '../../components/Iconos'
 import { euros, NOMBRES_MESES } from '../../lib/formato'
+import { Icono } from '../../components/ui/Icono'
 
 type Props = {
   datos: Anual
@@ -39,7 +39,7 @@ export function VistaConcepto({ datos, desgloseOtros, onAbrirMes }: Props) {
                 {euros(f.total)} · media {euros(f.media)}
               </span>
             </span>
-            <IconoChevron size={18} />
+            <Icono nombre="chevron" size={18} />
           </button>
         ))}
       </div>

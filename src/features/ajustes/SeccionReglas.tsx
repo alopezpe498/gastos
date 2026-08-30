@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Concepto, Regla, PruebaRegla } from '../../lib/tipos'
-import { Confirmar, ErrorLinea } from '../../components/Basicos'
-import { EsqueletoLista } from '../../components/Esqueleto'
-import { useAvisos } from '../../components/Avisos'
-import { CampoTextoLinea, Interruptor } from '../../components/Campos'
-import { IconoArrastrar, IconoMas, IconoPapelera } from '../../components/Iconos'
+
+import { useAvisos } from '../../components/ui/Toast'
 import { cuantos } from '../../lib/formato'
+import { ErrorLinea, Esqueleto, Interruptor } from '../../components/ui/Basicos'
+import { CampoTexto } from '../../components/ui/Campos'
+import { ConfirmacionDialogo, Dialogo } from '../../components/ui/Dialogo'
+import { Icono } from '../../components/ui/Icono'
 
 /**
  * Reglas de clasificación del extracto del banco.
@@ -122,7 +123,7 @@ export function SeccionReglas({ conceptos }: { conceptos: Concepto[] }) {
   if (!reglas) {
     return (
       <section className="seccion">
-        <EsqueletoLista filas={6} />
+        <Esqueleto filas={6} />
       </section>
     )
   }
@@ -168,14 +169,14 @@ export function SeccionReglas({ conceptos }: { conceptos: Concepto[] }) {
                   className="boton boton-secundario boton-compacto"
                   onClick={() => void cambiar(regla, { estado: 'confirmada' })}
                 >
-                  Confirmar
+                  ConfirmacionDialogo
                 </button>
                 <button
                   className="icono-boton"
                   aria-label={`Rechazar la regla ${regla.texto}`}
                   onClick={() => setABorrar(regla)}
                 >
-                  <IconoPapelera size={18} />
+                  <Icono nombre="papelera" size={18} />
                 </button>
               </div>
             ))}
@@ -234,16 +235,15 @@ export function SeccionReglas({ conceptos }: { conceptos: Concepto[] }) {
             >
               <span className="regla-orden">
                 <span className="agarre" aria-hidden="true">
-                  <IconoArrastrar size={16} />
+                  <Icono nombre="arrastrar" size={16} />
                 </span>
                 {filtro ? regla.prioridad : indice + 1}
               </span>
 
-              <CampoTextoLinea
+              <CampoTexto
                 valor={regla.texto}
-                ariaLabel={`Texto de la regla ${regla.texto}`}
+                etiqueta={`Texto de la regla ${regla.texto}`}
                 maxLength={60}
-                className="campo regla-texto"
                 onGuardar={(texto) => void cambiar(regla, { texto })}
               />
 
@@ -285,7 +285,7 @@ export function SeccionReglas({ conceptos }: { conceptos: Concepto[] }) {
 
               <Interruptor
                 activo={regla.activa}
-                ariaLabel={`Activar la regla ${regla.texto}`}
+                etiqueta={`Activar la regla ${regla.texto}`}
                 onCambiar={(activa) => void cambiar(regla, { activa })}
               />
 
@@ -294,7 +294,7 @@ export function SeccionReglas({ conceptos }: { conceptos: Concepto[] }) {
                 aria-label={`Borrar la regla ${regla.texto}`}
                 onClick={() => setABorrar(regla)}
               >
-                <IconoPapelera size={18} />
+                <Icono nombre="papelera" size={18} />
               </button>
             </div>
           ))}
@@ -309,15 +309,16 @@ export function SeccionReglas({ conceptos }: { conceptos: Concepto[] }) {
 
       <CopiaReglas onCambio={cargar} />
 
-      <Confirmar
-        abierto={!!aBorrar}
-        titulo={`¿Borrar la regla "${aBorrar?.texto}"?`}
-        mensaje="Los movimientos que reconocía pasarán a clasificarse a mano. No toca ningún apunte ya guardado."
-        textoConfirmar="Borrar"
-        peligroso
-        onConfirmar={() => void borrar()}
-        onCancelar={() => setABorrar(null)}
-      />
+      {!!aBorrar ? (
+        <Dialogo titulo={`¿Borrar la regla "${aBorrar?.texto}"?`} onCerrar={() => setABorrar(null)}>
+          <ConfirmacionDialogo
+            frase="Los movimientos que reconocía pasarán a clasificarse a mano. No toca ningún apunte ya guardado."
+            textoConfirmar="Borrar"
+            onConfirmar={() => void borrar()}
+            onCancelar={() => setABorrar(null)}
+          />
+        </Dialogo>
+      ) : null}
     </>
   )
 }
@@ -545,7 +546,7 @@ function NuevaRegla({
         disabled={!texto.trim()}
         onClick={() => void crear()}
       >
-        <IconoMas size={18} />
+        <Icono nombre="mas" size={18} />
         Añadir
       </button>
     </div>

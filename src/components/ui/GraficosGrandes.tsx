@@ -1,4 +1,4 @@
-import { Marco, escalaBonita, MARGEN, type Escala } from './Marco'
+import { Marco, escalaBonita, MARGEN, type Escala } from './MarcoGrafico'
 import { euros, numero } from '../../lib/formato'
 
 /**

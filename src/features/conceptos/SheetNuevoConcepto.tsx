@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Clasificacion, Tipo } from '../../lib/tipos'
-import { Sheet } from '../../components/Sheet'
-import { useAvisos } from '../../components/Avisos'
+import { useAvisos } from '../../components/ui/Toast'
 import { leerImporte } from '../../lib/formato'
 import { ETIQUETAS_CLASIFICACION } from './PantallaConceptos'
+import { Dialogo } from '../../components/ui/Dialogo'
 
 type Props = {
   /** El tipo con el que se abre; null significa cerrada. */
@@ -66,8 +66,7 @@ export function SheetNuevoConcepto({ tipo, onCerrar, onCreado }: Props) {
   }
 
   return (
-    <Sheet
-      abierta
+    <Dialogo
       titulo={TITULOS[tipo]}
       onCerrar={onCerrar}
       accionDerecha={
@@ -143,6 +142,6 @@ export function SheetNuevoConcepto({ tipo, onCerrar, onCreado }: Props) {
           ? 'Los variables se apuntan a mano cada vez; no necesitan importe previsto.'
           : 'Se puede cambiar después, y el cambio valdrá desde el mes que elijas.'}
       </p>
-    </Sheet>
+    </Dialogo>
   )
 }

@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Clasificacion, ConceptoDetalle, MesAbierto, Tipo } from '../../lib/tipos'
 import { NOMBRES_COLOR, PALETAS } from '../../lib/colores'
-import { Sheet } from '../../components/Sheet'
-import { useAvisos } from '../../components/Avisos'
-import { Interruptor, SelectorMes } from '../../components/Campos'
-import { IconoAviso, IconoPapelera } from '../../components/Iconos'
+import { useAvisos } from '../../components/ui/Toast'
 import { cuantos, euros, escribirImporte, leerImporte, NOMBRES_MESES } from '../../lib/formato'
 import { ETIQUETAS_CLASIFICACION } from './PantallaConceptos'
+import { Interruptor } from '../../components/ui/Basicos'
+import { SelectorMes } from '../../components/ui/Campos'
+import { Dialogo } from '../../components/ui/Dialogo'
+import { Icono } from '../../components/ui/Icono'
 
 type Props = {
   concepto: ConceptoDetalle | null
@@ -58,7 +59,7 @@ export function FichaConcepto({ concepto, onCerrar, onCambio, onBorrar, onIrAMes
   }
 
   return (
-    <Sheet abierta titulo={concepto.nombre} onCerrar={onCerrar}>
+    <Dialogo titulo={concepto.nombre} onCerrar={onCerrar}>
       <label className="campo-etiqueta" htmlFor="nombre-concepto">
         Nombre
       </label>
@@ -142,7 +143,7 @@ export function FichaConcepto({ concepto, onCerrar, onCambio, onBorrar, onIrAMes
         <Interruptor
           activo={concepto.activo}
           onCambiar={(activo) => void cambiar({ activo })}
-          ariaLabel="Concepto activo"
+          etiqueta="Concepto activo"
         />
       </div>
 
@@ -160,14 +161,14 @@ export function FichaConcepto({ concepto, onCerrar, onCambio, onBorrar, onIrAMes
           </p>
         ) : (
           <button className="boton boton-texto peligro" onClick={() => onBorrar(concepto)}>
-            <IconoPapelera size={18} />
+            <Icono nombre="papelera" size={18} />
             Borrar concepto
           </button>
         )}
       </div>
 
       {guardando ? <span className="solo-lectores">Guardando</span> : null}
-    </Sheet>
+    </Dialogo>
   )
 }
 
@@ -275,7 +276,7 @@ function EditorPlantilla({
 
         <div>
           <p className="campo-etiqueta">Desde</p>
-          <SelectorMes valor={desde} onCambiar={setDesde} ariaLabel="Vigente desde" />
+          <SelectorMes valor={desde} onCambiar={setDesde} etiqueta="Vigente desde" />
         </div>
       </div>
 
@@ -289,7 +290,7 @@ function EditorPlantilla({
 
       {mesesAbiertos && mesesAbiertos.length > 0 ? (
         <div className="banda-aviso">
-          <IconoAviso size={18} />
+          <Icono nombre="aviso" size={18} />
           <span>
             Hay {cuantos(mesesAbiertos.length, 'mes abierto', 'meses abiertos')} que siguen con el
             importe anterior. Para ponerlos al día, entra en cada uno y usa{' '}
@@ -327,7 +328,7 @@ function EditorPlantilla({
                   aria-label={`Borrar el importe desde ${claveLegible(entrada.vigenteDesde)}`}
                   onClick={() => void borrarEntrada(entrada.id)}
                 >
-                  <IconoPapelera size={18} />
+                  <Icono nombre="papelera" size={18} />
                 </button>
               ) : null}
             </div>

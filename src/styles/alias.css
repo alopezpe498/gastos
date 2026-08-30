@@ -1,0 +1,933 @@
+/*
+ * Alias de la caja.
+ *
+ * Pantallas que todavía llaman a las piezas por su nombre viejo: `.bloque` en
+ * vez de `Card`, `.boton-principal` en vez de `BotonPrimario`. No son estilos
+ * nuevos ni una segunda hoja de diseño: son el mismo componente con otra
+ * etiqueta, para que nada se quede sin pintar mientras se terminan de componer.
+ *
+ * Este fichero solo puede encoger. Cuando una pantalla se rehaga con los
+ * componentes de verdad, su alias se borra de aquí; el día que esté vacío, se
+ * borra el fichero. Todo lo que hay usa los mismos tokens que kit.css: si ves
+ * un color escrito a mano, es un error.
+ */
+
+/* ---------------------------------------------------------------------------
+ * Contenedores y textos
+ * ------------------------------------------------------------------------- */
+
+.bloque,
+.tarjeta {
+  background: var(--superficie);
+  border-radius: var(--r-card);
+  box-shadow: var(--sombra);
+  padding: 16px 20px;
+}
+
+.seccion {
+  margin-top: 16px;
+}
+
+.seccion:first-child {
+  margin-top: 0;
+}
+
+.seccion-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.seccion-titulo,
+.titulo {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.pista,
+.seccion-pista,
+.resumen-nota,
+.barra-nota,
+.informe-pista,
+.resumen-etiqueta,
+.eje-etiqueta,
+.etiqueta {
+  font-size: 13px;
+  color: var(--tinta-2);
+  line-height: 1.5;
+}
+
+.etiqueta-campo {
+  display: block;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--tinta-2);
+  margin: 14px 0 5px;
+}
+
+.subseccion {
+  margin-top: 16px;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.sub-bloque {
+  background: var(--fondo);
+  border-radius: var(--r-tile);
+  padding: 12px 14px;
+  margin-top: 10px;
+}
+
+.grupo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Botones
+ * ------------------------------------------------------------------------- */
+
+.boton,
+.boton-principal,
+.boton-negro,
+.boton-secundario,
+.boton-compacto,
+.icono-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  background: var(--fondo);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.boton-principal,
+.boton-negro {
+  background: var(--tinta);
+  color: #fff;
+  font-weight: 700;
+}
+
+.boton-texto {
+  height: auto;
+  padding: 0;
+  background: none;
+  color: var(--tinta-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.icono-boton {
+  width: 30px;
+  padding: 0;
+  justify-content: center;
+  border-radius: var(--r-ico);
+  background: none;
+  color: var(--tinta-3);
+}
+
+.boton-ancho {
+  width: 100%;
+  justify-content: center;
+}
+
+.boton.peligro,
+.boton-texto.peligro,
+.peligroso {
+  color: var(--comida);
+}
+
+.fila-botones,
+.acciones-pie,
+.etiquetas-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.acciones-pie {
+  margin-top: 16px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Campos
+ * ------------------------------------------------------------------------- */
+
+.campo-linea,
+.campo-buscar,
+.texto {
+  width: 100%;
+  max-width: 420px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--linea);
+  border-radius: var(--r-tile);
+  background: var(--superficie);
+  font-size: 14px;
+}
+
+.campo-linea:focus,
+.campo-buscar:focus {
+  outline: none;
+  border-color: var(--acento);
+}
+
+textarea.campo-linea,
+textarea.texto {
+  height: auto;
+  min-height: 96px;
+  padding: 10px 12px;
+  max-width: none;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+/* Los porcentajes son de dos cifras: 96 px y en una fila. */
+.rejilla-previsto,
+.fila-porcentajes {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.rejilla-previsto > div,
+.fila-porcentajes > div {
+  display: grid;
+  gap: 2px;
+}
+
+.fila-porcentajes .campo,
+.rejilla-previsto .campo {
+  width: 96px;
+  height: 36px;
+  padding: 0 12px;
+  border-color: var(--linea);
+  background: var(--superficie);
+  border-radius: var(--r-tile);
+}
+
+.segmentado {
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--r-pill);
+  background: var(--fondo);
+}
+
+.segmentado button {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tinta-2);
+}
+
+.segmentado button.activo,
+.segmentado button.activa {
+  background: var(--superficie);
+  color: var(--tinta);
+  box-shadow: var(--sombra-pill);
+}
+
+.segmentado.pequeno button {
+  height: 24px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Filas
+ * ------------------------------------------------------------------------- */
+
+.fila,
+.fila-ajuste,
+.linea-simple,
+.detalle-fijo,
+.ranking-fila,
+.comparativa-fila,
+.regla-fila,
+.conciliacion-fila,
+.previa-fila,
+.probador-fila,
+.resumen-linea {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--linea);
+  font-size: 14px;
+}
+
+.fila:first-of-type,
+.fila-ajuste:first-of-type,
+.linea-simple:first-of-type,
+.ranking-fila:first-of-type,
+.comparativa-fila:first-of-type,
+.regla-fila:first-of-type,
+.conciliacion-fila:first-of-type,
+.previa-fila:first-of-type,
+.resumen-linea:first-of-type {
+  border-top: 0;
+}
+
+.fila-cuerpo,
+.fila-boton {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.fila-titulo,
+.linea-limpia,
+.ranking-nombre,
+.comparativa-nombre,
+.conciliacion-concepto,
+.previa-concepto-nombre {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fila-detalle,
+.previa-concepto-datos,
+.previa-concepto-destino,
+.regla-usos,
+.regla-orden,
+.estado-fijo,
+.previa-marca,
+.variacion,
+.comparativa-variacion,
+.tooltip-linea,
+.tooltip-nota {
+  font-size: 12px;
+  color: var(--tinta-3);
+}
+
+.dinero,
+.dinero-titular,
+.barra-importe,
+.barra-porcentaje {
+  font-variant-numeric: tabular-nums;
+}
+
+.agarre {
+  color: var(--hueco);
+  cursor: grab;
+  display: inline-flex;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Avisos, tablas y desbordes
+ * ------------------------------------------------------------------------- */
+
+.banda-aviso,
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--r-tile);
+  background: var(--ambar-suave);
+  color: var(--ambar);
+  font-size: 13px;
+}
+
+.banda-aviso.bien {
+  background: var(--ok-suave);
+  color: var(--ok);
+}
+
+.banda-aviso.alerta {
+  background: var(--comida-suave);
+  color: var(--comida);
+}
+
+.banda-accion {
+  margin-left: auto;
+}
+
+.probador-resultado {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-tile);
+  background: var(--fondo);
+  font-size: 14px;
+}
+
+.probador,
+.historico,
+.mapa-calor-marco,
+.informe-marco,
+.informe-matriz,
+.tabla-reglas-marco {
+  overflow-x: auto;
+}
+
+.probador-crear,
+.rango-libre,
+.banda-meses,
+.ranking-anios,
+.lista-meses {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.tabla-reglas,
+.tabla-regla,
+.tabla-ranking,
+.tabla-comparativa,
+.tabla-conciliacion,
+.tabla-previa,
+.informe-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabla-reglas th,
+.tabla-regla th,
+.tabla-ranking th,
+.tabla-comparativa th,
+.tabla-conciliacion th,
+.tabla-previa th,
+.informe-tabla th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tinta-2);
+  text-align: left;
+  padding: 0 10px 8px;
+}
+
+.tabla-reglas td,
+.tabla-regla td,
+.tabla-ranking td,
+.tabla-comparativa td,
+.tabla-conciliacion td,
+.tabla-previa td,
+.informe-tabla td {
+  padding: 9px 10px;
+  border-top: 1px solid var(--linea);
+}
+
+.tabla-reglas td.dinero,
+.tabla-ranking td.dinero,
+.tabla-comparativa td.dinero,
+.informe-tabla td.dinero,
+.informe-tabla th.dinero {
+  text-align: right;
+}
+
+/* El mapa de calor: una tinta, más o menos intensa. La celda no lleva número
+   —el valor va en el `title`— porque lo que se mira aquí es la forma. */
+.mapa-calor {
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-size: 11px;
+}
+
+.mapa-calor tbody th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 12px;
+  white-space: nowrap;
+  padding-right: 8px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.celda-calor {
+  width: 26px;
+  height: 22px;
+  border-radius: 5px;
+  background-color: rgb(108 92 231 / var(--intensidad, 0));
+}
+
+.celda-calor.vacia {
+  background-color: var(--fondo);
+}
+
+.celda-calor.punta {
+  outline: 2px solid var(--tinta);
+  outline-offset: -2px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Gráficos grandes de la analítica
+ * ------------------------------------------------------------------------- */
+
+.grafico,
+.sparkline,
+.barras,
+.area {
+  display: block;
+  width: 100%;
+}
+
+.grafico {
+  background: var(--superficie);
+  border-radius: var(--r-card);
+  box-shadow: var(--sombra);
+  padding: 12px;
+}
+
+/* Una línea es una línea: sin `fill: none` el navegador cierra el trazo. */
+.grafico .linea,
+.sparkline path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.grafico .punto,
+.tooltip-punto,
+.marcador,
+.punta {
+  fill: currentColor;
+}
+
+.grafico .barra {
+  fill: currentColor;
+  color: var(--extras-suave);
+}
+
+.grafico .barra.pulsable:hover {
+  color: var(--extras);
+}
+
+.grafico .area {
+  fill: currentColor;
+  stroke: none;
+  opacity: 0.85;
+}
+
+.grafico-resalte {
+  fill: var(--fondo);
+}
+
+.discontinua {
+  stroke-dasharray: 3 4;
+}
+
+.sparkline-vacia {
+  color: var(--tinta-3);
+  font-size: 12px;
+}
+
+.grafico-tooltip {
+  position: absolute;
+  z-index: 20;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--tinta);
+  color: #fff;
+  font-size: 11px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.leyenda {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--tinta-2);
+  margin-top: 10px;
+}
+
+/*
+ * Las series, por su color: cada clase solo pone `color` y las piezas tiran de
+ * `currentColor`. Así una serie se ve igual siendo línea, barra o área.
+ */
+.serie-1 {
+  color: var(--extras);
+}
+
+.serie-2 {
+  color: var(--ambar);
+}
+
+.serie-3 {
+  color: var(--ok);
+}
+
+.serie-4 {
+  color: var(--azul);
+}
+
+.serie-5 {
+  color: var(--rosa);
+}
+
+.serie-6 {
+  color: var(--comida);
+}
+
+.media {
+  color: var(--tinta-3);
+}
+
+.previsto {
+  color: var(--hueco);
+}
+
+.necesario {
+  color: var(--azul);
+}
+
+.prescindible {
+  color: var(--ambar);
+}
+
+.ahorro {
+  color: var(--ok);
+}
+
+.neutra,
+.cero {
+  color: var(--tinta-3);
+}
+
+.negativo,
+.peligro {
+  color: var(--comida);
+}
+
+.positivo,
+.bien {
+  color: var(--ok);
+}
+
+.ia {
+  color: var(--extras);
+}
+
+/* ---------------------------------------------------------------------------
+ * Barras horizontales del reparto
+ * ------------------------------------------------------------------------- */
+
+.barra-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--linea);
+  font-size: 14px;
+}
+
+.barra-fila:first-of-type {
+  border-top: 0;
+}
+
+.barra-nombre {
+  width: 120px;
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barra-canal {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--linea);
+  overflow: hidden;
+}
+
+.barra-relleno {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: currentColor;
+}
+
+.barra-importe {
+  margin-left: auto;
+  font-weight: 800;
+}
+
+.barra-porcentaje {
+  width: 48px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--tinta-2);
+}
+
+/* ---------------------------------------------------------------------------
+ * Tarjetas de cifra y selector de rango
+ * ------------------------------------------------------------------------- */
+
+.tarjetas-dato {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.tarjeta-dato {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  background: var(--superficie);
+  border-radius: var(--r-card);
+  box-shadow: var(--sombra);
+  padding: 14px 16px;
+}
+
+.tarjeta-dato-cifra {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.selector-rango {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.tira-rango {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tira-rango .chip {
+  background: var(--superficie);
+  box-shadow: var(--sombra-pill);
+  cursor: pointer;
+}
+
+.tira-rango .chip.activo {
+  background: var(--tinta);
+  color: #fff;
+}
+
+.pildora-anio,
+.etiqueta-mini,
+.marca-origen,
+.semaforo > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  background: var(--fondo);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tinta-2);
+}
+
+.semaforo {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.etiqueta-quitar {
+  color: var(--tinta-3);
+  margin-left: 4px;
+}
+
+.colores {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.desplegable summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--tinta-2);
+  font-weight: 600;
+  padding: 8px 0;
+}
+
+.linea,
+.patron {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.pie-version {
+  margin-top: 24px;
+  font-size: 11px;
+  color: var(--tinta-3);
+  text-align: center;
+}
+
+.pie-seccion {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--linea);
+  font-size: 12px;
+  color: var(--tinta-3);
+}
+
+/* ---------------------------------------------------------------------------
+ * Informe imprimible
+ * ------------------------------------------------------------------------- */
+
+.informe-capa {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: auto;
+  background: var(--fondo);
+  padding: 24px;
+}
+
+.informe {
+  max-width: 860px;
+  margin: 0 auto;
+  background: var(--superficie);
+  border-radius: var(--r-card);
+  box-shadow: var(--sombra);
+  padding: 28px 32px;
+}
+
+/* Pegada arriba: un informe del año son tres pantallas de tabla. */
+.informe-barra {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  max-width: 860px;
+  margin: 0 auto 14px;
+  padding: 10px 0;
+  background: var(--fondo);
+}
+
+.informe-barra .informe-pista {
+  flex: 1;
+  min-width: 140px;
+}
+
+.informe-cabecera h1 {
+  font-size: 22px;
+}
+
+.informe-subtitulo,
+.informe-concepto,
+.informe-nota {
+  font-size: 12px;
+  color: var(--tinta-2);
+}
+
+.informe-seccion {
+  margin-top: 22px;
+}
+
+.informe-seccion h2 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tinta-2);
+  margin-bottom: 8px;
+}
+
+.informe-dos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.informe-cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+/* Etiqueta arriba, cifra debajo: en línea se leen como una frase rota. */
+.informe-cifra {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+}
+
+.informe-cifra strong {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.informe-cifra-etiqueta {
+  font-size: 12px;
+  color: var(--tinta-2);
+}
+
+.informe-barra-progreso {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--linea);
+  overflow: hidden;
+}
+
+.informe-matriz {
+  font-size: 11px;
+  min-width: max-content;
+}
+
+.informe-matriz th,
+.informe-matriz td {
+  padding: 6px;
+  white-space: nowrap;
+}
+
+.informe-destacado {
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  .informe-dos {
+    grid-template-columns: 1fr;
+  }
+
+  .informe {
+    padding: 20px;
+  }
+}
+
+@media print {
+  .informe-barra {
+    display: none;
+  }
+
+  .informe-capa {
+    position: static;
+    padding: 0;
+    background: #fff;
+  }
+
+  .informe {
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+  }
+}

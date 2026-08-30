@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Reparto as Datos } from '../../lib/tipos'
-import { ErrorLinea, EstadoVacio } from '../../components/Basicos'
-import { EsqueletoLista } from '../../components/Esqueleto'
-import { GraficoAreaApilada } from '../../components/graficos/Graficos'
+
+import { GraficoAreaApilada } from '../../components/ui/GraficosGrandes'
 import { cuantos, euros, MESES_CORTOS, porcentaje } from '../../lib/formato'
 import { BarraFila, Tarjetas } from './Piezas'
+import { ErrorLinea, Esqueleto, Vacio } from '../../components/ui/Basicos'
 
 /**
  * En qué se va el dinero en el rango.
@@ -30,15 +30,11 @@ export function Reparto({ consulta }: { consulta: string }) {
   }, [consulta])
 
   if (error) return <ErrorLinea mensaje={error} />
-  if (!datos) return <EsqueletoLista filas={10} />
+  if (!datos) return <Esqueleto filas={10} />
 
   if (datos.total === 0) {
     return (
-      <EstadoVacio
-        icono="—"
-        titulo="Sin gastos en este rango"
-        texto="Prueba con otro periodo."
-      />
+      <Vacio frase="Sin gastos en este rango Prueba con otro periodo." />
     )
   }
 

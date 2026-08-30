@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, guardarToken, mensajeDeError } from '../../lib/api'
-import { IconoBorrarTecla, IconoCandado } from '../../components/Iconos'
+import { Icono } from '../../components/ui/Icono'
 
 const LONGITUD_MAXIMA = 8
 
@@ -64,9 +64,9 @@ export function PantallaPin({ onDesbloqueado }: Props) {
     <div className="pin-pantalla">
       <div className="pin-cabecera">
         <div className="pin-icono">
-          <IconoCandado size={30} />
+          <Icono nombre="candado" size={30} />
         </div>
-        <h1 className="pin-titulo marca">
+        <h1 className="pin-titulo">
           gastos<span>.</span>
         </h1>
         <p className="pin-texto">{error || 'Introduce el PIN de la familia'}</p>
@@ -90,7 +90,7 @@ export function PantallaPin({ onDesbloqueado }: Props) {
               disabled={enviando}
               aria-label={tecla === 'borrar' ? 'Borrar' : tecla}
             >
-              {tecla === 'borrar' ? <IconoBorrarTecla /> : tecla}
+              {tecla === 'borrar' ? <Icono nombre="cerrar" /> : tecla}
             </button>
           ),
         )}
@@ -98,7 +98,7 @@ export function PantallaPin({ onDesbloqueado }: Props) {
 
       <div className="pin-pie">
         <button
-          className="boton boton-principal boton-ancho"
+          className="btn-primary"
           onClick={() => void enviar(pin)}
           disabled={pin.length < 4 || enviando}
         >

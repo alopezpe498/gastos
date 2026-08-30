@@ -693,9 +693,9 @@ try {
 
     const puesto = await llamar(`/conceptos/${cualquiera.id}`, {
       metodo: 'PATCH',
-      cuerpo: { color: 'turquesa' },
+      cuerpo: { color: 'azul' },
     })
-    comprobar(puesto.datos?.color === 'turquesa', 'se le puede poner uno a mano')
+    comprobar(puesto.datos?.color === 'azul', 'se le puede poner uno a mano')
 
     const malo = await llamar(`/conceptos/${cualquiera.id}`, {
       metodo: 'PATCH',
@@ -715,6 +715,18 @@ try {
       cuerpo: { nombre: cualquiera.nombre },
     })
     comprobar(otro.datos?.color === null, 'tocar otra cosa no le inventa un color')
+
+    comprobar(cualquiera.icono === null, 'y tampoco nace con icono propio')
+    const conIcono = await llamar(`/conceptos/${cualquiera.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { icono: 'coche' },
+    })
+    comprobar(conIcono.datos?.icono === 'coche', 'el icono se elige igual que el color')
+    const iconoMalo = await llamar(`/conceptos/${cualquiera.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { icono: 'dinosaurio' },
+    })
+    comprobar(iconoMalo.estado === 400, 'un icono que no existe se rechaza')
   }
 
   // -------------------------------------------------------------------------

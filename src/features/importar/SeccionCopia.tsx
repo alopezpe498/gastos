@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, descargar, mensajeDeError } from '../../lib/api'
-import { useAvisos } from '../../components/Avisos'
-import { IconoDescargar } from '../../components/Iconos'
+import { useAvisos } from '../../components/ui/Toast'
+import { Icono } from '../../components/ui/Icono'
 
 /**
  * Copia de seguridad.
@@ -51,7 +51,7 @@ export function SeccionCopia() {
             </span>
             <span className="fila-detalle">La copia completa de la base de datos.</span>
           </span>
-          <IconoDescargar size={20} />
+          <Icono nombre="descargar" size={20} />
         </button>
 
         <button
@@ -69,7 +69,7 @@ export function SeccionCopia() {
                 : `Una hoja por año: ${anios.slice().sort().join(', ')}.`}
             </span>
           </span>
-          <IconoDescargar size={20} />
+          <Icono nombre="descargar" size={20} />
         </button>
       </div>
     </section>

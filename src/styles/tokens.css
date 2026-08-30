@@ -1,96 +1,81 @@
 /*
- * BENTO CLARO — la única fuente de verdad del diseño.
+ * Los tokens del diseño v3, copiados del `:root` de referencia-mes-v2.html.
  *
- * Los valores están copiados literalmente de referencia-mes.html, que es la
- * especificación aprobada. Si algo aquí no coincide con ese archivo, manda el
- * archivo.
- *
- * Cuatro reglas que no se rompen:
- *
- *   1. NO HAY SOMBRAS. La profundidad la dan los bloques de color sobre el
- *      fondo cálido, no las sombras.
- *   2. CADA CATEGORÍA TIENE SU COLOR, y se repite en todas partes: en el
- *      bloque, en la etiqueta del apunte, en los gráficos. Se reconoce Comida
- *      por el coral antes de leer la palabra.
- *   3. UN SOLO BOTÓN NEGRO por pantalla. El resto son chips blancos.
- *   4. LA APP TE HABLA: cada bloque lleva una frase corta, en segunda persona,
- *      con datos. Sin exclamaciones, sin emojis, sin mayúsculas.
+ * Aquí no se decide nada: se transcribe. Si un color, un radio o una sombra no
+ * está en esta lista, no existe en la aplicación. Las dos vueltas anteriores se
+ * torcieron por lo contrario —cada pantalla inventándose su gris— y por eso
+ * ahora la regla es que ningún componente escriba un valor a mano.
  */
 
-/* Inter Tight variable: 500, 600 y 800 salen del mismo archivo. */
+/*
+ * Manrope es variable: un solo fichero cubre de 200 a 800, así que los tres
+ * pesos que usa el diseño (500, 600, 800) no cuestan tres descargas.
+ */
 @font-face {
-  font-family: 'Inter Tight';
-  src: url('/fonts/inter-tight.woff2') format('woff2');
-  font-weight: 100 900;
-  font-display: swap;
+  font-family: 'Manrope';
+  src: url('/fonts/manrope.woff2') format('woff2-variations');
+  font-weight: 200 800;
   font-style: normal;
+  font-display: swap;
 }
 
 :root {
-  /* ---------- superficies ---------- */
-  --fondo: #f4f3ef;
-  --blanco: #fff;
-  --tinta: #141414;
-  --tinta-2: #7a7a76;
-  --linea: #efeee9;
-  --hueco: #e3e2dc;
+  /* ---- superficies ---- */
+  --fondo: #f6f6f3;
+  --superficie: #fff;
+  --linea: #f0f0ec;
+  --hueco: #e4e4df;
 
-  /* ---------- colores de categoría ---------- */
-  --lima: #dcf56a;
-  --lima-tinta: #1f2a05;
+  /* ---- tinta ---- */
+  --tinta: #111111;
+  --tinta-2: #6b6b66;
+  --tinta-3: #9a9a94;
 
-  --coral: #ff6b4a;
-  --coral-suave: #ffd9cf;
-  --coral-tinta: #4a1b0c;
-  --coral-texto: #8a3a22;
+  /* ---- acento ---- */
+  --acento: #b7e62e;
+  --acento-suave: #ddf2a6;
+  --acento-fondo: #eef9d6;
 
-  --lavanda: #6c5ce7;
-  --lavanda-suave: #c9c3ff;
-  --lavanda-chip: #eeebff;
-  --lavanda-texto: #4b3bc4;
+  /* ---- colores con significado ---- */
+  --comida: #e8562a;
+  --comida-suave: #ffe8df;
+  --extras: #6c5ce7;
+  --extras-suave: #ece9ff;
+  --ok: #2e8b57;
+  --ok-suave: #e1f3e6;
+  --ambar: #c98a00;
+  --ambar-suave: #fff3d6;
 
-  --azul: #4b7bd4;
-  --azul-suave: #d7e8ff;
-  --azul-tinta: #0c2c6e;
-  --azul-texto: #1f4c99;
+  /*
+   * Dos más para repartir entre conceptos. No están en el HTML de referencia
+   * porque allí solo hay cinco filas; con sesenta conceptos hacen falta.
+   */
+  --azul: #2f6fed;
+  --azul-suave: #e2ecff;
+  --rosa: #d64c8e;
+  --rosa-suave: #fce4ef;
 
-  --verde: #2fbf71;
-  --verde-suave: #dff5e7;
-  --verde-texto: #1e6b3a;
+  /* ---- sombras ---- */
+  --sombra:
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 10px 30px rgba(20, 20, 20, 0.05);
+  --sombra-pill:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 6px 20px rgba(0, 0, 0, 0.06);
 
-  --ambar: #f5a623;
-  --ambar-suave: #fff1d6;
-  --ambar-texto: #8a5a00;
+  /* ---- radios ---- */
+  --r-card: 20px;
+  --r-tile: 14px;
+  --r-ico: 9px;
+  --r-pill: 999px;
 
-  /* El gris de los conceptos sin color propio. */
-  --gris: #999;
-  --gris-suave: #f1f1f1;
-  --gris-texto: #444;
+  /* ---- tipografía ---- */
+  --fuente: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  /* ---------- tipografía ---------- */
-  --fuente: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', sans-serif;
-
-  --t11: 11px;
-  --t12: 12px;
-  --t14: 14px;
-  --t16: 16px;
-  --t26: 26px;
-  --t58: 58px;
-
-  /* ---------- formas ---------- */
-  --radio: 18px;
-  --radio-chico: 12px;
-  --radio-pastilla: 999px;
-
-  --ancho: 1120px;
-
-  /* ---------- movimiento ---------- */
+  /* ---- movimiento ---- */
   --rapido: 160ms;
-  --curva: cubic-bezier(0.2, 0, 0.2, 1);
-}
+  --curva: cubic-bezier(0.2, 0.8, 0.2, 1);
 
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --rapido: 0ms;
-  }
+  /* ---- medidas ---- */
+  --ancho: 1120px;
 }

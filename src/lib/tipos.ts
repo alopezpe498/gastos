@@ -15,6 +15,8 @@ export type Concepto = {
   esObjetivo: boolean
   /** null = el que le toque por su id. Solo se guarda si se cambia a mano. */
   color: NombreColor | null
+  /** null = el que le toque por su nombre. */
+  icono: string | null
 }
 
 export type EntradaPlantilla = {
@@ -570,18 +572,39 @@ export type PanelMes = {
   }
   puntos: { dia: string; extras: number; acumulado: number | null }[]
   gastado: number
+  /** Lo que ya ha salido de la cuenta. */
+  pagado: number
+  /** Lo que sigue dentro pero ya tiene dueño: los fijos por cobrar. */
+  comprometido: number
+  /** ingreso − pagado − comprometido. */
+  libre: number
   fijos: {
     movimientoId: number
+    conceptoId: number
     concepto: string
     importe: number
     diaPrevisto: string | null
     cobrado: boolean
     tarde: boolean
+    /** Lo que costó ese mismo fijo el mes pasado, si se cobró. */
+    importeMesAnterior: number | null
   }[]
   pendientes: number
   nombresPendientes: string[]
-  extras: { total: number; mayor: { concepto: string; porcentaje: number } | null }
-  comida: { presupuesto: number; gastado: number; contada: number; sobreId: number | null }
+  siguienteFijo: { concepto: string; dia: number } | null
+  extras: {
+    total: number
+    mayor: { concepto: string; porcentaje: number } | null
+    /** null si el mismo mes del año pasado no existe. */
+    anoPasado: number | null
+  }
+  comida: {
+    presupuesto: number
+    gastado: number
+    contada: number
+    sobreId: number | null
+    alDia: number
+  }
 }
 
 // ---------- Analítica ----------

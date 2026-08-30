@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Mes } from '../../lib/tipos'
-import { Cabecera, ErrorLinea } from '../../components/Basicos'
-import { EsqueletoLista } from '../../components/Esqueleto'
+import { Cabecera, ErrorLinea, Esqueleto, Tabs } from '../../components/ui/Basicos'
 import { PantallaExtracto } from '../extracto/PantallaExtracto'
 import { SeccionImportar } from './SeccionImportar'
 import { SeccionCopia } from './SeccionCopia'
@@ -62,30 +61,19 @@ export function PantallaImportar({
   // Al entrar desde el botón del mes, la pestaña y el mes vienen dados.
   useEffect(() => setPestana(pestanaInicial), [pestanaInicial])
 
-  const pestanas = (
-    <div className="pestanas">
-      {PESTANAS.map((p) => (
-        <button
-          key={p.id}
-          className={pestana === p.id ? 'activo' : ''}
-          onClick={() => setPestana(p.id)}
-        >
-          {p.nombre}
-        </button>
-      ))}
-    </div>
-  )
-
   return (
     <>
-      <Cabecera titulo="Importar" debajo={pestanas} />
+      <Cabecera
+        titulo="Importar"
+        debajo={<Tabs pestanas={PESTANAS} activa={pestana} onCambiar={setPestana} />}
+      />
 
-      <div className="limite">
+      <div className="pila">
         {error ? <ErrorLinea mensaje={error} onReintentar={() => void cargar()} /> : null}
 
         {pestana === 'extracto' ? (
           meses === null ? (
-            <EsqueletoLista filas={5} />
+            <Esqueleto filas={5} />
           ) : (
             <PantallaExtracto
               meses={meses}

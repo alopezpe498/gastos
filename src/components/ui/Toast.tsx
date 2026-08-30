@@ -8,15 +8,15 @@ import {
   type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { BotonIcono } from './Basicos'
 
 /**
  * La línea que dice qué acaba de pasar.
  *
- * Va justo debajo de la barra de arriba, donde estabas mirando, y no flotando
- * al final de la página: un aviso que aparece fuera de la pantalla no es un
- * aviso. Cuando lo que ha pasado se puede deshacer, lo lleva ahí mismo; es el
- * único sitio donde tiene sentido ofrecerlo, porque es cuando te acabas de dar
- * cuenta de que no querías hacerlo.
+ * Va justo debajo de la navegación, donde estabas mirando, y no flotando al
+ * final de la página: un aviso que aparece fuera de la pantalla no es un aviso.
+ * Cuando lo que ha pasado se puede deshacer, lo lleva ahí mismo, que es cuando
+ * te acabas de dar cuenta de que no querías hacerlo.
  */
 
 type Aviso = {
@@ -37,26 +37,20 @@ const Contexto = createContext<ContextoAvisos>({ avisar: () => {}, avisarError: 
 
 export const useAvisos = () => useContext(Contexto)
 
-/** Dónde aterriza la línea: lo pinta la barra de navegación. */
-export const HUECO_AVISOS = 'avisos-de-la-pantalla'
+/** Dónde aterriza la línea: lo pinta la navegación. */
+export const HUECO_TOAST = 'toast-de-la-pantalla'
 
 let siguienteId = 1
-
-/*
- * Con «Deshacer» dura más: hay que leer la frase, entender que te has
- * equivocado y llegar al botón. Sin él, lo justo para leerla.
- */
-const DURACION = 3600
-const DURACION_CON_DESHACER = 9000
+const DURACION = 5000
 
 export function ProveedorAvisos({ children }: { children: ReactNode }) {
   const [avisos, setAvisos] = useState<Aviso[]>([])
   const [hueco, setHueco] = useState<HTMLElement | null>(null)
 
-  // El hueco lo pinta la barra, así que no existe hasta después del primer
-  // render. En la pantalla del PIN no hay barra y la línea se queda flotando.
+  // El hueco lo pinta la navegación, así que no existe hasta después del primer
+  // render. En la pantalla del PIN no hay navegación y la línea flota abajo.
   useEffect(() => {
-    setHueco(document.getElementById(HUECO_AVISOS))
+    setHueco(document.getElementById(HUECO_TOAST))
   })
 
   const quitar = useCallback((id: number) => {
@@ -68,7 +62,7 @@ export function ProveedorAvisos({ children }: { children: ReactNode }) {
       const id = siguienteId++
       // Uno cada vez: dos frases seguidas debajo de la barra empujan la página.
       setAvisos([{ id, texto, tipo, deshacer }])
-      setTimeout(() => quitar(id), deshacer ? DURACION_CON_DESHACER : DURACION)
+      setTimeout(() => quitar(id), DURACION)
     },
     [quitar],
   )
@@ -82,13 +76,12 @@ export function ProveedorAvisos({ children }: { children: ReactNode }) {
   )
 
   const linea = (
-    <div className={`avisos${hueco ? '' : ' avisos-flotantes'}`} aria-live="polite">
+    <div className={`toasts${hueco ? '' : ' flotante'}`} aria-live="polite">
       {avisos.map((aviso) => (
-        <div key={aviso.id} className={`aviso${aviso.tipo === 'error' ? ' error' : ''}`}>
+        <div key={aviso.id} className={`toast${aviso.tipo === 'error' ? ' error' : ''}`}>
           <span>{aviso.texto}</span>
           {aviso.deshacer ? (
             <button
-              className="aviso-boton"
               onClick={() => {
                 quitar(aviso.id)
                 void aviso.deshacer?.()
@@ -97,13 +90,7 @@ export function ProveedorAvisos({ children }: { children: ReactNode }) {
               Deshacer
             </button>
           ) : null}
-          <button
-            className="aviso-cerrar"
-            aria-label="Cerrar el aviso"
-            onClick={() => quitar(aviso.id)}
-          >
-            ×
-          </button>
+          <BotonIcono icono="cerrar" etiqueta="Cerrar el aviso" size={13} onClick={() => quitar(aviso.id)} />
         </div>
       ))}
     </div>

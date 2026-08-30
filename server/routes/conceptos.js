@@ -9,6 +9,7 @@ export const rutasConceptos = express.Router()
 const TIPOS = new Set(conceptosBd.TIPOS)
 const CLASIFICACIONES = new Set(conceptosBd.CLASIFICACIONES)
 const COLORES = new Set(conceptosBd.COLORES)
+const ICONOS = new Set(conceptosBd.ICONOS)
 
 /** Un concepto con su previsto actual y sus alias: lo que pinta la pantalla. */
 function conDetalle(concepto) {
@@ -118,6 +119,15 @@ rutasConceptos.patch(
         return fallo(res, 400, `No existe el color "${color}".`)
       }
       cambios.color = color
+    }
+
+    /* El icono, igual que el color: vacio lo devuelve al automatico. */
+    if (req.body?.icono !== undefined) {
+      const icono = req.body.icono === null || req.body.icono === '' ? null : req.body.icono
+      if (icono !== null && !ICONOS.has(icono)) {
+        return fallo(res, 400, `No existe el icono "${icono}".`)
+      }
+      cambios.icono = icono
     }
 
     if (req.body?.activo !== undefined) cambios.activo = !!req.body.activo

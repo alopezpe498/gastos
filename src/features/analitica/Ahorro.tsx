@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Ahorro as Datos } from '../../lib/tipos'
-import { ErrorLinea, EstadoVacio } from '../../components/Basicos'
-import { EsqueletoResumen } from '../../components/Esqueleto'
-import { GraficoBarras } from '../../components/graficos/Graficos'
+import { GraficoBarras } from '../../components/ui/GraficosGrandes'
 import { cuantos, euros, MESES_CORTOS, porcentaje } from '../../lib/formato'
 import { Tarjetas } from './Piezas'
+import { ErrorLinea, Esqueleto, Vacio } from '../../components/ui/Basicos'
 
 /**
  * Tendencia del ahorro.
@@ -31,10 +30,10 @@ export function Ahorro({ consulta, onAbrirMes }: { consulta: string; onAbrirMes:
   }, [consulta])
 
   if (error) return <ErrorLinea mensaje={error} />
-  if (!datos) return <EsqueletoResumen />
+  if (!datos) return <Esqueleto />
 
   if (datos.resumen.mesesConDatos === 0) {
-    return <EstadoVacio icono="—" titulo="Sin datos en este rango" texto="Prueba con otro periodo." />
+    return <Vacio frase="Sin datos en este rango" />
   }
 
   const { resumen } = datos

@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, mensajeDeError, olvidarToken } from '../../lib/api'
 import type { Ajustes, Concepto, ConfigIa } from '../../lib/tipos'
-import { Cabecera, ErrorLinea } from '../../components/Basicos'
-import { EsqueletoLista } from '../../components/Esqueleto'
-import { IconoCandado } from '../../components/Iconos'
+import { Cabecera, ErrorLinea, Esqueleto, Tabs } from '../../components/ui/Basicos'
 import { SeccionCalculo } from './SeccionCalculo'
 import { SeccionIa } from './SeccionIa'
 import { SeccionReglas } from './SeccionReglas'
 import { SeccionFormatoBanco } from './SeccionFormatoBanco'
+import { Icono } from '../../components/ui/Icono'
 
 /**
  * Ajustes: SOLO lo que se configura.
@@ -70,24 +69,14 @@ export function PantallaAjustes({
   useEffect(() => setPestana(pestanaInicial), [pestanaInicial])
 
   const pestanas = (
-    <div className="pestanas">
-      {PESTANAS.map((p) => (
-        <button
-          key={p.id}
-          className={pestana === p.id ? 'activo' : ''}
-          onClick={() => setPestana(p.id)}
-        >
-          {p.nombre}
-        </button>
-      ))}
-    </div>
+    <Tabs pestanas={PESTANAS} activa={pestana} onCambiar={setPestana} />
   )
 
   if (error) {
     return (
       <>
         <Cabecera titulo="Ajustes" debajo={pestanas} />
-        <div className="limite">
+        <div className="pila">
           <ErrorLinea mensaje={error} onReintentar={() => void cargar()} />
         </div>
       </>
@@ -98,8 +87,8 @@ export function PantallaAjustes({
     return (
       <>
         <Cabecera titulo="Ajustes" debajo={pestanas} />
-        <div className="limite">
-          <EsqueletoLista filas={6} />
+        <div className="pila">
+          <Esqueleto filas={6} />
         </div>
       </>
     )
@@ -109,7 +98,7 @@ export function PantallaAjustes({
     <>
       <Cabecera titulo="Ajustes" debajo={pestanas} />
 
-      <div className="limite">
+      <div className="pila">
         {/*
           En dos columnas, como los bloques de Mes: son cuatro cosas pequeñas y
           en una sola columna la página se hacía interminable.
@@ -142,7 +131,7 @@ export function PantallaAjustes({
                       onBloquear()
                     }}
                   >
-                    <IconoCandado size={18} />
+                    <Icono nombre="candado" size={18} />
                     Bloquear ahora
                   </button>
                 </>

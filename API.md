@@ -71,16 +71,21 @@ regla 50/30/20. `esObjetivo` marca el concepto de ahorro: no es un gasto, es lo
 que se querría apartar.
 
 `color` es el color con el que se reconoce el concepto en las listas, y vale
-uno de `lavanda`, `ambar`, `verde`, `turquesa`, `rosa`, `oliva`, `tierra`,
-`azul`, `coral` o `gris`. Es opcional: con `null` la aplicación reparte los
-ocho colores automáticos por posición dentro del catálogo ordenado por `id`, de
-forma que no se repiten hasta agotarlos. Solo se guarda cuando se elige a mano.
+uno de `extras`, `ok`, `ambar`, `azul`, `rosa`, `comida` o `neutro`. Es
+opcional: con `null` la aplicación reparte los automáticos por posición dentro
+del catálogo ordenado por `id`, de forma que no se repiten hasta agotarlos. Solo
+se guarda cuando se elige a mano.
+
+`icono` funciona igual: uno de `casa`, `comida`, `bar`, `rayo`, `antena`,
+`pantalla`, `coche`, `flecha`, `avion`, `pesa`, `cruz`, `mochila`, `huella`,
+`carro`, `hucha`, `entrada`, `escudo`, `edificio`, `trebol`, `billete` o
+`etiqueta`. Con `null` la aplicación lo adivina por el nombre del concepto.
 
 | Método | Ruta | Notas |
 | --- | --- | --- |
 | `GET` | `/conceptos` | Parámetros: `?tipo=fijo\|variable\|sobre`, `?activos=1`, `?detalle=1`. Con `detalle=1` añade `plantilla`, `previstoActual`, `alias` y el número de `movimientos`. |
 | `POST` | `/conceptos` | `{ nombre, tipo, clasificacion, diaPrevisto?, importePrevisto?, vigenteDesde? }`. Los fijos y los sobres crean su entrada de plantilla. |
-| `PATCH` | `/conceptos/:id` | `{ nombre?, tipo?, clasificacion?, activo?, esObjetivo?, color? }`. Marcar `esObjetivo` desmarca el anterior. `color: null` lo devuelve al que le toca por su `id`. |
+| `PATCH` | `/conceptos/:id` | `{ nombre?, tipo?, clasificacion?, activo?, esObjetivo?, color?, icono? }`. Marcar `esObjetivo` desmarca el anterior. `color: null` e `icono: null` los devuelven al automático. |
 | `DELETE` | `/conceptos/:id` | `409` si tiene apuntes: en ese caso hay que desactivarlo, no borrarlo. |
 | `PUT` | `/conceptos/orden` | `{ ids: [...] }` con **todos** los conceptos en el orden nuevo. |
 
@@ -428,6 +433,9 @@ comida sigue la misma regla que el resto de la aplicación.
   },
   "puntos": [{ "dia": "2026-07-29", "extras": 0, "acumulado": 600 }],
   "gastado": 1873.42,
+  "pagado": 1873.42,
+  "comprometido": 898.23,
+  "libre": 352.56,
   "fijos": [
     {
       "movimientoId": 812,
@@ -435,13 +443,25 @@ comida sigue la misma regla que el resto de la aplicación.
       "importe": 622.53,
       "diaPrevisto": "31",
       "cobrado": true,
-      "tarde": false
+      "tarde": false,
+      "importeMesAnterior": 176.43
     }
   ],
   "pendientes": 6,
+  "siguienteFijo": { "concepto": "comunidad", "dia": 5 },
   "nombresPendientes": ["comunidad", "luz"],
-  "extras": { "total": 2772.1, "mayor": { "concepto": "Amazon", "porcentaje": 64 } },
-  "comida": { "presupuesto": 600, "gastado": 960.29, "contada": 960.29, "sobreId": 9 }
+  "extras": {
+    "total": 2772.1,
+    "mayor": { "concepto": "Amazon", "porcentaje": 64 },
+    "anoPasado": 3960.14
+  },
+  "comida": {
+    "presupuesto": 600,
+    "gastado": 960.29,
+    "contada": 960.29,
+    "sobreId": 9,
+    "alDia": 0
+  }
 }
 ```
 

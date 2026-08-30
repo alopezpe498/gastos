@@ -69,13 +69,13 @@ async function abrirApp() {
   await pagina.goto(WEB)
   await pagina.evaluate((token) => localStorage.setItem('gastos.token', token), entorno.token)
   await pagina.goto(WEB, { waitUntil: 'networkidle' })
-  await pagina.waitForSelector('.principal', { timeout: 15000 })
+  await pagina.waitForSelector('.hero', { timeout: 15000 })
   await pagina.waitForTimeout(400)
 }
 
 const abrirMenuDelMes = async () => {
   await pagina.getByRole('button', { name: 'Más cosas de este mes' }).click()
-  await pagina.waitForSelector('.sheet', { timeout: 5000 })
+  await pagina.waitForSelector('.dialogo', { timeout: 5000 })
   await pagina.waitForTimeout(300)
 }
 
@@ -94,7 +94,7 @@ try {
       await pagina.getByRole('button', { name: digito, exact: true }).click()
     }
     await pagina.getByRole('button', { name: 'Desbloquear' }).click()
-    await pagina.waitForSelector('.principal', { timeout: 15000 })
+    await pagina.waitForSelector('.hero', { timeout: 15000 })
     comprobar(true, 'con el PIN correcto se entra en la pantalla Mes')
   }
 
@@ -107,12 +107,12 @@ try {
     await abrirApp()
 
     const antes = await leerMes()
-    await pagina.locator('.fila .boton-icono').first().click()
+    await pagina.locator('.row .btn-icono').first().click()
     await pagina.waitForTimeout(250)
     await pagina.getByRole('button', { name: 'Borrar', exact: true }).click()
     await pagina.waitForTimeout(300)
 
-    const fila = pagina.locator('.fila-borrando')
+    const fila = pagina.locator('.row.confirmando')
     comprobar(await fila.isVisible(), 'la confirmación aparece en la propia fila')
     comprobar(
       (await fila.textContent()).includes('56,00'),
@@ -129,7 +129,7 @@ try {
       `${antes.variables.length} → ${despues.variables.length}`,
     )
 
-    const aviso = pagina.locator('.avisos .aviso')
+    const aviso = pagina.locator('.toast')
     comprobar(await aviso.isVisible(), 'sale la línea de confirmación')
     const caja = await aviso.boundingBox()
     comprobar(caja && caja.y < 200, 'y sale arriba, bajo la barra, no al final de la página')
@@ -150,11 +150,11 @@ try {
   {
     const antes = await leerMes()
     await abrirApp()
-    await pagina.locator('.fila .boton-icono').first().click()
+    await pagina.locator('.row .btn-icono').first().click()
     await pagina.waitForTimeout(250)
     await pagina.getByRole('button', { name: 'Borrar', exact: true }).click()
     await pagina.waitForTimeout(300)
-    await pagina.locator('.fila-borrando').getByRole('button', { name: 'Cancelar' }).click()
+    await pagina.locator('.row.confirmando').getByRole('button', { name: 'Cancelar' }).click()
     await pagina.waitForTimeout(800)
     const despues = await leerMes()
     comprobar(
@@ -187,7 +187,7 @@ try {
   // -------------------------------------------------------------------------
   {
     await abrirApp()
-    const campo = pagina.locator('.fila .campo.importe').first()
+    const campo = pagina.locator('.row .campo.dinero').first()
     await campo.click()
     await campo.fill('41,25')
     await campo.press('Enter')
@@ -204,7 +204,7 @@ try {
   // -------------------------------------------------------------------------
   {
     await abrirApp()
-    await pagina.locator('.valor-al-vuelo').first().click()
+    await pagina.locator('.inline-valor').first().click()
     const campo = pagina.getByLabel('Nómina del mes')
     await campo.fill('3333')
     await campo.press('Enter')
@@ -212,7 +212,7 @@ try {
     comprobar(Math.abs((await leerMes()).ingreso - 3333) < 0.005, 'la nómina se guarda')
 
     await abrirApp()
-    await pagina.getByRole('button', { name: 'Anotar el saldo del banco' }).click()
+    await pagina.getByRole('button', { name: /saldo del banco/ }).first().click()
     const saldo = pagina.getByLabel('Saldo en cuenta')
     await saldo.fill('1200')
     await saldo.press('Enter')
@@ -315,7 +315,7 @@ try {
     await pagina.locator('.confirmacion').getByRole('button', { name: 'Cancelar' }).click()
     await pagina.waitForTimeout(800)
     comprobar(
-      (await pagina.locator('.fila-boton').count()) > 0,
+      (await pagina.locator('.accion').count()) > 0,
       'cancelar devuelve a la lista de acciones',
     )
     const despues = await leerMes()
@@ -371,11 +371,11 @@ try {
     await prepararMes()
     await abrirApp()
     await pagina.getByRole('button', { name: 'Conceptos', exact: true }).first().click()
-    await pagina.waitForSelector('.fila-concepto', { timeout: 10000 })
+    await pagina.waitForSelector('.row', { timeout: 10000 })
     await pagina.waitForTimeout(500)
 
     const { datos: antes } = await llamar('/conceptos')
-    await pagina.locator('.fila-concepto .interruptor').first().click()
+    await pagina.locator('.row .interruptor').first().click()
     await pagina.waitForTimeout(1200)
     const { datos: despues } = await llamar('/conceptos')
     comprobar(
@@ -384,34 +384,40 @@ try {
       `${antes[0].activo} → ${despues[0].activo}`,
     )
 
-    await pagina.locator('.punto-boton').first().click()
+    await pagina.locator('.ico-boton').first().click()
     await pagina.waitForTimeout(600)
-    await pagina.locator('.colores .color').nth(3).click()
+    await pagina.locator('.rejilla-aspecto .aspecto').nth(3).click()
     await pagina.waitForTimeout(1200)
     const { datos: coloreados } = await llamar('/conceptos')
     comprobar(coloreados[0].color !== null, 'el punto de color abre la paleta y guarda el elegido')
 
-    const filas = pagina.locator('.fila-concepto')
-    const origen = await filas.nth(0).boundingBox()
-    const destino = await filas.nth(3).boundingBox()
-    await pagina.mouse.move(origen.x + 20, origen.y + origen.height / 2)
-    await pagina.mouse.down()
-    await pagina.mouse.move(destino.x + 20, destino.y + destino.height / 2, { steps: 12 })
-    await pagina.mouse.up()
+    // El diálogo del aspecto se queda abierto a propósito (se prueban varios);
+    // hay que cerrarlo antes de tocar la lista de debajo.
+    await pagina.keyboard.press('Escape')
+    await pagina.waitForTimeout(500)
+
+    const filas = pagina.locator('.card .row')
+    // `dragTo` manda los eventos de arrastre de verdad; mover el ratón a mano
+    // no dispara el drag-and-drop de HTML5.
+    await filas.nth(0).dragTo(filas.nth(3))
     await pagina.waitForTimeout(1500)
     const { datos: ordenados } = await llamar('/conceptos')
-    comprobar(ordenados[0].id !== coloreados[0].id, 'y arrastrar cambia el orden')
+    // Lo que importa es que la secuencia cambie, no cuál queda primero: el
+    // arrastre mueve dentro de su grupo y el primero puede ser el mismo.
+    const antesOrden = coloreados.map((c) => c.id).join(',')
+    const despuesOrden = ordenados.map((c) => c.id).join(',')
+    comprobar(antesOrden !== despuesOrden, 'y arrastrar cambia el orden', despuesOrden.slice(0, 40))
   }
 
   // -------------------------------------------------------------------------
   console.log('\nLa plantilla se edita en su tabla')
   // -------------------------------------------------------------------------
   {
-    await pagina.getByRole('button', { name: 'Plantilla', exact: true }).click()
-    await pagina.waitForSelector('.plantilla-fila', { timeout: 10000 })
+    await pagina.getByRole('tab', { name: 'Plantilla', exact: true }).click()
+    await pagina.waitForSelector('.tabla', { timeout: 10000 })
     await pagina.waitForTimeout(600)
 
-    const campo = pagina.locator('.plantilla-fila .campo.importe').first()
+    const campo = pagina.locator('.tabla .campo.dinero').first()
     await campo.click()
     await campo.fill('123,45')
     await campo.press('Enter')
@@ -422,11 +428,11 @@ try {
       'el importe previsto se guarda escribiendo encima',
     )
 
-    const chip = pagina.locator('.chip-clasificacion').first()
+    const chip = pagina.locator('.tabla .chip').first()
     const antesTexto = await chip.textContent()
     await chip.click()
     await pagina.waitForTimeout(1500)
-    const despuesTexto = await pagina.locator('.chip-clasificacion').first().textContent()
+    const despuesTexto = await pagina.locator('.tabla .chip').first().textContent()
     comprobar(antesTexto !== despuesTexto, 'y el chip de clasificación cicla al pulsarlo')
   }
 

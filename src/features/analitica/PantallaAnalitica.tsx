@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { RangoDisponible } from '../../lib/tipos'
-import { Cabecera, ErrorLinea, EstadoVacio } from '../../components/Basicos'
-import { EsqueletoLista } from '../../components/Esqueleto'
+import { Cabecera, ErrorLinea, Esqueleto, Tabs, Vacio } from '../../components/ui/Basicos'
 import { SelectorRango, comoConsulta, nombreDelAmbito, type Ambito } from './SelectorRango'
 import { Evolucion } from './Evolucion'
 import { Comparativa } from './Comparativa'
@@ -51,7 +50,7 @@ export function PantallaAnalitica({
     return (
       <>
         <Cabecera titulo="Analítica" />
-        <div className="limite">
+        <div className="pila">
           <ErrorLinea mensaje={error} />
         </div>
       </>
@@ -62,8 +61,8 @@ export function PantallaAnalitica({
     return (
       <>
         <Cabecera titulo="Analítica" />
-        <div className="limite">
-          <EsqueletoLista filas={8} />
+        <div className="pila">
+          <Esqueleto filas={8} />
         </div>
       </>
     )
@@ -73,12 +72,8 @@ export function PantallaAnalitica({
     return (
       <>
         <Cabecera titulo="Analítica" />
-        <div className="limite">
-          <EstadoVacio
-            icono="—"
-            titulo="Todavía no hay histórico"
-            texto="Abre algún mes o importa tus hojas del Excel, y aquí verás cómo evoluciona todo."
-          />
+        <div className="pila">
+          <Vacio frase="Todavía no hay histórico Abre algún mes o importa tus hojas del Excel, y aquí verás cómo evoluciona todo." />
         </div>
       </>
     )
@@ -91,20 +86,10 @@ export function PantallaAnalitica({
       <Cabecera
         titulo="Analítica"
         subtitulo={`${actual.pista} · ${nombreDelAmbito(ambito)}`}
-        anchaEnEscritorio
         debajo={
           <>
-            <div className="pestanas">
-              {PESTANAS.map((p) => (
-                <button
-                  key={p.id}
-                  className={pestana === p.id ? 'activo' : ''}
-                  onClick={() => setPestana(p.id)}
-                >
-                  {p.nombre}
-                </button>
-              ))}
-            </div>
+            <Tabs pestanas={PESTANAS} activa={pestana} onCambiar={setPestana} />
+
             {/* La comparativa entre años elige sus propios años. */}
             {pestana === 'comparativa' ? null : (
               <SelectorRango disponible={disponible} ambito={ambito} onCambiar={setAmbito} />
@@ -113,7 +98,7 @@ export function PantallaAnalitica({
         }
       />
 
-      <div className="limite limite-ancho">
+      <div className="pila">
         {pestana === 'evolucion' ? (
           <Evolucion disponible={disponible} consulta={consulta} onAbrirMes={onAbrirMes} />
         ) : null}

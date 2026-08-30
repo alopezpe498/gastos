@@ -1,0 +1,2072 @@
+/*
+ * La hoja de la caja de componentes.
+ *
+ * Es la ÚNICA hoja con reglas de aspecto: cada clase de aquí pertenece a un
+ * componente de `components/ui/`, y ninguna pantalla escribe CSS propio. Las
+ * dos vueltas anteriores se torcieron por lo contrario —una hoja por pantalla,
+ * cada una inventándose su gris— y por eso ahora si algo falta se añade aquí,
+ * con su componente, y se reutiliza.
+ *
+ * Todo valor sale de tokens.css. Si ves un color escrito a mano, es un error.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--tinta);
+  font-family: var(--fuente);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+p {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+/*
+ * El foco es del teclado y de nadie más. Ningún estado activo o seleccionado se
+ * dibuja con borde negro: eso se lee como un anillo de foco y confunde las dos
+ * cosas, que es lo que pasaba en la vuelta anterior.
+ */
+:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Todo importe, en cifras de ancho fijo: así una columna se compara. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.ic {
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Página
+ * ------------------------------------------------------------------------- */
+
+.pagina {
+  max-width: var(--ancho);
+  margin: 0 auto;
+  padding: 18px;
+}
+
+@media (max-width: 760px) {
+  .pagina {
+    padding: 14px 14px 88px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * PillNav
+ * ------------------------------------------------------------------------- */
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.marca {
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.03em;
+}
+
+.marca span {
+  color: var(--acento);
+}
+
+.pill {
+  display: flex;
+  gap: 2px;
+  background: var(--superficie);
+  border-radius: var(--r-pill);
+  padding: 4px;
+  box-shadow: var(--sombra-pill);
+}
+
+.pill-boton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tinta-2);
+  white-space: nowrap;
+  transition:
+    background var(--rapido) var(--curva),
+    color var(--rapido) var(--curva);
+}
+
+.pill-boton:hover {
+  color: var(--tinta);
+}
+
+.pill-boton.on {
+  background: var(--tinta);
+  color: #fff;
+}
+
+.nav-acciones {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* En el móvil la navegación baja al pulgar y se queda solo con los iconos. */
+.nav-abajo {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .pill {
+    display: none;
+  }
+
+  .nav-abajo {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 30;
+    display: flex;
+    justify-content: space-around;
+    background: var(--superficie);
+    border-radius: var(--r-pill);
+    padding: 6px;
+    box-shadow: var(--sombra-pill);
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+  }
+
+  .nav-abajo .pill-boton {
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * PageHeader
+ * ------------------------------------------------------------------------- */
+
+.cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.cabecera-titulo {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.cabecera-sub {
+  font-size: 13px;
+  color: var(--tinta-2);
+  margin-top: 2px;
+}
+
+.cabecera-acciones {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+/* ---------------------------------------------------------------------------
+ * Botones
+ * ------------------------------------------------------------------------- */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--tinta);
+  color: #fff;
+  border-radius: var(--r-pill);
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: opacity var(--rapido) var(--curva);
+}
+
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.btn-primary.peligro {
+  background: var(--comida);
+}
+
+.btn-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tinta-2);
+  white-space: nowrap;
+  transition: color var(--rapido) var(--curva);
+}
+
+.btn-text:hover:not(:disabled) {
+  color: var(--tinta);
+}
+
+.btn-text.peligro {
+  color: var(--comida);
+}
+
+.btn-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-ico);
+  color: var(--tinta-3);
+  flex: none;
+  transition:
+    background var(--rapido) var(--curva),
+    color var(--rapido) var(--curva);
+}
+
+.btn-icono:hover:not(:disabled) {
+  background: var(--fondo);
+  color: var(--tinta);
+}
+
+/* ---------------------------------------------------------------------------
+ * Tabs
+ * ------------------------------------------------------------------------- */
+
+.tabs {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--fondo);
+  border-radius: var(--r-pill);
+  padding: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tinta-2);
+  white-space: nowrap;
+  transition:
+    background var(--rapido) var(--curva),
+    color var(--rapido) var(--curva);
+}
+
+.tab:hover {
+  color: var(--tinta);
+}
+
+/* La activa es blanca con sombra. Nunca un subrayado, nunca un borde. */
+.tab.on {
+  background: var(--superficie);
+  color: var(--tinta);
+  box-shadow: var(--sombra-pill);
+}
+
+/* ---------------------------------------------------------------------------
+ * Card y Tile
+ * ------------------------------------------------------------------------- */
+
+.card {
+  background: var(--superficie);
+  border-radius: var(--r-card);
+  box-shadow: var(--sombra);
+  padding: 16px 20px;
+}
+
+.card-titulo {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.card-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.card-ayuda {
+  font-size: 13px;
+  color: var(--tinta-2);
+  margin-top: 2px;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.tile {
+  padding: 16px 18px;
+}
+
+.tile-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--tinta-2);
+  font-weight: 600;
+}
+
+.tile-n {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin: 6px 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tile-n small {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--tinta-2);
+}
+
+.tile-pie {
+  color: var(--tinta-2);
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+/* El cuadradito del icono: 28 px con el fondo suave del concepto. */
+.ico {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-ico);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.muted {
+  color: var(--tinta-2);
+  font-size: 13px;
+}
+
+.muted-3 {
+  color: var(--tinta-3);
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .tiles {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Hero
+ * ------------------------------------------------------------------------- */
+
+.hero {
+  padding: 22px 24px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: center;
+  background: linear-gradient(135deg, #fff 55%, var(--acento-fondo) 100%);
+}
+
+/* Si te has pasado, el degradado se vuelve del color de la comida. */
+.hero.pasado {
+  background: linear-gradient(135deg, #fff 55%, var(--comida-suave) 100%);
+}
+
+.hero.rapido {
+  background: linear-gradient(135deg, #fff 55%, var(--ambar-suave) 100%);
+}
+
+.hero-mes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  flex-wrap: wrap;
+}
+
+.big {
+  font-size: 64px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-frase {
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+@media (max-width: 760px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .big {
+    font-size: 48px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * SegmentBar, Ring, Sparkline, DotRow
+ * ------------------------------------------------------------------------- */
+
+.seg {
+  display: flex;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  gap: 2px;
+  margin-top: 14px;
+}
+
+.seg > span {
+  display: block;
+  transition: flex var(--rapido) var(--curva);
+}
+
+.leg {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--tinta-2);
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.leg i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 6px;
+}
+
+.leg-derecha {
+  margin-left: auto;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+  flex: none;
+}
+
+.dots {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.barra-sobre {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--linea);
+  overflow: hidden;
+}
+
+.barra-sobre > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  transition: width var(--rapido) var(--curva);
+}
+
+.sparkline {
+  display: block;
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------------------
+ * Row
+ * ------------------------------------------------------------------------- */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--linea);
+  font-size: 14px;
+}
+
+.row:first-of-type {
+  border-top: 0;
+}
+
+.row-cuerpo {
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.row-titulo {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row .d {
+  font-size: 12px;
+  color: var(--tinta-3);
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row .d.tarde {
+  color: var(--comida);
+}
+
+.amt {
+  margin-left: auto;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  flex: none;
+}
+
+.amt.apagado {
+  color: var(--tinta-3);
+}
+
+.amt.abono {
+  color: var(--ok);
+}
+
+.row-acciones {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.row-grupo {
+  color: var(--tinta-2);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 12px 0 2px;
+}
+
+.row-grupo:first-child {
+  margin-top: 0;
+}
+
+/* Fila que está preguntando si la borras: la pregunta va donde está la cosa. */
+.row.confirmando {
+  background: var(--comida-suave);
+  border-radius: var(--r-tile);
+  border-top-color: transparent;
+  padding: 10px 12px;
+  margin: 2px 0;
+}
+
+.row.confirmando .row-cuerpo {
+  color: var(--comida);
+  font-weight: 600;
+}
+
+.asa {
+  color: var(--hueco);
+  cursor: grab;
+  flex: none;
+  display: inline-flex;
+}
+
+.row:hover .asa {
+  color: var(--tinta-3);
+}
+
+.row.arrastrando {
+  opacity: 0.4;
+}
+
+.row.encima {
+  border-top-color: var(--tinta);
+}
+
+/* ---------------------------------------------------------------------------
+ * Check
+ * ------------------------------------------------------------------------- */
+
+.check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  color: transparent;
+  background: transparent;
+  border: 2px solid #ddddd8;
+  transition:
+    background var(--rapido) var(--curva),
+    border-color var(--rapido) var(--curva),
+    color var(--rapido) var(--curva);
+}
+
+.check.on {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: #fff;
+}
+
+/* Pendiente y su día ya pasó: el único aviso de la lista. */
+.check.late {
+  border-color: var(--comida);
+}
+
+/* ---------------------------------------------------------------------------
+ * Chip
+ * ------------------------------------------------------------------------- */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  background: var(--linea);
+  color: var(--tinta-2);
+  white-space: nowrap;
+  flex: none;
+}
+
+.chip.pulsable {
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------------------
+ * InlineField y SearchSelect
+ * ------------------------------------------------------------------------- */
+
+/*
+ * En una lista un valor es texto hasta que lo tocas. En un formulario no: ahí
+ * has venido a escribir, y un campo que no se ve es un campo que no se
+ * encuentra. Por eso hay dos variantes y las dos son explícitas.
+ */
+.campo {
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-weight: 500;
+  transition:
+    background var(--rapido) var(--curva),
+    border-color var(--rapido) var(--curva);
+}
+
+.campo:hover {
+  border-color: var(--linea);
+}
+
+.campo:focus {
+  outline: none;
+  background: var(--fondo);
+  border-color: var(--hueco);
+}
+
+.campo.dinero {
+  text-align: right;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.campo.visible {
+  height: 38px;
+  padding: 0 12px;
+  border-color: var(--linea);
+  background: var(--superficie);
+  border-radius: var(--r-tile);
+  font-weight: 600;
+}
+
+.campo.visible:focus {
+  border-color: var(--acento);
+  background: var(--superficie);
+}
+
+.campo.estrecho {
+  width: 96px;
+}
+
+/*
+ * Los desplegables llevan su flecha dibujada: la nativa no se puede pintar y
+ * canta en medio de una pantalla que no tiene ni un borde gris del sistema.
+ */
+select.campo {
+  appearance: none;
+  padding-right: 30px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--tinta-3) 50%),
+    linear-gradient(135deg, var(--tinta-3) 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) center,
+    calc(100% - 11px) center;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+select.campo.visible {
+  background-position:
+    calc(100% - 16px) 17px,
+    calc(100% - 11px) 17px;
+}
+
+textarea.campo {
+  height: auto;
+  min-height: 90px;
+  padding: 10px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.campo-etiqueta {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tinta-2);
+  margin-bottom: 5px;
+}
+
+.campo-grupo {
+  margin-top: 14px;
+}
+
+.campo-grupo:first-child {
+  margin-top: 0;
+}
+
+/* El valor en reposo: parece texto, y al pasar por encima se nota que se toca. */
+.inline-valor {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  padding: 1px 4px;
+  margin: 0 -4px;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  transition: background var(--rapido) var(--curva);
+}
+
+.inline-valor:hover {
+  background: var(--fondo);
+}
+
+.inline-valor.vacio {
+  color: var(--tinta-3);
+}
+
+.buscador {
+  position: relative;
+  min-width: 150px;
+  flex: 1;
+}
+
+.buscador-lista {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow: auto;
+  background: var(--superficie);
+  border-radius: var(--r-tile);
+  box-shadow: var(--sombra);
+  padding: 5px;
+}
+
+.buscador-lista button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.buscador-lista button:hover,
+.buscador-lista button.destacada {
+  background: var(--fondo);
+}
+
+.buscador-vacio {
+  padding: 10px;
+  font-size: 13px;
+  color: var(--tinta-3);
+}
+
+/* ---------------------------------------------------------------------------
+ * Interruptor
+ * ------------------------------------------------------------------------- */
+
+.interruptor {
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 22px;
+  border-radius: var(--r-pill);
+  background: var(--hueco);
+  transition: background var(--rapido) var(--curva);
+}
+
+.interruptor::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--superficie);
+  transition: transform var(--rapido) var(--curva);
+}
+
+.interruptor[aria-checked='true'] {
+  background: var(--tinta);
+}
+
+.interruptor[aria-checked='true']::after {
+  transform: translateX(16px);
+}
+
+/* ---------------------------------------------------------------------------
+ * Dialog
+ * ------------------------------------------------------------------------- */
+
+.velo {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(17, 17, 17, 0.28);
+}
+
+.dialogo {
+  position: fixed;
+  z-index: 51;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(460px, calc(100vw - 32px));
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--superficie);
+  border-radius: var(--r-card);
+  box-shadow: var(--sombra);
+}
+
+.dialogo-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px 10px;
+}
+
+.dialogo-titulo {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  flex: 1;
+}
+
+.dialogo-cuerpo {
+  overflow-y: auto;
+  padding: 0 20px 18px;
+}
+
+/* Una acción del diálogo: qué hace arriba, qué pasa si lo haces debajo. */
+.accion {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 0;
+  border-top: 1px solid var(--linea);
+  text-align: left;
+}
+
+.accion:first-of-type {
+  border-top: 0;
+}
+
+.accion-cuerpo {
+  flex: 1;
+  min-width: 0;
+}
+
+.accion-titulo {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.accion-detalle {
+  font-size: 12px;
+  color: var(--tinta-3);
+  margin-top: 2px;
+  line-height: 1.45;
+}
+
+.accion.peligro .accion-titulo,
+.accion.peligro .ico {
+  color: var(--comida);
+}
+
+.confirmacion {
+  display: grid;
+  gap: 10px;
+  padding: 4px 0 4px;
+}
+
+.confirmacion-frase {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.confirmacion-botones {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 4px;
+}
+
+@media (max-width: 760px) {
+  /* En el móvil sube desde abajo, que es donde llega el pulgar. */
+  .dialogo {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    max-height: 88vh;
+    border-radius: var(--r-card) var(--r-card) 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Toast
+ * ------------------------------------------------------------------------- */
+
+.toast-hueco {
+  flex: 0 0 100%;
+  width: 100%;
+}
+
+.toasts {
+  display: grid;
+  gap: 8px;
+}
+
+.toasts:empty {
+  display: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border-radius: var(--r-tile);
+  background: var(--tinta);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.toast.error {
+  background: var(--comida);
+}
+
+.toast > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast button {
+  color: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.toast .btn-icono {
+  color: inherit;
+  opacity: 0.7;
+  width: 22px;
+  height: 22px;
+}
+
+.toast .btn-icono:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: inherit;
+  opacity: 1;
+}
+
+/* Sin barra donde aterrizar (la pantalla del PIN) se queda flotando abajo. */
+.toasts.flotante {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 60;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+}
+
+/* ---------------------------------------------------------------------------
+ * EmptyState y estados de carga
+ * ------------------------------------------------------------------------- */
+
+.vacio {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 34px 20px;
+  text-align: center;
+  color: var(--tinta-2);
+  font-size: 13px;
+}
+
+.vacio .ico {
+  color: var(--tinta-3);
+  background: var(--fondo);
+}
+
+.vacio-frase {
+  font-weight: 600;
+  color: var(--tinta);
+  font-size: 14px;
+}
+
+.cargando {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--tinta-3);
+  font-size: 13px;
+}
+
+.esqueleto {
+  display: grid;
+  gap: 10px;
+}
+
+.esqueleto > span {
+  display: block;
+  height: 34px;
+  border-radius: var(--r-tile);
+  background: var(--linea);
+}
+
+/* ---------------------------------------------------------------------------
+ * DataTable
+ * ------------------------------------------------------------------------- */
+
+.tabla-marco {
+  overflow-x: auto;
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabla th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tinta-2);
+  text-align: left;
+  padding: 0 10px 8px;
+  white-space: nowrap;
+}
+
+.tabla td {
+  padding: 9px 10px;
+  border-top: 1px solid var(--linea);
+  vertical-align: middle;
+}
+
+.tabla th.num,
+.tabla td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* La primera columna se queda fija al desplazar de lado. */
+.tabla th:first-child,
+.tabla td:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--superficie);
+  z-index: 1;
+}
+
+/* Una línea fuerte separa los totales de los meses. */
+.tabla .separa {
+  border-left: 1px solid var(--hueco);
+}
+
+.tabla tr.destacada td {
+  background: var(--acento-fondo);
+}
+
+.tabla tr.destacada td:first-child {
+  background: var(--acento-fondo);
+}
+
+.tabla td.mes-actual {
+  background: var(--acento-fondo);
+}
+
+.tabla tr.total td {
+  font-weight: 800;
+  border-top-color: var(--hueco);
+}
+
+.tabla .apagado {
+  color: var(--tinta-3);
+}
+
+/* ---------------------------------------------------------------------------
+ * Dropzone
+ * ------------------------------------------------------------------------- */
+
+.dropzone {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 34px 20px;
+  border: 1px dashed var(--hueco);
+  border-radius: var(--r-tile);
+  background: var(--fondo);
+  text-align: center;
+  transition:
+    border-color var(--rapido) var(--curva),
+    background var(--rapido) var(--curva);
+}
+
+.dropzone.encima {
+  border-color: var(--acento);
+  border-style: solid;
+  background: var(--acento-fondo);
+}
+
+.dropzone-titulo {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.dropzone-botones {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Menú flotante de una fila
+ * ------------------------------------------------------------------------- */
+
+.menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  right: 0;
+  display: grid;
+  min-width: 190px;
+  padding: 5px;
+  border-radius: var(--r-tile);
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+
+.menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.menu button:hover {
+  background: var(--fondo);
+}
+
+.menu button.peligro {
+  color: var(--comida);
+}
+
+/* ---------------------------------------------------------------------------
+ * Rejillas que usan las pantallas
+ * ------------------------------------------------------------------------- */
+
+.dos-columnas {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  align-items: start;
+  gap: 12px;
+}
+
+.columna {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.rejilla-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+.fila-campos {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pila {
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .dos-columnas,
+  .rejilla-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Botón flotante del alta rápida en móvil. */
+.flotante {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .flotante {
+    position: fixed;
+    right: 16px;
+    bottom: 84px;
+    z-index: 25;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--tinta);
+    color: #fff;
+    box-shadow: var(--sombra);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Accesibilidad
+ * ------------------------------------------------------------------------- */
+
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * SelectorDeMes
+ * ------------------------------------------------------------------------- */
+
+.selector-mes {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Área de toque de 30 px: pasar de mes es lo que más se hace en esta app. */
+.flecha {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--tinta-3);
+  transition:
+    background var(--rapido) var(--curva),
+    color var(--rapido) var(--curva);
+}
+
+.flecha:hover:not(:disabled) {
+  color: var(--tinta);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.nombre-mes {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: inherit;
+  transition: background var(--rapido) var(--curva);
+}
+
+.nombre-mes:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Los doce meses de un año: de agosto a enero en un solo clic. */
+.calendario {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 260px;
+  padding: 10px;
+  border-radius: var(--r-tile);
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+  color: var(--tinta);
+}
+
+.calendario-anio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.calendario-meses {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.calendario-mes {
+  height: 34px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tinta-2);
+  transition:
+    background var(--rapido) var(--curva),
+    color var(--rapido) var(--curva);
+}
+
+.calendario-mes:hover {
+  background: var(--fondo);
+  color: var(--tinta);
+}
+
+.calendario-mes.on {
+  background: var(--tinta);
+  color: #fff;
+}
+
+/* El mes de hoy va subrayado: se encuentra sin leer los números. */
+.calendario-mes.hoy:not(.on) {
+  color: var(--tinta);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Alta rápida
+ * ------------------------------------------------------------------------- */
+
+.alta {
+  margin-bottom: 8px;
+}
+
+.alta-linea {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--fondo);
+  border-radius: var(--r-tile);
+  padding: 4px 8px 4px 14px;
+  color: var(--tinta-3);
+}
+
+.alta-linea input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: 0;
+  background: none;
+  font-size: 14px;
+  color: var(--tinta);
+}
+
+.alta-linea input::placeholder {
+  color: var(--tinta-3);
+}
+
+.alta-linea input:focus {
+  outline: none;
+}
+
+.alta-desplegada {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* Cuando el sobre se agota, el tile se vuelve del color de la comida. */
+.tile.sobre-agotado {
+  background: var(--comida-suave);
+}
+
+.tile.sobre-agotado .tile-h,
+.tile.sobre-agotado .tile-pie {
+  color: var(--comida);
+}
+
+/* ---------------------------------------------------------------------------
+ * Sección plegable y análisis del mes
+ * ------------------------------------------------------------------------- */
+
+.plegable {
+  margin-top: 12px;
+}
+
+.plegable-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+}
+
+.plegable-cabecera .muted {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.analisis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px 32px;
+  margin-top: 18px;
+}
+
+.analisis-ancho {
+  grid-column: 1 / -1;
+}
+
+.analisis-titulo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tinta-2);
+  letter-spacing: 0;
+  margin-bottom: 10px;
+}
+
+.analisis-tarta {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.analisis-leyenda {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.analisis-leyenda span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.analisis-leyenda i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.analisis-leyenda b {
+  margin-left: auto;
+  font-weight: 800;
+}
+
+.regla-linea {
+  margin-bottom: 14px;
+}
+
+.regla-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.regla-barra {
+  position: relative;
+}
+
+.regla-barra .seg {
+  margin-top: 0;
+  height: 10px;
+}
+
+/* La marca del ideal cruza la barra en vez de recortarla. */
+.regla-ideal {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 16px;
+  background: var(--tinta);
+  opacity: 0.45;
+}
+
+@media (max-width: 760px) {
+  .analisis {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Revisión del extracto
+ *
+ * Es la pantalla más densa de la aplicación —setenta líneas que hay que mirar
+ * una a una— así que usa las mismas piezas pero apretadas. Lo único propio es
+ * que la fila tiene dos alturas: debajo de la descripción limpia va la del
+ * banco, que es la que hay que poder cotejar.
+ * ------------------------------------------------------------------------- */
+
+.conteo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--tinta-2);
+}
+
+.conteo b {
+  color: var(--tinta);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.conteo-pendiente {
+  background: var(--ambar-suave);
+  color: var(--ambar);
+  cursor: pointer;
+}
+
+.conteo-pendiente b {
+  color: var(--ambar);
+}
+
+.muted.pendiente {
+  color: var(--ambar);
+  font-weight: 600;
+}
+
+.conteo-burbuja {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: var(--r-pill);
+  background: var(--fondo);
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El bloque que pide atención lo dice en ámbar, no en rojo. */
+.card.pide-atencion {
+  background: var(--ambar-suave);
+}
+
+.card.pide-atencion .conteo-burbuja {
+  background: var(--superficie);
+  color: var(--ambar);
+}
+
+.aviso-ambar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--r-tile);
+  background: var(--ambar-suave);
+  color: var(--ambar);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.linea-extracto {
+  display: grid;
+  grid-template-columns: 18px 82px minmax(0, 1fr) 110px 220px 30px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--linea);
+  font-size: 14px;
+}
+
+.linea-extracto:first-of-type {
+  border-top: 0;
+}
+
+.linea-extracto.seleccionada {
+  background: var(--fondo);
+}
+
+.linea-extracto.enfocada {
+  box-shadow: inset 2px 0 0 var(--acento);
+}
+
+/* Lo que se acaba de tocar se enciende un momento: con setenta líneas iguales,
+   si no, no sabes cuál has cambiado. */
+.linea-extracto.recien {
+  background: var(--acento-fondo);
+}
+
+input.casilla {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--tinta);
+}
+
+.linea-fecha {
+  font-size: 12px;
+  color: var(--tinta-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.linea-texto {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+/*
+ * En bloque y no en flex: `text-overflow: ellipsis` no recorta a los hijos de
+ * un contenedor flex, y la descripción del banco se salía de la fila.
+ */
+.linea-texto .row-titulo {
+  display: block;
+}
+
+.linea-texto .row-titulo .chip {
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+
+.linea-texto .d {
+  font-size: 11px;
+}
+
+.linea-texto .d.nota {
+  color: var(--ambar);
+}
+
+.linea-concepto {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.barra-seleccion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-radius: var(--r-tile);
+  background: var(--tinta);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.barra-seleccion .btn-text {
+  color: #fff;
+}
+
+@media (max-width: 760px) {
+  /* La línea se parte en dos alturas: texto arriba, lo demás debajo. */
+  .linea-extracto {
+    grid-template-columns: 18px 76px minmax(0, 1fr) 100px;
+    grid-template-areas:
+      'casilla fecha texto texto'
+      'casilla fecha concepto importe';
+    row-gap: 6px;
+  }
+
+  .linea-extracto > input.casilla {
+    grid-area: casilla;
+    align-self: start;
+    margin-top: 3px;
+  }
+
+  .linea-fecha {
+    grid-area: fecha;
+    align-self: start;
+  }
+
+  .linea-texto {
+    grid-area: texto;
+  }
+
+  .linea-concepto {
+    grid-area: concepto;
+  }
+
+  .linea-extracto > .amt {
+    grid-area: importe;
+  }
+
+  .linea-extracto > .row-acciones {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Elegir el aspecto de un concepto
+ * ------------------------------------------------------------------------- */
+
+/* El icono de una fila también es un botón cuando se puede cambiar. */
+.ico-boton {
+  display: inline-flex;
+  border-radius: var(--r-ico);
+  flex: none;
+  transition: box-shadow var(--rapido) var(--curva);
+}
+
+.ico-boton:hover {
+  box-shadow: 0 0 0 2px var(--hueco);
+}
+
+.rejilla-aspecto {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.aspecto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-tile);
+  background: var(--fondo);
+  color: var(--tinta-2);
+  border: 2px solid transparent;
+  transition: border-color var(--rapido) var(--curva);
+}
+
+.aspecto.elegido {
+  border-color: var(--acento);
+}
+
+/* En una fila estrecha, el detalle largo estorba; se va antes que el nombre. */
+@media (max-width: 900px) {
+  .solo-ancho {
+    display: none;
+  }
+}
+
+/* En una celda, el nombre y su vigencia son dos líneas, no una frase pegada. */
+.celda-concepto {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+/* La última línea de un resumen pesa más: es la que se lee. */
+.row.total-plantilla {
+  border-top-color: var(--hueco);
+  font-weight: 800;
+}
+
+/* Una celda de la matriz que lleva a su mes. */
+.celda-enlace {
+  font: inherit;
+  color: inherit;
+  border-radius: 6px;
+  padding: 1px 4px;
+  margin: 0 -4px;
+  font-variant-numeric: tabular-nums;
+  transition: background var(--rapido) var(--curva);
+}
+
+.celda-enlace:hover {
+  background: var(--fondo);
+}
+
+/* ---------------------------------------------------------------------------
+ * PIN
+ * ------------------------------------------------------------------------- */
+
+.pin-pantalla {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  padding: 24px;
+  background: var(--acento-fondo);
+}
+
+.pin-cabecera {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.pin-icono {
+  color: var(--tinta-3);
+}
+
+.pin-titulo {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.pin-titulo span {
+  color: var(--acento);
+}
+
+.pin-texto {
+  font-size: 13px;
+  color: var(--tinta-2);
+}
+
+.pin-puntos {
+  display: flex;
+  gap: 12px;
+  margin: 18px 0 26px;
+}
+
+.pin-punto {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(17, 17, 17, 0.14);
+  transition: background var(--rapido) var(--curva);
+}
+
+.pin-punto.lleno {
+  background: var(--tinta);
+}
+
+.pin-teclado {
+  display: grid;
+  grid-template-columns: repeat(3, 76px);
+  gap: 14px;
+}
+
+.pin-tecla {
+  height: 64px;
+  border-radius: 50%;
+  background: var(--superficie);
+  box-shadow: var(--sombra-pill);
+  font-size: 24px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--rapido) var(--curva);
+}
+
+.pin-tecla:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.pin-tecla.vacia {
+  background: none;
+  box-shadow: none;
+}
+
+.pin-pie {
+  margin-top: 22px;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .pin-teclado {
+    grid-template-columns: repeat(3, 70px);
+  }
+}

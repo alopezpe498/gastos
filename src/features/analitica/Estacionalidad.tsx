@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Estacionalidad as Datos } from '../../lib/tipos'
-import { ErrorLinea, EstadoVacio } from '../../components/Basicos'
-import { EsqueletoLista } from '../../components/Esqueleto'
-import { GraficoBarras, MapaCalor } from '../../components/graficos/Graficos'
+
+import { GraficoBarras, MapaCalor } from '../../components/ui/GraficosGrandes'
 import { euros, MESES_CORTOS } from '../../lib/formato'
+import { ErrorLinea, Esqueleto, Vacio } from '../../components/ui/Basicos'
 
 /**
  * En qué meses se dispara cada cosa.
@@ -32,10 +32,10 @@ export function Estacionalidad({ consulta }: { consulta: string }) {
   }, [consulta])
 
   if (error) return <ErrorLinea mensaje={error} />
-  if (!datos) return <EsqueletoLista filas={10} />
+  if (!datos) return <Esqueleto filas={10} />
 
   if (datos.filas.length === 0) {
-    return <EstadoVacio icono="—" titulo="Sin datos en este rango" texto="Prueba con otro periodo." />
+    return <Vacio frase="Sin datos en este rango" />
   }
 
   const conPunta = datos.filas.filter((f) => f.puntaEn)

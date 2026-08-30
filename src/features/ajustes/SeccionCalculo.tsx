@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Ajustes, Concepto, GrupoFijos } from '../../lib/tipos'
-import { useAvisos } from '../../components/Avisos'
-import { IconoPapelera } from '../../components/Iconos'
+import { useAvisos } from '../../components/ui/Toast'
+import { Icono } from '../../components/ui/Icono'
 
 type Props = {
   ajustes: Ajustes
@@ -140,7 +140,7 @@ export function SeccionCalculo({ ajustes, conceptos, onGuardado }: Props) {
                 aria-label={`Borrar el grupo "${grupo.nombre}"`}
                 onClick={() => cambiarGrupos(ajustes.gruposFijos.filter((_, i) => i !== indice))}
               >
-                <IconoPapelera size={18} />
+                <Icono nombre="papelera" size={18} />
               </button>
             </div>
 

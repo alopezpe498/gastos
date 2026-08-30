@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Comparativa as Datos, RangoDisponible } from '../../lib/tipos'
-import { ErrorLinea } from '../../components/Basicos'
-import { EsqueletoLista } from '../../components/Esqueleto'
-import { GraficoBarrasAgrupadas } from '../../components/graficos/Graficos'
+
+import { GraficoBarrasAgrupadas } from '../../components/ui/GraficosGrandes'
 import { euros, NOMBRES_MESES, porcentaje } from '../../lib/formato'
 import { Variacion } from './Piezas'
+import { ErrorLinea, Esqueleto } from '../../components/ui/Basicos'
 
 type Orden = 'importe' | 'variacion'
 
@@ -118,7 +118,7 @@ export function Comparativa({
       ) : null}
 
       {!datos ? (
-        <EsqueletoLista filas={8} />
+        <Esqueleto filas={8} />
       ) : (
         <>
           {/* ---------- totales ---------- */}

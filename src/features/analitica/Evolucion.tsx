@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { RangoDisponible, Serie } from '../../lib/tipos'
-import { ErrorLinea, EstadoVacio } from '../../components/Basicos'
-import { EsqueletoResumen } from '../../components/Esqueleto'
-import { GraficoLineas, type Linea } from '../../components/graficos/Graficos'
-import { Interruptor } from '../../components/Campos'
+import { GraficoLineas, type Linea } from '../../components/ui/GraficosGrandes'
+import { ErrorLinea, Esqueleto, Interruptor, Vacio } from '../../components/ui/Basicos'
 import { cuantos, euros, MESES_CORTOS, porcentaje } from '../../lib/formato'
 import { Tarjetas, Variacion } from './Piezas'
 
@@ -88,7 +86,7 @@ export function Evolucion({
   }, [serie, superponer])
 
   if (error) return <ErrorLinea mensaje={error} />
-  if (!serie) return <EsqueletoResumen />
+  if (!serie) return <Esqueleto />
 
   const variosAnios = serie.porAnio.length > 1
 
@@ -123,11 +121,7 @@ export function Evolucion({
       </div>
 
       {serie.resumen.mesesConDatos === 0 ? (
-        <EstadoVacio
-          icono="—"
-          titulo="Sin datos en este rango"
-          texto="No hay ningún apunte de este concepto en las fechas elegidas."
-        />
+        <Vacio frase="Sin datos en este rango No hay ningún apunte de este concepto en las fechas elegidas." />
       ) : (
         <>
           <Tarjetas
@@ -176,7 +170,7 @@ export function Evolucion({
               <Interruptor
                 activo={superponer}
                 onCambiar={setSuperponer}
-                ariaLabel="Superponer los años"
+                etiqueta="Superponer los años"
               />
             </div>
           ) : null}

@@ -29,7 +29,7 @@ for (const t of [
   await pagina.waitForTimeout(800)
 
   // El mes al que va: agosto de 2026, por el desplegable nuevo.
-  await pagina.getByRole('button', { name: /^(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre) \d{4}$/ }).first().click()
+  await pagina.getByRole('button', { name: /^(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)$/ }).first().click()
   await pagina.waitForTimeout(400)
   await pagina.getByRole('button', { name: 'Ago', exact: true }).click()
   await pagina.waitForTimeout(600)

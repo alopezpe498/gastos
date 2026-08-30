@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Importacion, Mes, PropuestaExtracto } from '../../lib/tipos'
-import { Confirmar } from '../../components/Basicos'
-import { useAvisos } from '../../components/Avisos'
-import { SelectorDeMes } from '../../components/SelectorDeMes'
-import { IconoSubir, IconoDocumento, IconoPortapapeles } from '../../components/Iconos'
+import { BotonPrimario, BotonTexto, Card, Chip } from '../../components/ui/Basicos'
+import { CampoArea } from '../../components/ui/Campos'
+import { Dropzone } from '../../components/ui/Dropzone'
+import { Fila } from '../../components/ui/Fila'
+import { useAvisos } from '../../components/ui/Toast'
+import { SelectorDeMes } from '../../components/ui/SelectorDeMes'
 import { cuantos, fecha as fechaCorta, NOMBRES_MESES } from '../../lib/formato'
 import { RevisionExtracto } from './RevisionExtracto'
 
@@ -44,10 +46,6 @@ export function PantallaExtracto({
   const [error, setError] = useState('')
   // Sube al aceptar, deshacer o volver del historial: fuerza a releerlo.
   const [refrescos, setRefrescos] = useState(0)
-  // Se enciende mientras hay un archivo encima: sin esto la zona no dice que
-  // acepta lo que estás arrastrando, y arrastrar a ciegas no lo hace nadie.
-  const [arrastrando, setArrastrando] = useState(false)
-  const archivo = useRef<HTMLInputElement>(null)
   const botonArchivo = useRef<HTMLButtonElement>(null)
 
   const mes = meses.find((m) => m.id === mesId) ?? null
@@ -145,121 +143,74 @@ export function PantallaExtracto({
 
   return (
     <>
-      <section className="seccion">
-        <div className="seccion-cabecera">
-          <div>
-            <h3 className="seccion-titulo">Extracto del banco</h3>
-            <p className="seccion-pista">
-              Sube el archivo del banco y te lo reparte: concilia los fijos, crea los variables y la
-              comida, y te deja solo los que no reconoce. Nada se guarda hasta que lo aceptes, y se
-              puede deshacer entero.
-            </p>
-          </div>
+      <Card
+        titulo="Extracto del banco"
+        ayuda="Sube el archivo del banco y te lo reparte: concilia los fijos, crea los variables y la comida, y te deja solo los que no reconoce. Nada se guarda hasta que lo aceptes, y se puede deshacer entero."
+      >
+        {/*
+          El mes va arriba del todo y con el mismo desplegable que la pantalla
+          Mes: es la primera decisión y no puede parecer un detalle.
+        */}
+        <div className="fila-campos" style={{ marginBottom: 12 }}>
+          <span className="card-titulo" style={{ fontSize: 14 }}>
+            Mes al que va
+          </span>
+          {mes ? (
+            <SelectorDeMes anio={mes.anio} mes={mes.mes} onIr={irAlMes} />
+          ) : (
+            <span className="muted">No hay ningún mes abierto todavía</span>
+          )}
         </div>
 
-        <div
-          className={`bloque zona-archivo${arrastrando ? ' encima' : ''}`}
-          onDragOver={(e) => {
-            e.preventDefault()
-            if (!cerrado) setArrastrando(true)
-          }}
-          onDragLeave={() => setArrastrando(false)}
-          onDrop={(e) => {
-            e.preventDefault()
-            setArrastrando(false)
-            const fichero = e.dataTransfer.files?.[0]
-            if (fichero && !cerrado) void subir(fichero)
-          }}
-        >
-          {/*
-            El mes va arriba del todo y con el mismo desplegable que la pantalla
-            Mes: es la primera decisión y no puede parecer un detalle de un
-            formulario. Si el mes elegido no está abierto, se dice aquí.
-          */}
-          <div className="zona-mes">
-            <span className="titulo-bloque">Mes al que va</span>
-            {mes ? (
-              <SelectorDeMes anio={mes.anio} mes={mes.mes} onIr={irAlMes} />
-            ) : (
-              <span className="t12">No hay ningún mes abierto todavía</span>
-            )}
-          </div>
+        {cerrado ? (
+          <p className="muted" style={{ marginBottom: 12 }}>
+            Ese mes está cerrado. Reábrelo desde el menú del mes antes de importar en él.
+          </p>
+        ) : null}
 
-          {cerrado ? (
-            <p className="banda-aviso">
-              Ese mes está cerrado. Reábrelo desde el menú del mes antes de importar en él.
-            </p>
-          ) : null}
+        <Dropzone
+          titulo="Arrastra aquí el archivo del banco"
+          texto=".xls, .xlsx o .csv — o si lo prefieres:"
+          textoBoton="Elegir archivo"
+          accept=".xls,.xlsx,.csv,text/csv"
+          cargando={cargando}
+          disabled={cerrado}
+          onArchivo={(f: File) => void subir(f)}
+          extra={
+            <BotonTexto icono="nota" disabled={cargando || cerrado} onClick={() => setPegando((p) => !p)}>
+              Pegar una tabla
+            </BotonTexto>
+          }
+        />
 
-          <div className="zona-archivo-caja">
-            <IconoSubir size={26} className="zona-archivo-icono" />
-            <p className="zona-archivo-titulo">Arrastra aquí el archivo del banco</p>
-            <p className="zona-archivo-texto">.xls, .xlsx o .csv — o si lo prefieres:</p>
-
-            <div className="fila-botones">
-              <button
-                ref={botonArchivo}
-                className="boton boton-negro"
-                disabled={cargando || cerrado}
-                onClick={() => archivo.current?.click()}
-              >
-                <IconoDocumento size={16} />
-                {cargando ? 'Leyendo…' : 'Elegir archivo'}
-              </button>
-              <button
-                className="boton"
-                disabled={cargando || cerrado}
-                onClick={() => setPegando((p) => !p)}
-              >
-                <IconoPortapapeles size={16} />
-                Pegar una tabla
-              </button>
-            </div>
-
-            <input
-              ref={archivo}
-              type="file"
-              accept=".xls,.xlsx,.csv,text/csv"
-              hidden
-              onChange={(e) => {
-                const fichero = e.target.files?.[0]
-                e.target.value = ''
-                if (fichero) void subir(fichero)
-              }}
+        {pegando ? (
+          <div style={{ marginTop: 12, display: 'grid', gap: 10, justifyItems: 'start' }}>
+            <CampoArea
+              valor={texto}
+              etiqueta="Tabla pegada"
+              placeholder="Pega aquí las filas copiadas del banco, con su cabecera."
+              filas={8}
+              onGuardar={setTexto}
             />
+            <BotonPrimario disabled={!texto.trim() || cargando} onClick={() => void enviar({ texto })}>
+              Leer lo pegado
+            </BotonPrimario>
           </div>
+        ) : null}
 
-          {pegando ? (
-            <div className="zona-pegado">
-              <textarea
-                className="campo-texto"
-                rows={8}
-                placeholder="Pega aquí las filas copiadas del banco, con su cabecera."
-                value={texto}
-                onChange={(e) => setTexto(e.target.value)}
-              />
-              <button
-                className="boton boton-negro"
-                disabled={!texto.trim() || cargando}
-                onClick={() => void enviar({ texto })}
-              >
-                Leer lo pegado
-              </button>
-            </div>
-          ) : null}
+        {error ? (
+          <p className="muted" style={{ marginTop: 12, color: 'var(--comida)' }}>
+            {error}
+          </p>
+        ) : null}
 
-          {error ? <p className="banda-aviso alerta">{error}</p> : null}
-
-          {onVerReglas ? (
-            <p className="pista zona-archivo-pie">
-              Lo que reconoce cada movimiento son las reglas.{' '}
-              <button className="boton-texto" onClick={onVerReglas}>
-                Ver reglas
-              </button>
-            </p>
-          ) : null}
-        </div>
-      </section>
+        {onVerReglas ? (
+          <p className="muted" style={{ marginTop: 12, textAlign: 'center' }}>
+            Lo que reconoce cada movimiento son las reglas.{' '}
+            <BotonTexto onClick={onVerReglas}>Ver reglas</BotonTexto>
+          </p>
+        ) : null}
+      </Card>
 
       <HistorialImportaciones
         mesId={mesId}
@@ -331,45 +282,48 @@ function HistorialImportaciones({
   if (!historial || historial.length === 0) return null
 
   return (
-    <section className="seccion" data-historial>
-      <h3 className="seccion-titulo">
-        Importaciones de {nombreMes || 'este mes'}
-      </h3>
-      <div className="tarjeta">
-        {historial.map((i) => (
-          <div className="fila" key={i.id}>
-            <div className="fila-cuerpo">
-              <span className="fila-titulo">
-                {i.nombreArchivo ?? 'Sin nombre'}
-                {i.estado !== 'aceptada' ? (
-                  <span className="etiqueta-mini">{i.estado}</span>
-                ) : null}
+    <Card titulo={`Importaciones de ${nombreMes || 'este mes'}`}>
+      {historial.map((i) =>
+        aDeshacer?.id === i.id ? (
+          /* La pregunta va en la propia fila: ahí se ve de cuál se trata. */
+          <Fila
+            key={i.id}
+            confirmando
+            titulo="¿Deshacer esta importación?"
+            importe={
+              <span className="fila-campos" style={{ gap: 8, marginLeft: 'auto' }}>
+                <BotonPrimario peligro onClick={() => void deshacer()}>
+                  Deshacer
+                </BotonPrimario>
+                <BotonTexto onClick={() => setADeshacer(null)}>Cancelar</BotonTexto>
               </span>
-              <span className="fila-detalle">
-                {fechaCorta(i.fecha.slice(0, 10))} · {cuantos(i.conteos.movimientos, 'movimiento')}
-                {i.estado === 'aceptada'
-                  ? ` · ${i.conteos.fijos} fijos, ${i.conteos.variables} variables`
-                  : ''}
-              </span>
-            </div>
-            {i.estado === 'aceptada' ? (
-              <button className="boton boton-secundario boton-compacto" onClick={() => setADeshacer(i)}>
-                Deshacer
-              </button>
-            ) : null}
-          </div>
-        ))}
-      </div>
-
-      <Confirmar
-        abierto={!!aDeshacer}
-        titulo="¿Deshacer esta importación?"
-        mensaje="Se borran los apuntes que creó y los fijos vuelven a pendiente con su importe previsto. Las reglas aprendidas se quedan."
-        textoConfirmar="Deshacer"
-        peligroso
-        onConfirmar={() => void deshacer()}
-        onCancelar={() => setADeshacer(null)}
-      />
-    </section>
+            }
+          />
+        ) : (
+          <Fila
+            key={i.id}
+            titulo={i.nombreArchivo ?? 'Sin nombre'}
+            detalle={
+              `${fechaCorta(i.fecha.slice(0, 10))} · ${cuantos(i.conteos.movimientos, 'movimiento')}` +
+              (i.estado === 'aceptada'
+                ? ` · ${i.conteos.fijos} fijos, ${i.conteos.variables} variables`
+                : '')
+            }
+            centro={i.estado !== 'aceptada' ? <Chip>{i.estado}</Chip> : null}
+            importe={
+              i.estado === 'aceptada' ? (
+                <span style={{ marginLeft: 'auto' }}>
+                  <BotonTexto onClick={() => setADeshacer(i)}>Deshacer</BotonTexto>
+                </span>
+              ) : undefined
+            }
+          />
+        ),
+      )}
+      <p className="muted-3" style={{ marginTop: 8 }}>
+        Deshacer borra los apuntes que creó y devuelve los fijos a pendiente con su importe
+        previsto. Las reglas aprendidas se quedan.
+      </p>
+    </Card>
   )
 }

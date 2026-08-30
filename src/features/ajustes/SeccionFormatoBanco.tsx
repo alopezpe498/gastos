@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { FormatoBanco as FormatoBancoTipo, LecturaPrueba } from '../../lib/tipos'
-import { useAvisos } from '../../components/Avisos'
-import { CampoTextoLinea } from '../../components/Campos'
-import { IconoPapelera } from '../../components/Iconos'
+import { useAvisos } from '../../components/ui/Toast'
 import { euros } from '../../lib/formato'
+import { CampoTexto } from '../../components/ui/Campos'
+import { Icono } from '../../components/ui/Icono'
 
 /**
  * Cómo viene el fichero del banco.
@@ -95,9 +95,9 @@ export function SeccionFormatoBanco() {
             <div className="fila-cuerpo">
               <span className="fila-titulo">{etiqueta}</span>
             </div>
-            <CampoTextoLinea
+            <CampoTexto
               valor={String(formato[campo] ?? '')}
-              ariaLabel={etiqueta}
+              etiqueta={etiqueta}
               maxLength={60}
               onGuardar={(valor) => void cambiar({ [campo]: valor } as Partial<FormatoBancoTipo>)}
             />
@@ -122,7 +122,7 @@ export function SeccionFormatoBanco() {
                 })
               }
             >
-              <IconoPapelera size={18} />
+              <Icono nombre="papelera" size={18} />
             </button>
           </div>
         ))}

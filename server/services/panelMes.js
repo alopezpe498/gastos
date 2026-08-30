@@ -1,4 +1,5 @@
 import * as movimientosBd from '../db/movimientos.js'
+import * as mesesBd from '../db/meses.js'
 import * as conceptosBd from '../db/conceptos.js'
 import { comidaQueCuenta } from './calculos.js'
 import { diasDelMes } from '../lib/fechas.js'
@@ -29,6 +30,35 @@ function diasEntre(desde, hasta) {
     dias.push(d.toISOString().slice(0, 10))
   }
   return dias
+}
+
+/**
+ * Lo mismo que gasto en extras, pero del mismo mes del ano pasado.
+ *
+ * Solo se devuelve si ese mes existe: comparar contra un mes que no se llevo
+ * es inventarse una mejora que no ha pasado.
+ */
+function extrasDelAnoPasado(mes) {
+  const anterior = mesesBd.porFecha(mes.anio - 1, mes.mes)
+  if (!anterior) return null
+  const total = movimientosBd
+    .delMes(anterior.id)
+    .filter((m) => m.tipo === 'variable' && !m.esObjetivo)
+    .reduce((t, m) => t + m.importe, 0)
+  return redondear(total)
+}
+
+/** El importe que tuvo ese mismo fijo el mes anterior, para dar contexto. */
+function importesDelMesAnterior(mes) {
+  const previo = mes.mes === 1 ? { anio: mes.anio - 1, mes: 12 } : { anio: mes.anio, mes: mes.mes - 1 }
+  const anterior = mesesBd.porFecha(previo.anio, previo.mes)
+  if (!anterior) return new Map()
+  return new Map(
+    movimientosBd
+      .delMes(anterior.id)
+      .filter((m) => m.tipo === 'fijo' && m.cobrado)
+      .map((m) => [m.conceptoId, m.importe]),
+  )
 }
 
 export function panel(mes, ajustes) {
@@ -106,22 +136,44 @@ export function panel(mes, ajustes) {
     }
   })
 
+  /*
+   * Pagado, comprometido y libre.
+   *
+   * La diferencia importa: lo comprometido es dinero que todavia esta en la
+   * cuenta pero ya tiene dueno (los fijos que faltan por cobrar). Meterlo en el
+   * mismo saco que lo gastado hace creer que te queda menos, y dejarlo fuera
+   * hace creer que te queda mas. Van separados y se dicen los tres.
+   */
+  const comprometido = redondear(
+    movimientos
+      .filter((m) => m.tipo === 'fijo' && !m.cobrado && !m.esObjetivo)
+      .reduce((t, m) => t + m.importe, 0),
+  )
+  const pagado = acumulado
+  const libre = redondear((mes.ingreso ?? 0) - pagado - comprometido)
+
   // ---- los fijos ----
+  const delMesAnterior = importesDelMesAnterior(mes)
   const fijos = movimientos
     .filter((m) => m.tipo === 'fijo' && !m.esObjetivo)
     .map((m) => ({
       movimientoId: m.id,
+      conceptoId: m.conceptoId,
       concepto: m.concepto,
       importe: m.importe,
       diaPrevisto: m.diaPrevisto,
       cobrado: m.cobrado,
       // Pendiente y su dia ya paso: es lo unico que pide atencion.
       tarde: !m.cobrado && yaPaso(m.diaPrevisto, hoy, dentro),
+      /* Lo que costo el mes pasado: «176 € el mes pasado» dice si es normal. */
+      importeMesAnterior: delMesAnterior.get(m.conceptoId) ?? null,
     }))
     // Por dia previsto, que es como se leen.
     .sort((a, b) => primerDia(a.diaPrevisto) - primerDia(b.diaPrevisto))
 
   const pendientes = fijos.filter((f) => !f.cobrado)
+  // El siguiente que toca, para la frase del bloque de fijos.
+  const siguiente = pendientes[0] ?? null
 
   // El concepto que mas pesa de los extras, para la frase del bloque.
   const totalExtras = redondear([...porConcepto.values()].reduce((t, c) => t + c.total, 0))
@@ -140,8 +192,14 @@ export function panel(mes, ajustes) {
     },
     puntos,
     gastado: acumulado,
+    pagado,
+    comprometido,
+    libre,
     fijos,
     pendientes: pendientes.length,
+    siguienteFijo: siguiente
+      ? { concepto: siguiente.concepto.toLowerCase(), dia: primerDia(siguiente.diaPrevisto) }
+      : null,
     // Los dos primeros pendientes, para la frase "comunidad y luz aún no".
     nombresPendientes: pendientes.slice(0, 2).map((f) => f.concepto.toLowerCase()),
     extras: {
@@ -149,12 +207,19 @@ export function panel(mes, ajustes) {
       mayor: mayor && totalExtras > 0
         ? { concepto: mayor.concepto, porcentaje: Math.round((mayor.total / totalExtras) * 100) }
         : null,
+      /* null si ese mes no existe: no se compara contra lo que no hubo. */
+      anoPasado: extrasDelAnoPasado(mes),
     },
     comida: {
       presupuesto: mes.presupuestoComida,
       gastado: comidaGastada,
       contada: comidaContada,
       sobreId: sobre?.id ?? null,
+      /* Lo que queda del sobre repartido entre los dias que faltan. */
+      alDia:
+        diasQueQuedan > 0
+          ? redondear(Math.max(0, (mes.presupuestoComida ?? 0) - comidaGastada) / diasQueQuedan)
+          : 0,
     },
   }
 }

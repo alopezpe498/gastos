@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { IconoAbajo, IconoArriba } from '../../components/Iconos'
 import { porcentaje } from '../../lib/formato'
+import { Icono } from '../../components/ui/Icono'
 
 /** Piezas pequeñas que comparten todas las vistas de la analítica. */
 
@@ -57,9 +57,9 @@ export function Variacion({
     <span className={`variacion${relevante ? (bien ? ' bien' : ' mal') : ' neutra'}`}>
       {relevante ? (
         sube ? (
-          <IconoArriba size={13} />
+          <Icono nombre="entrada" size={13} />
         ) : (
-          <IconoAbajo size={13} />
+          <Icono nombre="abajo" size={13} />
         )
       ) : null}
       {sube ? '+' : ''}

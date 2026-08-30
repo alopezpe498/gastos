@@ -773,8 +773,10 @@ pruebas/
   fixtures/             el libro de ejemplo con el formato real
 src/
   lib/                  cliente de API, tipos, formato español, colores
-  components/           sheet, alertas, avisos, iconos, campos que guardan solos
-                        y el selector de mes (flechas + calendario de doce)
+  components/ui/        la caja de componentes: TODO lo visual sale de aquí.
+                        Ninguna pantalla escribe CSS ni HTML nativo suelto; si
+                        le falta algo, se añade a la caja y se reutiliza.
+                        En desarrollo, `#kit` las enseña todas juntas.
     graficos/           líneas, barras, área apilada, mapa de calor, sparkline
   features/
     auth/               pantalla del PIN
@@ -784,8 +786,9 @@ src/
     informe/            la hoja imprimible del mes y del año
     conceptos/          catálogo, ficha y plantilla
     ajustes/            cálculo, IA, importación, exportación y PIN
-  styles/               tres hojas: tokens, piezas comunes y lo de cada pantalla
-disenio/                la referencia visual aprobada y el encargo del rediseño
+  styles/               tokens.css (los valores), kit.css (la caja) y alias.css
+                        (nombres viejos, solo puede encoger)
+disenio/                las referencias visuales aprobadas
 ```
 
 ---

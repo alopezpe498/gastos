@@ -68,7 +68,8 @@ const irA = async (seccion) => {
     await pagina.waitForTimeout(1500)
   }
   if (seccion) {
-    await pagina.getByRole('button', { name: seccion, exact: true }).first().click()
+    const ir = pagina.getByRole('button', { name: seccion, exact: true }).first()
+    await (await ir.count() ? ir : pagina.getByRole('tab', { name: seccion, exact: true }).first()).click()
     await pagina.waitForTimeout(800)
   }
 }
@@ -99,7 +100,7 @@ await probar('Mes · marcar un fijo como cobrado', async () => {
 
 await irA(null)
 await probar('Mes · editar el importe de un fijo', async () => {
-  const campo = pagina.locator('.fila .campo.importe').first()
+  const campo = pagina.locator('.row .campo.dinero').first()
   await campo.click()
   await campo.fill('31,50')
   await campo.press('Enter')
@@ -107,7 +108,7 @@ await probar('Mes · editar el importe de un fijo', async () => {
 
 await irA(null)
 await probar('Mes · anotar el saldo del banco', async () => {
-  await pagina.getByRole('button', { name: 'Anotar el saldo del banco' }).click()
+  await pagina.getByRole('button', { name: /saldo del banco|^Saldo/ }).first().click()
   const campo = pagina.getByLabel('Saldo en cuenta')
   await campo.fill('2500')
   await campo.press('Enter')
@@ -115,7 +116,7 @@ await probar('Mes · anotar el saldo del banco', async () => {
 
 await irA(null)
 await probar('Mes · cambiar la nómina', async () => {
-  await pagina.locator('.valor-al-vuelo').first().click()
+  await pagina.locator('.inline-valor').first().click()
   const campo = pagina.getByLabel('Nómina del mes')
   await campo.fill('3300')
   await campo.press('Enter')
@@ -130,32 +131,29 @@ await probar('Mes · apuntar un gasto nuevo', async () => {
 
 await irA(null)
 await probar('Mes · duplicar un movimiento', async () => {
-  await pagina.locator('.fila .boton-icono').first().click()
+  await pagina.locator('.row .btn-icono').first().click()
   await pagina.waitForTimeout(300)
   await pagina.getByRole('button', { name: 'Duplicar', exact: true }).click()
 })
 
 await irA(null)
 await probar('Mes · borrar un movimiento', async () => {
-  await pagina.locator('.fila .boton-icono').first().click()
+  await pagina.locator('.row .btn-icono').first().click()
   await pagina.waitForTimeout(300)
   await pagina.getByRole('button', { name: 'Borrar', exact: true }).click()
   await pagina.waitForTimeout(500)
   // La confirmación vive en la propia fila.
-  await pagina.locator('.fila-borrando').getByRole('button', { name: 'Borrar' }).click()
+  await pagina.locator('.row.confirmando').getByRole('button', { name: 'Borrar' }).click()
 })
 
 await irA(null)
 await probar('Mes · cambiar el concepto de un movimiento', async () => {
-  await pagina.locator('.fila-texto').first().click()
+  // La ficha del apunte se abre pulsando su fila.
+  await pagina.locator('.row-cuerpo').first().click()
+  await pagina.waitForTimeout(600)
+  await pagina.locator('.dialogo .buscador button').first().click()
   await pagina.waitForTimeout(400)
-  const selector = pagina.locator('.selector-concepto').first()
-  if (await selector.count()) {
-    await selector.click()
-    await pagina.waitForTimeout(400)
-    const opcion = pagina.locator('.selector-lista button').nth(1)
-    if (await opcion.count()) await opcion.click()
-  }
+  await pagina.locator('.buscador-lista button').nth(1).click()
 })
 
 await mesMenu()
@@ -179,11 +177,11 @@ await probar('Mes · deshacer el borrado de un movimiento', async () => {
   await pagina.waitForTimeout(400)
   await pagina.getByRole('button', { name: 'Apuntar', exact: true }).click()
   await pagina.waitForTimeout(1200)
-  await pagina.locator('.fila .boton-icono').first().click()
+  await pagina.locator('.row .btn-icono').first().click()
   await pagina.waitForTimeout(300)
   await pagina.getByRole('button', { name: 'Borrar', exact: true }).click()
   await pagina.waitForTimeout(400)
-  await pagina.locator('.fila-borrando').getByRole('button', { name: 'Borrar' }).click()
+  await pagina.locator('.row.confirmando').getByRole('button', { name: 'Borrar' }).click()
   await pagina.waitForTimeout(1200)
   await pagina.getByRole('button', { name: 'Deshacer', exact: true }).click()
 })
@@ -205,19 +203,19 @@ await probar('Mes · cerrar el mes', async () => {
 // ---------------------------------------------------------------------------
 await irA('Conceptos')
 await probar('Conceptos · activar o desactivar', async () => {
-  await pagina.locator('.fila-concepto .interruptor').first().click()
+  await pagina.locator('.row .interruptor').first().click()
 })
 
 await irA('Conceptos')
 await probar('Conceptos · cambiar el color', async () => {
-  await pagina.locator('.punto-boton').first().click()
+  await pagina.locator('.ico-boton').first().click()
   await pagina.waitForTimeout(600)
-  await pagina.locator('.colores .color').nth(3).click()
+  await pagina.locator('.rejilla-aspecto .aspecto').nth(3).click()
 })
 
 await irA('Conceptos')
 await probar('Conceptos · reordenar arrastrando', async () => {
-  const filas = pagina.locator('.fila-concepto')
+  const filas = pagina.locator('.row')
   const origen = await filas.nth(0).boundingBox()
   const destino = await filas.nth(3).boundingBox()
   await pagina.mouse.move(origen.x + 20, origen.y + origen.height / 2)
@@ -228,9 +226,9 @@ await probar('Conceptos · reordenar arrastrando', async () => {
 
 await irA('Conceptos')
 await probar('Plantilla · editar el importe previsto', async () => {
-  await pagina.getByRole('button', { name: 'Plantilla', exact: true }).click()
+  await pagina.getByRole('tab', { name: 'Plantilla', exact: true }).click()
   await pagina.waitForTimeout(1000)
-  const campo = pagina.locator('.plantilla-fila .campo.importe').first()
+  const campo = pagina.locator('.tabla .campo.dinero').first()
   await campo.click()
   await campo.fill('35,00')
   await campo.press('Enter')
@@ -238,9 +236,9 @@ await probar('Plantilla · editar el importe previsto', async () => {
 
 await irA('Conceptos')
 await probar('Plantilla · cambiar la clasificación', async () => {
-  await pagina.getByRole('button', { name: 'Plantilla', exact: true }).click()
+  await pagina.getByRole('tab', { name: 'Plantilla', exact: true }).click()
   await pagina.waitForTimeout(1000)
-  await pagina.locator('.chip-clasificacion').first().click()
+  await pagina.locator('.tabla .chip').first().click()
 })
 
 // ---------------------------------------------------------------------------
@@ -250,7 +248,7 @@ await irA('Año')
 await probar(
   'Año · abrir un mes desde una celda',
   async () => {
-    await pagina.locator('.anual-valor:not([disabled])').first().click()
+    await pagina.locator('.celda-enlace').first().click()
   },
   { esperaEscritura: false },
 )

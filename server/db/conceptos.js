@@ -8,17 +8,35 @@ export const CLASIFICACIONES = ['necesario', 'prescindible', 'ahorro']
  * Los colores que se pueden elegir a mano. Son los mismos que reparte sola la
  * aplicacion: aqui no se inventan tintas nuevas, solo se cambia cual toca.
  */
-export const COLORES = [
-  'lavanda',
-  'ambar',
-  'verde',
-  'turquesa',
-  'rosa',
-  'oliva',
-  'tierra',
-  'azul',
-  'coral',
-  'gris',
+export const COLORES = ['extras', 'ok', 'ambar', 'azul', 'rosa', 'comida', 'neutro']
+
+/*
+ * Los iconos que se pueden elegir a mano. La lista tiene que coincidir con la
+ * de `src/components/ui/Icono.tsx`: si aqui se acepta uno que alli no existe,
+ * el concepto se queda sin dibujo.
+ */
+export const ICONOS = [
+  'casa',
+  'comida',
+  'bar',
+  'rayo',
+  'antena',
+  'pantalla',
+  'coche',
+  'flecha',
+  'avion',
+  'pesa',
+  'cruz',
+  'mochila',
+  'huella',
+  'carro',
+  'hucha',
+  'entrada',
+  'escudo',
+  'edificio',
+  'trebol',
+  'billete',
+  'etiqueta',
 ]
 
 function aConcepto(c) {
@@ -32,6 +50,8 @@ function aConcepto(c) {
     esObjetivo: !!c.es_objetivo,
     // null = el que le toque por su id. Solo se guarda si se cambia a mano.
     color: c.color ?? null,
+    // null = el que le toque por su nombre.
+    icono: c.icono ?? null,
   }
 }
 
@@ -128,7 +148,8 @@ export function actualizar(id, cambios) {
        clasificacion = @clasificacion,
        activo = @activo,
        es_objetivo = @esObjetivo,
-       color = @color
+       color = @color,
+       icono = @icono
      WHERE id = @id`,
   ).run({
     id,
@@ -139,6 +160,7 @@ export function actualizar(id, cambios) {
     activo: (cambios.activo ?? actual.activo) ? 1 : 0,
     esObjetivo: (cambios.esObjetivo ?? actual.esObjetivo) ? 1 : 0,
     color: cambios.color === undefined ? actual.color : cambios.color || null,
+    icono: cambios.icono === undefined ? actual.icono : cambios.icono || null,
   })
   return obtener(id)
 }

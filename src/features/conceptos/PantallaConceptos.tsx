@@ -1,14 +1,20 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Clasificacion, ConceptoDetalle, NombreColor, Tipo } from '../../lib/tipos'
-import { Cabecera, Confirmar, ErrorLinea, EstadoVacio } from '../../components/Basicos'
-import { EsqueletoLista } from '../../components/Esqueleto'
-import { useAvisos } from '../../components/Avisos'
-import { Interruptor } from '../../components/Campos'
-import { Sheet } from '../../components/Sheet'
-import { IconoArrastrar, IconoMas } from '../../components/Iconos'
+import { BotonTexto, Cabecera, Card, Chip, ErrorLinea, Esqueleto, IconoConcepto, Interruptor, Tabs, Vacio } from '../../components/ui/Basicos'
+import { Asa, Fila } from '../../components/ui/Fila'
+import { ConfirmacionDialogo, Dialogo } from '../../components/ui/Dialogo'
+import { Icono, ICONOS_DE_CONCEPTO } from '../../components/ui/Icono'
+import { useAvisos } from '../../components/ui/Toast'
 import { cuantos, euros } from '../../lib/formato'
-import { NOMBRES_COLOR, PALETAS, paletaDe, registrarConceptos } from '../../lib/colores'
+import {
+  iconoDe,
+  iconoPorNombre,
+  NOMBRES_COLOR,
+  PALETAS,
+  paletaDe,
+  registrarConceptos,
+} from '../../lib/conceptos'
 import { FichaConcepto } from './FichaConcepto'
 import { SheetNuevoConcepto } from './SheetNuevoConcepto'
 import { PantallaPlantilla } from './Plantilla'
@@ -140,20 +146,14 @@ export function PantallaConceptos({ onCambioGlobal, onIrAMes }: Props) {
   }
 
   const pestanas = (
-    <div className="pestanas">
-      <button
-        className={vista === 'conceptos' ? 'activo' : ''}
-        onClick={() => setVista('conceptos')}
-      >
-        Conceptos
-      </button>
-      <button
-        className={vista === 'plantilla' ? 'activo' : ''}
-        onClick={() => setVista('plantilla')}
-      >
-        Plantilla
-      </button>
-    </div>
+    <Tabs
+      pestanas={[
+        { id: 'conceptos' as const, nombre: 'Conceptos' },
+        { id: 'plantilla' as const, nombre: 'Plantilla' },
+      ]}
+      activa={vista}
+      onCambiar={setVista}
+    />
   )
 
   if (vista === 'plantilla') {
@@ -173,7 +173,7 @@ export function PantallaConceptos({ onCambioGlobal, onIrAMes }: Props) {
     return (
       <>
         <Cabecera titulo="Conceptos" debajo={pestanas} />
-        <div className="limite">
+        <div className="pila">
           <ErrorLinea mensaje={error} onReintentar={() => void cargar()} />
         </div>
       </>
@@ -184,8 +184,8 @@ export function PantallaConceptos({ onCambioGlobal, onIrAMes }: Props) {
     return (
       <>
         <Cabecera titulo="Conceptos" debajo={pestanas} />
-        <div className="limite">
-          <EsqueletoLista filas={8} />
+        <div className="pila">
+          <Esqueleto filas={8} />
         </div>
       </>
     )
@@ -199,34 +199,24 @@ export function PantallaConceptos({ onCambioGlobal, onIrAMes }: Props) {
         debajo={pestanas}
       />
 
-      <div className="limite">
+      <div className="pila">
         {GRUPOS.map(({ tipo, titulo, pista }) => {
           const suyos = conceptos.filter((c) => c.tipo === tipo)
           return (
-            <section key={tipo} className="seccion">
-              <div className="seccion-cabecera">
-                <div>
-                  <h2 className="seccion-titulo">{titulo}</h2>
-                  <p className="seccion-pista">{pista}</p>
-                </div>
-                <button
-                  className="boton boton-secundario"
-                  onClick={() => setCreando(tipo)}
-                  aria-label={`Nuevo concepto en ${titulo}`}
-                >
-                  <IconoMas size={18} />
+            <Card
+              key={tipo}
+              titulo={titulo}
+              ayuda={pista}
+              derecha={
+                <BotonTexto icono="mas" onClick={() => setCreando(tipo)}>
                   Nuevo
-                </button>
-              </div>
-
+                </BotonTexto>
+              }
+            >
               {suyos.length === 0 ? (
-                <EstadoVacio
-                  icono="—"
-                  titulo="Todavía no hay ninguno"
-                  texto={`Crea el primer concepto de ${titulo.toLowerCase()}.`}
-                />
+                <Vacio frase={`Crea el primer concepto de ${titulo.toLowerCase()}.`} />
               ) : (
-                <div className="tarjeta">
+                <>
                   {suyos.map((concepto) => (
                     <FilaConcepto
                       key={concepto.id}
@@ -245,9 +235,9 @@ export function PantallaConceptos({ onCambioGlobal, onIrAMes }: Props) {
                       }}
                     />
                   ))}
-                </div>
+                </>
               )}
-            </section>
+            </Card>
           )
         })}
       </div>
@@ -273,46 +263,75 @@ export function PantallaConceptos({ onCambioGlobal, onIrAMes }: Props) {
         }}
       />
 
-      <Confirmar
-        abierto={!!aBorrar}
-        titulo={`¿Borrar "${aBorrar?.nombre}"?`}
-        mensaje="No tiene ningún apunte, así que se puede borrar sin tocar ningún mes."
-        textoConfirmar="Borrar"
-        peligroso
-        onConfirmar={() => void borrar()}
-        onCancelar={() => setABorrar(null)}
-      />
+      {aBorrar ? (
+        <Dialogo titulo={`¿Borrar "${aBorrar.nombre}"?`} onCerrar={() => setABorrar(null)}>
+          <ConfirmacionDialogo
+            frase="No tiene ningún apunte, así que se puede borrar sin tocar ningún mes."
+            textoConfirmar="Sí, borrar"
+            onConfirmar={() => void borrar()}
+            onCancelar={() => setABorrar(null)}
+          />
+        </Dialogo>
+      ) : null}
 
+      {/*
+        El aspecto de un concepto —su color y su dibujo— se decide mirando la
+        lista entera, así que se cambia desde la lista y no dentro de la ficha.
+      */}
       {colorDe ? (
-        <Sheet abierta titulo={`Color de ${colorDe.nombre}`} onCerrar={() => setColorDe(null)}>
-          <p className="pista">
-            Es por lo que reconoces el concepto en las listas antes de leer su nombre. Si no eliges
-            ninguno le toca uno solo, y no se repite con los demás mientras queden colores.
+        <Dialogo titulo={`Aspecto de ${colorDe.nombre}`} onCerrar={() => setColorDe(null)}>
+          <p className="muted">
+            Es por lo que reconoces el concepto antes de leer su nombre. Si no eliges nada le tocan
+            solos, y no se repiten con los demás mientras queden.
           </p>
-          <div className="colores">
+
+          <label className="campo-etiqueta">Color</label>
+          <div className="rejilla-aspecto">
             {NOMBRES_COLOR.map((nombre) => {
               const paleta = PALETAS[nombre]
               const elegido = colorDe.color === nombre
               return (
                 <button
                   key={nombre}
-                  className={`color${elegido ? ' elegido' : ''}`}
-                  style={{ background: paleta.suave }}
+                  className={`aspecto${elegido ? ' elegido' : ''}`}
+                  style={{ background: paleta.suave, color: paleta.color }}
                   aria-pressed={elegido}
                   aria-label={`Color ${nombre}`}
-                  onClick={() => {
-                    setColorDe(null)
+                  onClick={() =>
                     // Volver a pulsar el elegido lo devuelve al automático.
                     void cambiar(colorDe.id, { color: elegido ? null : (nombre as NombreColor) })
-                  }}
+                  }
                 >
-                  <span className="punto" style={{ background: paleta.color }} />
+                  <span className="dot" style={{ background: paleta.color }} />
                 </button>
               )
             })}
           </div>
-          <p className="pista">Pulsa el que ya está elegido para volver al automático.</p>
-        </Sheet>
+
+          <label className="campo-etiqueta">Icono</label>
+          <div className="rejilla-aspecto">
+            {ICONOS_DE_CONCEPTO.map((nombre) => {
+              const elegido = (colorDe.icono ?? iconoPorNombre(colorDe.nombre)) === nombre
+              return (
+                <button
+                  key={nombre}
+                  className={`aspecto${elegido ? ' elegido' : ''}`}
+                  aria-pressed={elegido}
+                  aria-label={`Icono ${nombre}`}
+                  onClick={() =>
+                    void cambiar(colorDe.id, { icono: colorDe.icono === nombre ? null : nombre })
+                  }
+                >
+                  <Icono nombre={nombre} size={17} />
+                </button>
+              )
+            })}
+          </div>
+
+          <p className="muted-3" style={{ marginTop: 10 }}>
+            Pulsa el que ya está elegido para volver al automático.
+          </p>
+        </Dialogo>
       ) : null}
     </>
   )
@@ -358,13 +377,9 @@ function FilaConcepto({
   const paleta = paletaDe(concepto)
 
   return (
-    <div
-      className={
-        'fila fila-concepto' +
-        (arrastrando ? ' arrastrando' : '') +
-        (encima ? ' encima' : '') +
-        (concepto.activo ? '' : ' apagada')
-      }
+    <Fila
+      arrastrando={arrastrando}
+      encima={encima}
       draggable
       onDragStart={onEmpezarArrastre}
       onDragEnd={onFinArrastre}
@@ -376,38 +391,45 @@ function FilaConcepto({
         e.preventDefault()
         onSoltar()
       }}
-    >
-      <span className="agarre" aria-hidden="true">
-        <IconoArrastrar size={18} />
-      </span>
-
-      {/*
-        El punto no es un adorno: es el botón del color. Tocarlo abre los diez
-        y se cambia ahí mismo, sin tener que entrar en la ficha para algo que se
-        decide mirando la lista entera.
-      */}
-      <button
-        className="punto-boton"
-        aria-label={`Cambiar el color de ${concepto.nombre}`}
-        onClick={() => onCambiarColor(concepto)}
-      >
-        <span className="punto" style={{ background: paleta.color }} />
-      </button>
-
-      <button className="fila-texto fila-nombre" onClick={onAbrir}>
-        {concepto.nombre}
-        {concepto.esObjetivo ? <span className="etiqueta-mini">objetivo</span> : null}
-      </button>
-
-      <span className="chip chip-tipo">{ETIQUETAS_TIPO[concepto.tipo]}</span>
-
-      <span className="fila-detalle">{detalle.join(' · ')}</span>
-
-      <Interruptor
-        activo={concepto.activo}
-        ariaLabel={`${concepto.activo ? 'Desactivar' : 'Activar'} ${concepto.nombre}`}
-        onCambiar={(activo) => onCambiarActivo(concepto, activo)}
-      />
-    </div>
+      izquierda={
+        <>
+          <Asa />
+          {/*
+            El icono no es un adorno: es el botón del color y del dibujo.
+            Tocarlo los abre y se cambian ahí mismo, sin entrar en la ficha para
+            algo que se decide mirando la lista entera.
+          */}
+          <button
+            className="ico-boton"
+            aria-label={`Cambiar el aspecto de ${concepto.nombre}`}
+            onClick={() => onCambiarColor(concepto)}
+          >
+            <IconoConcepto
+              icono={iconoDe(concepto)}
+              color={paleta.color}
+              suave={paleta.suave}
+            />
+          </button>
+        </>
+      }
+      titulo={concepto.nombre}
+      onAbrir={onAbrir}
+      centro={
+        <>
+          {concepto.esObjetivo ? <Chip>objetivo</Chip> : null}
+          <Chip>{ETIQUETAS_TIPO[concepto.tipo]}</Chip>
+          <span className="muted-3 solo-ancho">{detalle.join(' · ')}</span>
+        </>
+      }
+      importe={
+        <span style={{ marginLeft: 'auto' }}>
+          <Interruptor
+            activo={concepto.activo}
+            etiqueta={`${concepto.activo ? 'Desactivar' : 'Activar'} ${concepto.nombre}`}
+            onCambiar={(activo) => onCambiarActivo(concepto, activo)}
+          />
+        </span>
+      }
+    />
   )
 }

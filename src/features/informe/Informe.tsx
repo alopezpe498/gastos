@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import type { Anual, FilaAnual, TotalesAnioAnterior } from '../../lib/tipos'
-import { Sparkline } from '../../components/graficos/Graficos'
-import { IconoCerrar, IconoDescargar } from '../../components/Iconos'
+import { Sparkline } from '../../components/ui/GraficosGrandes'
 import { cuantos, euros, MESES_CORTOS, numero, porcentaje } from '../../lib/formato'
+import { Icono } from '../../components/ui/Icono'
 
 /**
  * Informe imprimible.
@@ -34,14 +34,14 @@ function Hoja({ onCerrar, children, titulo }: Props) {
     <div className="informe-capa" role="dialog" aria-modal="true" aria-label={titulo}>
       <div className="informe-barra">
         <button className="boton boton-secundario" onClick={onCerrar}>
-          <IconoCerrar size={18} />
+          <Icono nombre="cerrar" size={18} />
           Cerrar
         </button>
         <span className="informe-pista">
           Se imprime solo la hoja. En el diálogo de impresión, elige «Guardar como PDF».
         </span>
         <button className="boton boton-principal" onClick={() => window.print()}>
-          <IconoDescargar size={18} />
+          <Icono nombre="descargar" size={18} />
           Imprimir o guardar en PDF
         </button>
       </div>

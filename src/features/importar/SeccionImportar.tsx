@@ -8,10 +8,10 @@ import type {
   SugerenciaConcepto,
   VistaPrevia,
 } from '../../lib/tipos'
-import { useAvisos } from '../../components/Avisos'
-import { Interruptor } from '../../components/Campos'
-import { IconoAviso, IconoChispa, IconoSubir } from '../../components/Iconos'
+import { useAvisos } from '../../components/ui/Toast'
+import { Interruptor } from '../../components/ui/Basicos'
 import { cuantos, euros } from '../../lib/formato'
+import { Icono } from '../../components/ui/Icono'
 
 type Props = { onImportado: () => void }
 
@@ -201,7 +201,7 @@ export function SeccionImportar({ onImportado }: Props) {
         </p>
 
         <label className="zona-archivo">
-          <IconoSubir size={22} />
+          <Icono nombre="subir" size={22} />
           <span className="zona-archivo-titulo">
             {trabajando ? 'Abriendo el archivo…' : 'Elegir archivo .xlsx'}
           </span>
@@ -247,7 +247,7 @@ export function SeccionImportar({ onImportado }: Props) {
         */}
         {hojaFallida ? (
           <div className="banda-aviso">
-            <IconoAviso size={18} />
+            <Icono nombre="aviso" size={18} />
             <span>
               <strong>{hojaFallida.nombre}</strong>: {hojaFallida.error}
               <button
@@ -255,7 +255,7 @@ export function SeccionImportar({ onImportado }: Props) {
                 disabled={trabajando}
                 onClick={() => void verPreviaConIa(hojaFallida.nombre)}
               >
-                <IconoChispa size={16} />
+                <Icono nombre="chispa" size={16} />
                 {trabajando ? 'Leyendo con IA…' : 'Probar a leerla con IA'}
               </button>
             </span>
@@ -368,7 +368,7 @@ export function SeccionImportar({ onImportado }: Props) {
 
       {previa.avisos.map((aviso) => (
         <p className="banda-aviso" key={aviso}>
-          <IconoAviso size={18} />
+          <Icono nombre="aviso" size={18} />
           <span>{aviso}</span>
         </p>
       ))}
@@ -387,7 +387,7 @@ export function SeccionImportar({ onImportado }: Props) {
           <Interruptor
             activo={sobrescribir}
             onCambiar={setSobrescribir}
-            ariaLabel="Sobrescribir los meses que ya existen"
+            etiqueta="Sobrescribir los meses que ya existen"
           />
         </div>
       ) : null}
@@ -442,7 +442,7 @@ export function SeccionImportar({ onImportado }: Props) {
           <Interruptor
             activo={crearAjustes}
             onCambiar={setCrearAjustes}
-            ariaLabel="Crear movimientos de ajuste"
+            etiqueta="Crear movimientos de ajuste"
           />
         </div>
       ) : null}
@@ -455,11 +455,11 @@ export function SeccionImportar({ onImportado }: Props) {
 
       {sugiriendo ? (
         <p className="pista">
-          <IconoChispa size={14} /> Preguntando a la IA a qué concepto va cada nombre nuevo…
+          <Icono nombre="chispa" size={14} /> Preguntando a la IA a qué concepto va cada nombre nuevo…
         </p>
       ) : sugerencias.length > 0 ? (
         <p className="pista">
-          <IconoChispa size={14} /> La IA ha propuesto {cuantos(sugerencias.length, 'destino')} y
+          <Icono nombre="chispa" size={14} /> La IA ha propuesto {cuantos(sugerencias.length, 'destino')} y
           los ha dejado preseleccionados. <strong>Revísalos</strong>: no se aplica nada hasta que
           confirmes.
         </p>
@@ -528,7 +528,7 @@ function FilaConceptoPrevisto({
         {concepto.nuevo ? <span className="etiqueta-mini">nuevo</span> : null}
         {aceptada ? (
           <span className="etiqueta-mini ia" title={sugerencia.motivo}>
-            <IconoChispa size={11} /> IA {Math.round(sugerencia.confianza * 100)} %
+            <Icono nombre="chispa" size={11} /> IA {Math.round(sugerencia.confianza * 100)} %
           </span>
         ) : null}
       </span>

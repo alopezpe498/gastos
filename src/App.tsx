@@ -1,15 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, cuandoCaduqueLaSesion, leerToken } from './lib/api'
-import { Cargando } from './components/Basicos'
-import { ProveedorAvisos } from './components/Avisos'
-import {
-  IconoAjustes,
-  IconoCalendario,
-  IconoEtiquetas,
-  IconoSubir,
-  IconoTabla,
-  IconoTendencia,
-} from './components/Iconos'
+import { ProveedorAvisos } from './components/ui/Toast'
 import { PantallaPin } from './features/auth/PantallaPin'
 import { PantallaMes } from './features/mes/PantallaMes'
 import { PantallaAnual } from './features/anual/PantallaAnual'
@@ -17,7 +8,9 @@ import { PantallaAnalitica } from './features/analitica/PantallaAnalitica'
 import { PantallaConceptos } from './features/conceptos/PantallaConceptos'
 import { PantallaAjustes, type PestanaAjustes } from './features/ajustes/PantallaAjustes'
 import { PantallaImportar, type PestanaImportar } from './features/importar/PantallaImportar'
-import { BarraSuperior, BarraInferior } from './components/Navegacion'
+import { Kit } from './components/ui/Kit'
+import { Navegacion } from './components/ui/Navegacion'
+import { Cargando } from './components/ui/Basicos'
 
 type Pestana = 'mes' | 'anual' | 'analitica' | 'conceptos' | 'importar' | 'ajustes'
 type Sesion = 'comprobando' | 'bloqueada' | 'abierta'
@@ -28,15 +21,19 @@ type Sesion = 'comprobando' | 'bloqueada' | 'abierta'
  * obligaba a salir del mes para entender el mes.
  */
 const PESTANAS = [
-  { id: 'mes' as const, nombre: 'Mes', icono: IconoCalendario },
-  { id: 'anual' as const, nombre: 'Año', icono: IconoTabla },
-  { id: 'analitica' as const, nombre: 'Analítica', icono: IconoTendencia, enMovil: false },
-  { id: 'conceptos' as const, nombre: 'Conceptos', icono: IconoEtiquetas },
-  { id: 'importar' as const, nombre: 'Importar', icono: IconoSubir },
-  { id: 'ajustes' as const, nombre: 'Ajustes', icono: IconoAjustes, enMovil: false },
+  { id: 'mes' as const, nombre: 'Mes', icono: 'calendario' as const },
+  { id: 'anual' as const, nombre: 'Año', icono: 'barras' as const },
+  { id: 'analitica' as const, nombre: 'Analítica', icono: 'tendencia' as const },
+  { id: 'conceptos' as const, nombre: 'Conceptos', icono: 'lista' as const },
+  { id: 'importar' as const, nombre: 'Importar', icono: 'subir' as const },
+  { id: 'ajustes' as const, nombre: 'Ajustes', icono: 'ajustes' as const },
 ]
 
 export default function App() {
+  // La página del kit, solo en desarrollo: es la prueba de que la caja está
+  // cerrada, no una pantalla de la aplicación.
+  if (import.meta.env.DEV && window.location.hash === '#kit') return <Kit />
+
   const [sesion, setSesion] = useState<Sesion>('comprobando')
   const [protegido, setProtegido] = useState(false)
   const [pestana, setPestana] = useState<Pestana>('mes')
@@ -110,7 +107,7 @@ export default function App() {
   return (
     <ProveedorAvisos>
       <div className="pagina">
-        <BarraSuperior secciones={PESTANAS} activa={pestana} onIr={setPestana} />
+        <Navegacion secciones={PESTANAS} activa={pestana} onIr={setPestana} />
 
         {pestana === 'mes' ? (
           <PantallaMes
@@ -168,7 +165,6 @@ export default function App() {
           />
         ) : null}
 
-        <BarraInferior secciones={PESTANAS} activa={pestana} onIr={setPestana} />
       </div>
     </ProveedorAvisos>
   )

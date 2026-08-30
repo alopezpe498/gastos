@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import type { Anual, FilaAnual } from '../../lib/tipos'
-import { IconoAbajo, IconoChevron } from '../../components/Iconos'
-import { Sparkline } from '../../components/graficos/Graficos'
-import { euros, MESES_CORTOS, numero, porcentaje } from '../../lib/formato'
+import { Card, IconoConcepto } from '../../components/ui/Basicos'
+import { Celda, Fila as FilaTabla, Tabla } from '../../components/ui/Tabla'
+import { Sparkline } from '../../components/ui/Graficos'
+import { Icono } from '../../components/ui/Icono'
+import { iconoDe, paletaDe } from '../../lib/conceptos'
+import { MESES_CORTOS, numero, porcentaje } from '../../lib/formato'
 import type { TotalesAnioAnterior } from '../../lib/tipos'
 
 type Props = {
@@ -24,7 +27,6 @@ type Props = {
  */
 export function MatrizAnual({ datos, desgloseOtros, anterior, onAbrirMes }: Props) {
   const [otrosAbierto, setOtrosAbierto] = useState(false)
-  const columnas = datos.meses.length
 
   /**
    * El total del mismo concepto el año pasado. Las filas de totales (Gastos,
@@ -44,70 +46,64 @@ export function MatrizAnual({ datos, desgloseOtros, anterior, onAbrirMes }: Prop
     return anterior.totales[`concepto:${fila.conceptoId}`] ?? null
   }
 
-  return (
-    <div className="anual-marco">
-      <div
-        className="anual"
-        style={{
-          gridTemplateColumns: `180px 104px repeat(${columnas}, minmax(78px, 1fr)) 104px 92px${
-            anterior ? ' 104px 74px' : ''
-          }`,
-        }}
-        role="table"
-        aria-label={`Gastos de ${datos.anio} por concepto y mes`}
-      >
-        {/* ---------- cabecera ---------- */}
-        <div className="anual-celda anual-cabecera anual-primera">Concepto</div>
-        <div className="anual-celda anual-cabecera">Año</div>
-        {datos.meses.map((mes) => (
-          <div className="anual-celda anual-cabecera" key={mes.numero}>
-            {MESES_CORTOS[mes.numero - 1]}
-          </div>
-        ))}
-        <div className="anual-celda anual-cabecera">Total</div>
-        <div className="anual-celda anual-cabecera">Media</div>
-        {anterior ? (
-          <>
-            <div className="anual-celda anual-cabecera">{anterior.anio}</div>
-            <div className="anual-celda anual-cabecera">Δ</div>
-          </>
-        ) : null}
+  const meses = datos.meses
 
-        {/* ---------- filas ---------- */}
-        {datos.filas.map((fila) => (
-          <Fila
-            key={`${fila.tipo}-${fila.nombre}`}
+  return (
+    <Card>
+      <Tabla
+        etiqueta={`Gastos de ${datos.anio} por concepto y mes`}
+        columnas={[
+          { clave: 'concepto', titulo: 'Concepto', ancho: 190 },
+          { clave: 'spark', titulo: '', ancho: 78 },
+          ...meses.map((m) => ({
+            clave: `m${m.numero}`,
+            titulo: MESES_CORTOS[m.numero - 1],
+            num: true,
+          })),
+          { clave: 'total', titulo: 'Total', num: true, separa: true },
+          { clave: 'media', titulo: 'Media', num: true },
+          ...(anterior
+            ? [
+                { clave: 'ant', titulo: String(anterior.anio), num: true, separa: true },
+                { clave: 'delta', titulo: 'Δ', num: true },
+              ]
+            : []),
+        ]}
+      >
+        {datos.filas.map((fila, indice) => (
+          <FilaAnualTabla
+            key={`${fila.tipo}-${fila.conceptoId ?? fila.nombre}-${indice}`}
             fila={fila}
             datos={datos}
             anterior={totalAnterior(fila)}
             hayAnterior={!!anterior}
             onAbrirMes={onAbrirMes}
             desplegable={fila.tipo === 'otros'}
-            abierto={fila.tipo === 'otros' && otrosAbierto}
-            onAlternar={() => setOtrosAbierto((v) => !v)}
+            abierto={otrosAbierto}
+            onAlternar={() => setOtrosAbierto((a) => !a)}
           />
         ))}
 
-        {/* ---------- desglose de "Otros" ---------- */}
         {otrosAbierto
-          ? desgloseOtros.map((fila) => (
-              <Fila
-                key={`detalle-${fila.nombre}`}
+          ? desgloseOtros.map((fila, indice) => (
+              <FilaAnualTabla
+                key={`otros-${fila.conceptoId ?? indice}`}
                 fila={fila}
                 datos={datos}
-                anterior={null}
+                anterior={totalAnterior(fila)}
                 hayAnterior={!!anterior}
                 onAbrirMes={onAbrirMes}
                 sangrada
               />
             ))
           : null}
-      </div>
-    </div>
+      </Tabla>
+    </Card>
   )
 }
 
-function Fila({
+/** Una fila de la matriz: concepto, sparkline, doce meses y los totales. */
+function FilaAnualTabla({
   fila,
   datos,
   anterior,
@@ -130,69 +126,84 @@ function Fila({
 }) {
   const variacion =
     anterior !== null && anterior !== 0 ? ((fila.total - anterior) / Math.abs(anterior)) * 100 : null
-  const clase =
-    'anual-fila' +
-    (fila.tipo === 'total' ? ' total' : '') +
-    (fila.tipo === 'otros' && !sangrada ? ' otros' : '') +
-    (sangrada ? ' sangrada' : '')
+  const concepto = fila.conceptoId ? { id: fila.conceptoId, nombre: fila.nombre } : null
+  const paleta = paletaDe(concepto)
+  const hoy = new Date()
+  const mesActual = hoy.getFullYear() === datos.anio ? hoy.getMonth() + 1 : 0
 
   return (
-    <>
-      <div className={`anual-celda anual-primera ${clase}`}>
-        {desplegable ? (
-          <button className="anual-desplegar" onClick={onAlternar} aria-expanded={abierto}>
-            {abierto ? <IconoAbajo size={16} /> : <IconoChevron size={16} />}
-            {fila.nombre}
-          </button>
-        ) : (
-          fila.nombre
-        )}
-      </div>
+    <FilaTabla total={fila.tipo === 'total'}>
+      <Celda>
+        <span className="fila-campos" style={{ gap: 8, flexWrap: 'nowrap' }}>
+          {sangrada ? <span style={{ width: 14 }} /> : null}
+          {concepto ? (
+            <IconoConcepto
+              icono={iconoDe(concepto)}
+              color={paleta.color}
+              suave={paleta.suave}
+              size={13}
+            />
+          ) : null}
+          {desplegable ? (
+            <button className="btn-text" onClick={onAlternar} aria-expanded={abierto}>
+              <Icono nombre={abierto ? 'abajo' : 'chevron'} size={14} />
+              {fila.nombre}
+            </button>
+          ) : (
+            <span className="row-titulo">{fila.nombre}</span>
+          )}
+        </span>
+      </Celda>
 
-      {/* La sparkline resume la fila entera: se ve la forma sin leer doce cifras. */}
-      <div className={`anual-celda anual-spark ${clase}`}>
+      <Celda>
+        {/* La sparkline resume la fila: se ve la forma sin leer doce cifras. */}
         <Sparkline
-          valores={fila.valores}
+          valores={fila.valores.map((v) => v ?? 0)}
+          color={paleta.color}
           titulo={`Evolución de ${fila.nombre} durante ${datos.anio}`}
         />
-      </div>
+      </Celda>
 
       {datos.meses.map((mes, indice) => {
         const valor = fila.valores[indice]
         return (
-          <button
-            key={mes.numero}
-            className={`anual-celda anual-valor ${clase}${valor === null ? ' vacia' : ''}${
-              valor !== null && valor < 0 ? ' negativo' : ''
-            }`}
-            // Los meses en blanco no llevan a ninguna parte: no hay nada que ver.
-            disabled={valor === null}
-            aria-label={`${fila.nombre}, ${mes.nombre}: ${valor === null ? 'sin datos' : euros(valor)}`}
-            onClick={() => onAbrirMes(datos.anio, mes.numero)}
-          >
-            {numero(valor)}
-          </button>
+          <Celda key={mes.numero} num apagado={valor === null} destacada={mes.numero === mesActual}>
+            {valor === null ? (
+              /* Un mes sin datos no es un cero: se deja en blanco. */
+              '—'
+            ) : (
+              <button className="celda-enlace" onClick={() => onAbrirMes(datos.anio, mes.numero)}>
+                {numero(valor)}
+              </button>
+            )}
+          </Celda>
         )
       })}
 
-      <div className={`anual-celda anual-valor anual-total ${clase}`}>{numero(fila.total)}</div>
-      <div className={`anual-celda anual-valor anual-media ${clase}`}>{numero(fila.media)}</div>
+      <Celda num separa>
+        {numero(fila.total)}
+      </Celda>
+      <Celda num apagado>
+        {numero(fila.media)}
+      </Celda>
 
       {hayAnterior ? (
         <>
-          <div className={`anual-celda anual-valor anual-anterior ${clase}`}>
+          <Celda num separa apagado>
             {anterior === null ? '' : numero(anterior)}
-          </div>
-          <div
-            className={
-              `anual-celda anual-valor anual-delta ${clase}` +
-              (variacion === null ? '' : variacion > 10 ? ' sube' : variacion < -10 ? ' baja' : '')
-            }
-          >
-            {variacion === null ? '' : `${variacion > 0 ? '+' : ''}${porcentaje(variacion, 0)}`}
-          </div>
+          </Celda>
+          <Celda num>
+            {variacion === null ? (
+              ''
+            ) : (
+              <span style={{ color: variacion > 10 ? 'var(--comida)' : variacion < -10 ? 'var(--ok)' : undefined }}>
+                {variacion > 0 ? '+' : ''}
+                {porcentaje(variacion, 0)}
+              </span>
+            )}
+          </Celda>
         </>
       ) : null}
-    </>
+    </FilaTabla>
   )
 }

@@ -334,5 +334,11 @@ if (defRegla && !defRegla.sql.includes('regex')) {
  */
 anadirColumnaSiFalta('conceptos', 'color', 'TEXT')
 
+/*
+ * El icono de un concepto. Nulo quiere decir «el que le toque»: la aplicacion
+ * lo adivina por el nombre, y esto solo guarda las veces que se cambia a mano.
+ */
+anadirColumnaSiFalta('conceptos', 'icono', 'TEXT')
+
 anadirColumnaSiFalta('meses', 'fecha_inicio', 'TEXT')
 anadirColumnaSiFalta('meses', 'fecha_fin', 'TEXT')

@@ -11,11 +11,12 @@ import type {
   ReglaNueva,
   SugerenciaIa,
 } from '../../lib/tipos'
-import { Confirmar } from '../../components/Basicos'
-import { Sheet } from '../../components/Sheet'
-import { CampoImporte } from '../../components/Campos'
-import { SelectorConcepto } from '../../components/SelectorConcepto'
-import { useAvisos } from '../../components/Avisos'
+import { BotonPrimario, BotonTexto, Cabecera, Card, Chip, MenuFila } from '../../components/ui/Basicos'
+import { CampoImporte, CampoTexto, SelectorConcepto } from '../../components/ui/Campos'
+import { ConfirmacionDialogo, Dialogo } from '../../components/ui/Dialogo'
+import { Importe } from '../../components/ui/Fila'
+import { Icono } from '../../components/ui/Icono'
+import { useAvisos } from '../../components/ui/Toast'
 import {
   cuantos,
   escribirImporte,
@@ -414,21 +415,37 @@ export function RevisionExtracto({
         `${laNomina ? ' y el ingreso' : ''}.`
 
   return (
-    <div className="revision-extracto">
-      <div className="marcador">
-        <div className="marcador-arriba">
-          <p className="marcador-periodo">
-            <strong>{nombreMes}</strong>
-            {periodo?.desde && periodo?.hasta ? (
-              <> · del {fechaMuyCorta(periodo.desde)} al {fechaMuyCorta(periodo.hasta)}</>
+    <div className="pila">
+      <Cabecera
+        titulo={`Revisar ${nombreMes}`}
+        subtitulo={
+          (periodo?.desde && periodo?.hasta
+            ? `Del ${fechaMuyCorta(periodo.desde)} al ${fechaMuyCorta(periodo.hasta)}`
+            : '') + (laNomina ? ` · nómina ${euros(Math.abs(laNomina.importe))}` : '')
+        }
+        acciones={
+          <>
+            {ultimo ? <BotonTexto onClick={deshacer}>Deshacer «{ultimo.que}»</BotonTexto> : null}
+            {cuenta.sinClasificar > 0 ? (
+              <BotonTexto icono="chispa" disabled={pidiendoIa} onClick={() => void pedirSugerencias()}>
+                {pidiendoIa ? 'Preguntando…' : 'Pedir ayuda a la IA'}
+              </BotonTexto>
             ) : null}
-            {laNomina ? <> · nómina {euros(Math.abs(laNomina.importe))}</> : null}
-          </p>
-          <p className={`marcador-frase${cuenta.sinClasificar > 0 ? ' pendiente' : ''}`}>{frase}</p>
-        </div>
+            <BotonTexto onClick={onCancelar}>Cancelar</BotonTexto>
+            <BotonPrimario
+              disabled={cuenta.sinClasificar > 0 || !cuenta.cuadra || aplicando}
+              onClick={() => setConfirmando(true)}
+            >
+              {aplicando ? 'Aplicando…' : 'Aceptar'}
+            </BotonPrimario>
+          </>
+        }
+      />
 
-        <div className="marcador-cifras">
-          <strong>{cuenta.total}</strong> movimientos ={' '}
+      <Card>
+        {/* El conteo, en una línea: es un marcador, no una tabla. */}
+        <p className="conteo">
+          <b>{cuenta.total}</b> movimientos ={' '}
           <Cifra n={cuenta.fijos} que="fijos" />
           <Cifra n={cuenta.comida} que="comida" />
           <Cifra n={cuenta.variables} que="variables" />
@@ -436,73 +453,46 @@ export function RevisionExtracto({
           <Cifra n={cuenta.descartados} que="descartados" />
           <Cifra n={cuenta.duplicados} que="duplicados" />
           {cuenta.sinClasificar > 0 ? (
-            <button className="recuento pendiente" onClick={irAlPrimeroPendiente}>
-              <strong>{cuenta.sinClasificar}</strong> sin clasificar · ir al primero
+            <button className="chip conteo-pendiente" onClick={irAlPrimeroPendiente}>
+              <b>{cuenta.sinClasificar}</b> sin clasificar · ir al primero
             </button>
           ) : null}
-        </div>
+        </p>
+        <p className={`muted${cuenta.sinClasificar > 0 ? ' pendiente' : ''}`}>{frase}</p>
 
-        <div className="marcador-acciones">
-          {ultimo ? (
-            <button className="boton boton-texto boton-compacto" onClick={deshacer}>
-              Deshacer «{ultimo.que}»
-            </button>
-          ) : null}
-          <input
-            className="campo-linea texto campo-buscar"
-            placeholder="Buscar texto o importe"
-            aria-label="Buscar en el extracto"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-          />
-          {cuenta.sinClasificar > 0 ? (
-            <button
-              className="boton boton-secundario"
-              disabled={pidiendoIa}
-              onClick={() => void pedirSugerencias()}
-            >
-              {pidiendoIa ? 'Preguntando…' : 'Pedir ayuda a la IA'}
-            </button>
-          ) : null}
-          <button className="boton boton-texto" onClick={onCancelar}>
-            Cancelar
-          </button>
-          <button
-            className="boton boton-principal"
-            disabled={cuenta.sinClasificar > 0 || !cuenta.cuadra || aplicando}
-            title={
-              cuenta.sinClasificar > 0
-                ? `Faltan ${cuantos(cuenta.sinClasificar, 'movimiento')} por clasificar`
-                : ''
-            }
-            onClick={() => setConfirmando(true)}
-          >
-            {aplicando ? 'Aplicando…' : 'Aceptar'}
-          </button>
+        <div className="fila-campos" style={{ marginTop: 12 }}>
+          <span style={{ flex: 1, minWidth: 200, maxWidth: 340 }}>
+            <CampoTexto
+              valor={busqueda}
+              visible
+              etiqueta="Buscar en el extracto"
+              placeholder="Buscar texto o importe"
+              onGuardar={setBusqueda}
+            />
+          </span>
         </div>
 
         {todoDuplicado ? (
-          <p className="banda-aviso">
-            Este extracto ya se importó
-            {propuesta.yaImportado
-              ? ` en ${propuesta.yaImportado.nombreMes} ${propuesta.yaImportado.anio} el ${fechaCorta(propuesta.yaImportado.fecha.slice(0, 10))}`
-              : ''}
-            . Si quieres volver a cargarlo, deshaz esa importación desde el historial o fuerza los
-            movimientos.
-            {onVerHistorial ? (
-              <button className="boton boton-texto boton-compacto" onClick={onVerHistorial}>
-                Ir al historial
-              </button>
-            ) : null}
+          <p className="aviso-ambar">
+            <Icono nombre="aviso" size={16} />
+            <span>
+              Este extracto ya se importó
+              {propuesta.yaImportado
+                ? ` en ${propuesta.yaImportado.nombreMes} ${propuesta.yaImportado.anio} el ${fechaCorta(propuesta.yaImportado.fecha.slice(0, 10))}`
+                : ''}
+              . Si quieres volver a cargarlo, deshaz esa importación desde el historial o fuerza los
+              movimientos.
+            </span>
+            {onVerHistorial ? <BotonTexto onClick={onVerHistorial}>Ir al historial</BotonTexto> : null}
           </p>
         ) : null}
-        {avisoIa ? <p className="marcador-aviso">{avisoIa}</p> : null}
+        {avisoIa ? <p className="muted-3">{avisoIa}</p> : null}
         {(propuesta.avisos ?? []).map((a) => (
-          <p className="marcador-aviso" key={a}>
+          <p className="muted-3" key={a}>
             {a}
           </p>
         ))}
-      </div>
+      </Card>
 
       {seleccion.size > 0 ? (
         <div className="barra-seleccion">
@@ -510,7 +500,7 @@ export function RevisionExtracto({
           <SelectorConcepto
             conceptos={conceptos}
             valor={null}
-            ariaLabel="Concepto para los seleccionados"
+            etiqueta="Concepto para los seleccionados"
             placeholder="Asignar concepto…"
             onElegir={(conceptoId) => {
               const concepto = conceptos.find((c) => c.id === conceptoId)
@@ -722,10 +712,10 @@ export function RevisionExtracto({
         onDividir={(trozos) => dividiendo && dividir(dividiendo, trozos)}
       />
 
-      <Confirmar
-        abierto={confirmando}
-        titulo="¿Aplicar la importación?"
-        mensaje={
+      {confirmando ? (
+        <Dialogo titulo="¿Aplicar la importación?" onCerrar={() => setConfirmando(false)}>
+          <ConfirmacionDialogo
+            frase={
           `Entrarán ${cuantos(cuenta.fijos, 'fijo')}, ${cuantos(cuenta.comida, 'compra')} de comida ` +
           `y ${cuantos(cuenta.variables, 'gasto variable', 'gastos variables')}. ` +
           (laNomina ? `El ingreso pasa a ${euros(Math.abs(laNomina.importe))}. ` : '') +
@@ -735,12 +725,15 @@ export function RevisionExtracto({
           (reglasNuevas.length > 0
             ? `Se recordarán ${cuantos(reglasNuevas.length, 'regla', 'reglas')}. `
             : '') +
-          'Se puede deshacer entera después.'
-        }
-        textoConfirmar="Aplicar"
-        onConfirmar={() => void aplicar()}
-        onCancelar={() => setConfirmando(false)}
-      />
+              'Se puede deshacer entera después.'
+            }
+            textoConfirmar="Aplicar"
+            trabajando={aplicando}
+            onConfirmar={() => void aplicar()}
+            onCancelar={() => setConfirmando(false)}
+          />
+        </Dialogo>
+      ) : null}
     </div>
   )
 }
@@ -748,8 +741,8 @@ export function RevisionExtracto({
 function Cifra({ n, que }: { n: number; que: string }) {
   if (n === 0) return null
   return (
-    <span className="recuento">
-      <strong>{n}</strong> {que}
+    <span className="chip">
+      <b>{n}</b> {que}
     </span>
   )
 }
@@ -771,22 +764,20 @@ function Bloque({
   vacio: string
   children: React.ReactNode
 }) {
+  /* El que pide atención (lo que falta por clasificar) va en ámbar. */
+  const destaca = destacado && cuantosHay > 0
   return (
-    <section className={`bloque-extracto${destacado && cuantosHay > 0 ? ' destacado' : ''}`}>
-      <button className="bloque-cabecera" onClick={onAlternar} aria-expanded={abierto}>
-        <span className="seccion-titulo">
+    <section className={`card${destaca ? ' pide-atencion' : ''}`}>
+      <button className="plegable-cabecera" onClick={onAlternar} aria-expanded={abierto}>
+        <span className="card-titulo">
           {titulo}
-          {cuantosHay > 0 ? <span className="bloque-cuenta">{cuantosHay}</span> : null}
+          {cuantosHay > 0 ? <span className="conteo-burbuja">{cuantosHay}</span> : null}
         </span>
-        <span aria-hidden="true">{abierto ? '−' : '+'}</span>
+        <span className="muted">
+          <Icono nombre={abierto ? 'abajo' : 'chevron'} size={15} />
+        </span>
       </button>
-      {abierto ? (
-        cuantosHay === 0 ? (
-          <p className="pista">{vacio}</p>
-        ) : (
-          <div className="tarjeta">{children}</div>
-        )
-      ) : null}
+      {abierto ? cuantosHay === 0 ? <p className="muted-3">{vacio}</p> : children : null}
     </section>
   )
 }
@@ -827,7 +818,6 @@ function FilaExtracto({
   onDividir: () => void
   onRecordar: (regla: ReglaNueva) => void
 }) {
-  const [menu, setMenu] = useState(false)
   const [recordando, setRecordando] = useState(false)
 
   return (
@@ -851,82 +841,58 @@ function FilaExtracto({
       <span className="linea-fecha">{linea.fecha ? fechaCorta(linea.fecha) : '—'}</span>
 
       <span className="linea-texto">
-        <span className="linea-limpia">
+        <span className="row-titulo">
           {linea.descripcionLimpia}
-          {linea.esAbono ? <span className="etiqueta-mini abono">abono</span> : null}
+          {linea.esAbono ? <Chip color="var(--ok)" suave="var(--ok-suave)">abono</Chip> : null}
         </span>
-        <span className="linea-original">{linea.descripcionOriginal}</span>
-        {linea.nota ? <span className="linea-nota">{linea.nota}</span> : null}
+        {/* Debajo, la descripción tal cual la manda el banco: es la que se coteja. */}
+        <span className="d">{linea.descripcionOriginal}</span>
+        {linea.nota ? <span className="d nota">{linea.nota}</span> : null}
       </span>
 
-      <span className={`linea-importe dinero${linea.esAbono ? ' negativo' : ''}`}>
+      <Importe abono={linea.esAbono}>
         {linea.esAbono ? '−' : ''}
         {euros(Math.abs(linea.importe))}
-      </span>
+      </Importe>
 
       <span className="linea-concepto">
         <SelectorConcepto
           conceptos={conceptos}
           frecuentes={frecuentes}
           valor={linea.conceptoId ?? sugerencia?.conceptoId ?? null}
-          ariaLabel={`Concepto de ${linea.descripcionLimpia}`}
+          etiqueta={`Concepto de ${linea.descripcionLimpia}`}
           placeholder="Elegir…"
           onElegir={onAsignar}
         />
         {!linea.conceptoId && sugerencia ? (
-          <button
-            className={`marca-origen ia ${sugerencia.confianza}`}
-            title={sugerencia.porque}
+          <Chip
+            color="var(--extras)"
+            suave="var(--extras-suave)"
+            etiqueta={sugerencia.porque}
             onClick={() => onAsignar(sugerencia.conceptoId)}
           >
-            IA ✓
-          </button>
+            IA
+          </Chip>
         ) : linea.procedencia !== 'ninguno' && linea.procedencia !== 'manual' ? (
-          <span className={`marca-origen ${linea.procedencia}`}>
-            {ETIQUETAS_PROCEDENCIA[linea.procedencia]}
-          </span>
+          <Chip>{ETIQUETAS_PROCEDENCIA[linea.procedencia]}</Chip>
         ) : null}
       </span>
 
-      <span className="linea-acciones">
-        <button
-          className="icono-boton"
-          aria-label={`Más acciones para ${linea.descripcionLimpia}`}
-          onClick={() => setMenu((m) => !m)}
-        >
-          ···
-        </button>
-        {menu ? (
-          <span className="menu-linea">
-            {linea.conceptoId ? (
-              <button
-                onClick={() => {
-                  setMenu(false)
-                  setRecordando(true)
-                }}
-              >
-                Recordar
-              </button>
-            ) : null}
-            <button
-              onClick={() => {
-                setMenu(false)
-                onDividir()
-              }}
-            >
-              Dividir
-            </button>
-            <button
-              onClick={() => {
-                setMenu(false)
-                onDescartar()
-              }}
-            >
-              Descartar
-            </button>
-          </span>
-        ) : null}
-      </span>
+      <MenuFila
+        etiqueta={`Más acciones para ${linea.descripcionLimpia}`}
+        opciones={[
+          ...(linea.conceptoId
+            ? [{ id: 'recordar', nombre: 'Recordar', icono: 'chispa' as const }]
+            : []),
+          { id: 'dividir', nombre: 'Dividir', icono: 'dividir' as const },
+          { id: 'descartar', nombre: 'Descartar', icono: 'papelera' as const, peligro: true },
+        ]}
+        onElegir={(id) => {
+          if (id === 'recordar') setRecordando(true)
+          if (id === 'dividir') onDividir()
+          if (id === 'descartar') onDescartar()
+        }}
+      />
 
       {recordando ? (
         <SheetRecordar
@@ -1000,7 +966,7 @@ function SheetRecordar({
   }
 
   return (
-    <Sheet abierta titulo={`Recordar → ${linea.concepto}`} onCerrar={onCerrar}>
+    <Dialogo titulo={`Recordar → ${linea.concepto}`} onCerrar={onCerrar}>
       <p className="seccion-pista">
         Se creará una regla para que el mes que viene esto se clasifique solo.
         {explicacion ? ` Esta descripción es ${explicacion}.` : ''}
@@ -1048,7 +1014,7 @@ function SheetRecordar({
       >
         Recordar
       </button>
-    </Sheet>
+    </Dialogo>
   )
 }
 
@@ -1175,7 +1141,7 @@ function SheetDividir({
   const completos = trozos.every((x) => (leerImporte(x.importe) ?? 0) > 0 && x.conceptoId !== null)
 
   return (
-    <Sheet abierta={!!linea} titulo="Dividir el movimiento" onCerrar={onCerrar}>
+    <Dialogo titulo="Dividir el movimiento" onCerrar={onCerrar}>
       <p className="seccion-pista">
         {linea.descripcionLimpia} · <strong>{euros(total)}</strong>. Los trozos tienen que sumar
         exactamente eso.
@@ -1186,7 +1152,7 @@ function SheetDividir({
           <CampoImporte
             valor={leerImporte(trozo.importe)}
             admiteVacio
-            ariaLabel={`Importe del trozo ${i + 1}`}
+            etiqueta={`Importe del trozo ${i + 1}`}
             onGuardar={(v) =>
               setTrozos((actuales) =>
                 actuales.map((x, j) => (j === i ? { ...x, importe: escribirImporte(v) } : x)),
@@ -1196,7 +1162,7 @@ function SheetDividir({
           <SelectorConcepto
             conceptos={conceptos}
             valor={trozo.conceptoId}
-            ariaLabel={`Concepto del trozo ${i + 1}`}
+            etiqueta={`Concepto del trozo ${i + 1}`}
             placeholder="Concepto…"
             onElegir={(conceptoId) =>
               setTrozos((actuales) => actuales.map((x, j) => (j === i ? { ...x, conceptoId } : x)))
@@ -1237,6 +1203,6 @@ function SheetDividir({
       >
         Dividir
       </button>
-    </Sheet>
+    </Dialogo>
   )
 }

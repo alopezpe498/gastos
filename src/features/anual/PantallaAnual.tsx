@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Anual, FilaAnual, TotalesAnioAnterior } from '../../lib/tipos'
-import { Cabecera, ErrorLinea, EstadoVacio } from '../../components/Basicos'
-import { EsqueletoLista } from '../../components/Esqueleto'
+import { BotonTexto, Cabecera, ErrorLinea, Esqueleto, Tabs, Vacio } from '../../components/ui/Basicos'
 import { useEsEscritorio } from '../../lib/tamano'
 import { MatrizAnual } from './MatrizAnual'
 import { VistaConcepto } from './VistaConcepto'
 import { InformeAnual } from '../informe/Informe'
-import { SelectorDeAnio } from '../../components/SelectorDeMes'
+
 
 type Props = {
   onAbrirMes: (anio: number, mes: number) => void
@@ -110,14 +109,18 @@ export function PantallaAnual({ onAbrirMes, anioElegido = null }: Props) {
    */
   const selector =
     anios && anios.length > 0 && anio ? (
-      <SelectorDeAnio anio={anio} anios={anios} onIr={setAnio} />
+      <Tabs
+        pestanas={anios.map((a) => ({ id: String(a), nombre: String(a) }))}
+        activa={String(anio)}
+        onCambiar={(id) => setAnio(Number(id))}
+      />
     ) : null
 
   if (error) {
     return (
       <>
         <Cabecera titulo="Año" acciones={selector} />
-        <div className="limite">
+        <div className="pila">
           <ErrorLinea mensaje={error} onReintentar={() => anio && void cargarAnio(anio)} />
         </div>
       </>
@@ -128,11 +131,10 @@ export function PantallaAnual({ onAbrirMes, anioElegido = null }: Props) {
     return (
       <>
         <Cabecera titulo="Año" />
-        <div className="limite">
-          <EstadoVacio
-            icono="—"
-            titulo="Todavía no hay ningún año"
-            texto="Abre un mes o importa una hoja del Excel y aquí verás la tabla del año entero."
+        <div className="pila">
+          <Vacio
+            icono="barras"
+            frase="Todavía no hay ningún año. Abre un mes o importa una hoja del Excel."
           />
         </div>
       </>
@@ -145,26 +147,21 @@ export function PantallaAnual({ onAbrirMes, anioElegido = null }: Props) {
         titulo={anio ? String(anio) : 'Año'}
         acciones={
           <div className="cabecera-acciones">
-            <button
-              className="boton boton-secundario boton-compacto"
-              disabled={!datos}
-              onClick={() => setInformeAbierto(true)}
-            >
+            <BotonTexto icono="descargar" disabled={!datos} onClick={() => setInformeAbierto(true)}>
               Informe
-            </button>
+            </BotonTexto>
             {selector}
           </div>
         }
-        anchaEnEscritorio
       />
 
       {informeAbierto && datos ? (
         <InformeAnual datos={datos} anterior={anterior} onCerrar={() => setInformeAbierto(false)} />
       ) : null}
 
-      <div className="limite limite-ancho">
+      <div className="pila">
         {!datos ? (
-          <EsqueletoLista filas={10} />
+          <Esqueleto filas={10} />
         ) : escritorio ? (
           <MatrizAnual
             datos={datos}

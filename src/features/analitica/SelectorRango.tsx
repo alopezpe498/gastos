@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { RangoDisponible } from '../../lib/tipos'
-import { SelectorMes } from '../../components/Campos'
+import { SelectorMes } from '../../components/ui/Campos'
 
 export type Ambito =
   | { tipo: 'anio'; anio: number }
@@ -106,16 +106,14 @@ export function SelectorRango({
           <SelectorMes
             valor={ambito.desde}
             onCambiar={(desde) => onCambiar({ ...ambito, desde })}
-            ariaLabel="Desde"
-            aniosAtras={6}
-          />
+            etiqueta="Desde"
+                      />
           <label className="campo-etiqueta">Hasta</label>
           <SelectorMes
             valor={ambito.hasta}
             onCambiar={(hasta) => onCambiar({ ...ambito, hasta })}
-            ariaLabel="Hasta"
-            aniosAtras={6}
-          />
+            etiqueta="Hasta"
+                      />
         </div>
       ) : null}
     </div>
