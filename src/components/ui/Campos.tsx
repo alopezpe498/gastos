@@ -27,6 +27,8 @@ type PropsImporte = {
   visible?: boolean
   estrecho?: boolean
   apagado?: boolean
+  /** Para los campos que salen al pulsar un valor: el cursor ya va dentro. */
+  autoFoco?: boolean
 }
 
 export function CampoImporte({
@@ -38,10 +40,21 @@ export function CampoImporte({
   visible = false,
   estrecho = false,
   apagado = false,
+  autoFoco = false,
 }: PropsImporte) {
   const [enFoco, setEnFoco] = useState(false)
   const [borrador, setBorrador] = useState('')
   const campo = useRef<HTMLInputElement>(null)
+
+  /*
+   * El campo ha salido porque se ha pulsado el valor: sería absurdo pedir un
+   * segundo clic. Y va seleccionado, no solo enfocado: al escribir se sustituye
+   * lo que había en vez de pegarse detrás, que es lo que espera cualquiera que
+   * pulsa un número para cambiarlo.
+   */
+  useEffect(() => {
+    if (autoFoco) campo.current?.select()
+  }, [autoFoco])
 
   /*
    * En reposo se ve el importe entero, con su símbolo: es dinero, no un número
@@ -77,9 +90,12 @@ export function CampoImporte({
       disabled={disabled}
       placeholder={admiteVacio ? '—' : '0,00'}
       value={borrador}
-      onFocus={() => {
+      onFocus={(e) => {
         setEnFoco(true)
-        setBorrador(valor === null ? '' : String(valor).replace('.', ','))
+        const pelado = valor === null ? '' : String(valor).replace('.', ',')
+        setBorrador(pelado)
+        // Seleccionado desde el primer momento: escribir sustituye.
+        requestAnimationFrame(() => e.target.select?.())
       }}
       onChange={(e) => setBorrador(e.target.value)}
       onBlur={() => void confirmar()}
@@ -221,6 +237,7 @@ export function ValorEditable({
           <CampoImporte
             valor={valor}
             admiteVacio
+            autoFoco
             etiqueta={etiqueta}
             onGuardar={async (nuevo) => {
               setEditando(false)

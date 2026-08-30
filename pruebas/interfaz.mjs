@@ -224,6 +224,41 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nEl sobre de comida y el objetivo de ahorro, de este mes')
+  // -------------------------------------------------------------------------
+  {
+    /*
+     * Los tres valores del mes se han perdido una vez cada uno al rehacer la
+     * pantalla: la nómina en la v2, el sobre y el objetivo en la v3. Cada uno
+     * tiene aquí su comprobación para que la próxima vez salte una prueba y no
+     * lo tenga que ver Toni.
+     */
+    await abrirApp()
+    await pagina.getByRole('button', { name: /^\/ / }).first().click()
+    const sobre = pagina.getByLabel('Presupuesto de comida de este mes')
+    await sobre.fill('650')
+    await sobre.press('Enter')
+    await pagina.waitForTimeout(1200)
+    const conSobre = await leerMes()
+    comprobar(
+      Math.abs(conSobre.presupuestoComida - 650) < 0.005,
+      'el sobre de comida se cambia desde su propio tile',
+      String(conSobre.presupuestoComida),
+    )
+
+    await abrirApp()
+    await abrirMenuDelMes()
+    const objetivo = pagina.getByLabel('Objetivo de ahorro de este mes')
+    await objetivo.fill('400')
+    await objetivo.press('Enter')
+    await pagina.waitForTimeout(1200)
+    comprobar(
+      Math.abs((await leerMes()).objetivoAhorro - 400) < 0.005,
+      'y el objetivo de ahorro desde el menú del mes',
+    )
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nApuntar un gasto desde la línea de texto libre')
   // -------------------------------------------------------------------------
   {

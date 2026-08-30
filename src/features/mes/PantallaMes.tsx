@@ -367,18 +367,25 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onB
           etiqueta="Comida"
           cifra={redondo(panel.comida.gastado)}
           sufijo={
-            panel.comida.presupuesto > 0 ? `/ ${Math.round(panel.comida.presupuesto)}` : undefined
+            /*
+             * El «/ 500» es el sobre, y es lo que se cambia cuando este mes
+             * viene una comunión. Se edita aquí, que es donde se lee: tenerlo
+             * solo en la plantilla obligaba a salir de la pantalla para algo
+             * que se decide mirando lo que llevas gastado.
+             */
+            <ValorEditable
+              valor={panel.comida.presupuesto}
+              prefijo="/"
+              vacio="poner sobre"
+              etiqueta="Presupuesto de comida de este mes"
+              onGuardar={(v) => cambiarMes({ presupuestoComida: v ?? 0 })}
+            />
           }
           /* En blanco hasta que se agota el sobre: el coral es para cuando pasa. */
           className={excesoComida ? 'sobre-agotado' : ''}
           frase={
             panel.comida.presupuesto <= 0 ? (
-              <ValorEditable
-                valor={panel.comida.presupuesto}
-                vacio="Poner un presupuesto"
-                etiqueta="Presupuesto de comida"
-                onGuardar={(v) => cambiarMes({ presupuestoComida: v ?? 0 })}
-              />
+              'Sin sobre puesto: la comida no cuenta contra ningún presupuesto.'
             ) : excesoComida ? (
               `Sobre agotado, ${euros(panel.comida.gastado - panel.comida.presupuesto)} de más`
             ) : (
@@ -504,6 +511,7 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onB
           mes={mes}
           onCerrar={() => setMenuAbierto(false)}
           onCambiado={recargar}
+          onCambiarValor={cambiarMes}
           onCambiarEstado={async (estado) => {
             await cambiarMes({ estado })
             avisar(estado === 'cerrado' ? 'Mes cerrado' : 'Mes reabierto')

@@ -209,8 +209,9 @@ export function Tile({
   suave?: string
   etiqueta: string
   cifra: string
-  /** Lo que va detrás de la cifra en pequeño, como «/ 500». */
-  sufijo?: string
+  /** Lo que va detrás de la cifra en pequeño, como «/ 500». Puede ser un
+      campo: el presupuesto se cambia donde se lee, no en otra pantalla. */
+  sufijo?: ReactNode
   frase?: ReactNode
   children?: ReactNode
   className?: string

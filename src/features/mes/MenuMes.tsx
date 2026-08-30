@@ -3,6 +3,7 @@ import { api, mensajeDeError } from '../../lib/api'
 import type { MesCompleto, ResumenRegeneracion, ValorPlantilla } from '../../lib/tipos'
 import { cuantos, euros } from '../../lib/formato'
 import { BotonTexto, Chip, Interruptor } from '../../components/ui/Basicos'
+import { CampoImporte } from '../../components/ui/Campos'
 import { AccionDialogo, ConfirmacionDialogo, Dialogo } from '../../components/ui/Dialogo'
 import { Fila } from '../../components/ui/Fila'
 import { useAvisos } from '../../components/ui/Toast'
@@ -18,6 +19,8 @@ import { useAvisos } from '../../components/ui/Toast'
 
 type Props = {
   mes: MesCompleto
+  /** Para cambiar los valores propios del mes desde aquí. */
+  onCambiarValor: (cambios: Record<string, unknown>) => Promise<void>
   onCerrar: () => void
   onCambiado: () => Promise<void> | void
   onCambiarEstado: (estado: 'abierto' | 'cerrado') => Promise<void>
@@ -31,7 +34,7 @@ type ResultadoReinicio = {
 
 type Vista = 'menu' | 'regenerar' | 'reiniciar' | 'borrar'
 
-export function MenuMes({ mes, onCerrar, onCambiado, onCambiarEstado }: Props) {
+export function MenuMes({ mes, onCerrar, onCambiado, onCambiarEstado, onCambiarValor }: Props) {
   const { avisar, avisarError } = useAvisos()
   const [vista, setVista] = useState<Vista>('menu')
   const [resumen, setResumen] = useState<ResumenRegeneracion | null>(null)
@@ -313,6 +316,33 @@ export function MenuMes({ mes, onCerrar, onCambiado, onCambiarEstado }: Props) {
         peligro
         onClick={() => setVista('borrar')}
       />
+      {/*
+        Los números propios de este mes. La nómina y el sobre se cambian donde
+        se leen —en el hero y en su tile— pero el objetivo de ahorro no tiene
+        sitio en la pantalla, así que vive aquí, con lo demás del mes.
+      */}
+      <h3 className="card-titulo" style={{ marginTop: 18, fontSize: 14 }}>
+        Valores de este mes
+      </h3>
+      <Fila
+        titulo="Objetivo de ahorro"
+        detalle="Lo que se quiere apartar. No es un gasto: no resta del sobrante."
+        importe={
+          <span style={{ width: 130, marginLeft: 'auto' }}>
+            <CampoImporte
+              valor={mes.objetivoAhorro}
+              visible
+              etiqueta="Objetivo de ahorro de este mes"
+              onGuardar={(v) => void onCambiarValor({ objetivoAhorro: v ?? 0 })}
+            />
+          </span>
+        }
+      />
+
+      <h3 className="card-titulo" style={{ marginTop: 18, fontSize: 14 }}>
+        Acciones
+      </h3>
+
       <AccionDialogo
         icono="candado"
         titulo={cerrado ? 'Reabrir el mes' : 'Cerrar el mes'}
