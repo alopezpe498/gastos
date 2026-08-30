@@ -1981,6 +1981,33 @@ p.resumen-nota.aviso {
   padding: 24px;
 }
 
+/*
+ * La barra de la capa: cerrar a un lado, imprimir al otro. No estaba definida,
+ * así que sus botones se apilaban encima del borde de la hoja.
+ */
+.informe-barra {
+  /*
+   * Pegada arriba: un informe del año son tres pantallas de tabla, y si la
+   * barra se va con el desplazamiento hay que subir del todo para cerrarlo.
+   */
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  max-width: 820px;
+  margin: 0 auto 14px;
+  padding: 10px 0;
+  background: var(--fondo);
+}
+
+.informe-barra .informe-pista {
+  flex: 1;
+  min-width: 140px;
+}
+
 .informe {
   max-width: 820px;
   margin: 0 auto;
@@ -2027,11 +2054,34 @@ p.resumen-nota.aviso {
   gap: 12px;
 }
 
+ /* Etiqueta arriba, cifra debajo: en línea, «Ingresos del año» y su importe se
+    leían como una sola frase rota. */
 .informe-cifra {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+}
+
+.informe-cifra strong {
   font-size: var(--t26);
   font-weight: 800;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+}
+
+.informe-marco {
+  overflow-x: auto;
+}
+
+.informe-matriz {
+  font-size: var(--t11);
+  min-width: max-content;
+}
+
+.informe-matriz th,
+.informe-matriz td {
+  padding: 6px;
+  white-space: nowrap;
 }
 
 .informe-cifra-etiqueta,
@@ -2039,13 +2089,6 @@ p.resumen-nota.aviso {
 .informe-concepto {
   font-size: var(--t12);
   color: var(--tinta-2);
-}
-
-.informe-barra {
-  height: 8px;
-  border-radius: 4px;
-  background: var(--hueco);
-  overflow: hidden;
 }
 
 .informe-matriz {
@@ -2331,6 +2374,11 @@ code {
 }
 
 @media print {
+  /* Se imprime la hoja y nada más: la barra es de la pantalla. */
+  .informe-barra {
+    display: none;
+  }
+
   .informe-capa {
     position: static;
     padding: 0;

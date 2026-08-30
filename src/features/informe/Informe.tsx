@@ -115,7 +115,10 @@ export function InformeAnual({
 
       <section className="informe-seccion">
         <h2>Concepto por mes</h2>
-        <table className="informe-tabla informe-matriz">
+        {/* La tabla del año tiene trece columnas y no cabe en una hoja: se
+            desplaza dentro de su marco en vez de salirse del informe. */}
+        <div className="informe-marco">
+          <table className="informe-tabla informe-matriz">
           <thead>
             <tr>
               <th>Concepto</th>
@@ -151,6 +154,7 @@ export function InformeAnual({
             })}
           </tbody>
         </table>
+        </div>
       </section>
     </Hoja>
   )
