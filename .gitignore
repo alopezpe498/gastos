@@ -9,3 +9,7 @@ logs/
 .env.local
 .vite/
 capturas/
+
+# El Word de las pantallas: se genera con scripts/documento.py cuando hace
+# falta, y son diez megas de imágenes que no pintan nada en el repositorio.
+*.docx
