@@ -77,10 +77,19 @@ a {
   color: inherit;
 }
 
+/*
+ * El anillo es solo del teclado. Lo explícito no sobra: un `.focus()` a mano
+ * cuenta como foco visible en Chrome, así que un botón que recupera el foco
+ * después de un clic se quedaba con un recuadro negro que parecía un estilo.
+ */
 :focus-visible {
   outline: 2px solid var(--tinta);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* ---------------------------------------------------------------------------
@@ -300,6 +309,8 @@ select.campo {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  /* Envuelve para que la línea de avisos caiga a su propio renglón, debajo. */
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 14px;
 }
@@ -609,6 +620,10 @@ select.campo {
 .alta-iconos {
   display: flex;
   gap: 2px;
+}
+
+.alta-falta {
+  align-self: center;
 }
 
 .alta-desplegada {

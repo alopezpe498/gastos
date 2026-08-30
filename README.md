@@ -768,6 +768,7 @@ server/
 pruebas/
   entorno.mjs           levanta un servidor con su propia base de datos
   ejecutar.mjs          lanza las suites y comprueba que gastos.db no cambia
+  interfaz.mjs          pulsa la aplicación de verdad en un navegador
   copia-bd.mjs          copia con fecha, con rotación
   fixtures/             el libro de ejemplo con el formato real
 src/

@@ -163,9 +163,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * OJO: `.alerta` NO va aquí. Es la clase del diálogo de confirmación, y
+ * tenerla en esta lista lo dejaba sin posición ni fondo: se pintaba como
+ * texto coral al final de la página, así que pulsar «Borrar el mes» parecía
+ * no hacer nada. Un color se llama por su color.
+ */
 .negativo,
-.peligro,
-.alerta {
+.peligro {
   color: var(--coral-texto);
 }
 
@@ -1822,6 +1827,19 @@ p.resumen-nota.aviso {
 }
 
 /* La alerta de confirmar: la misma hoja, más pequeña. */
+/* El diálogo de confirmación: centrado, encima de todo y con su velo. */
+.alerta {
+  position: fixed;
+  z-index: 60;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(400px, calc(100vw - 40px));
+  padding: 20px 22px;
+  border-radius: var(--radio);
+  background: var(--blanco);
+}
+
 .alerta-titulo {
   font-weight: 600;
   font-size: var(--t16);
@@ -1845,18 +1863,6 @@ p.resumen-nota.aviso {
  * Avisos
  * ------------------------------------------------------------------------- */
 
-.avisos {
-  position: fixed;
-  left: 50%;
-  bottom: 84px;
-  z-index: 50;
-  transform: translateX(-50%);
-  display: grid;
-  gap: 8px;
-  width: max-content;
-  max-width: calc(100vw - 32px);
-}
-
 /* Dentro de `.avisos` sí es el brindis: tinta llena, para que se lea encima
    de lo que sea que haya debajo. */
 .avisos .aviso {
@@ -1870,11 +1876,30 @@ p.resumen-nota.aviso {
   color: var(--blanco);
 }
 
-.aviso-boton,
 .alerta-boton {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radio-pastilla);
+  background: var(--fondo);
+  font-size: var(--t14);
+  font-weight: 600;
+}
+
+.alerta-boton.principal {
+  background: var(--tinta);
+  color: var(--blanco);
+}
+
+.alerta-boton.principal.peligro {
+  background: var(--coral);
+  color: var(--blanco);
+}
+
+.aviso-boton {
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
+  color: inherit;
 }
 
 /* ---------------------------------------------------------------------------
@@ -2903,4 +2928,181 @@ input.casilla {
   .regla-fila > .boton-icono {
     grid-area: borrar;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Confirmar sin salir de donde estás
+ * ------------------------------------------------------------------------- */
+
+/*
+ * La pregunta ocupa el sitio de lo que va a cambiar: dentro de la hoja del mes
+ * en vez de la lista de acciones, y dentro de la propia fila cuando es un
+ * apunte. Así se ve de qué estás hablando sin tener que leerlo.
+ */
+.confirmacion {
+  display: grid;
+  gap: 10px;
+  padding: 4px 0 8px;
+}
+
+.confirmacion-frase {
+  font-size: var(--t16);
+  font-weight: 600;
+}
+
+.confirmacion-botones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.fila-borrando {
+  gap: 10px;
+  background: var(--coral-suave);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin: 2px 0;
+}
+
+.fila-borrando .fila-texto {
+  flex: 1;
+  color: var(--coral-texto);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+ * La línea de «qué acaba de pasar»
+ * ------------------------------------------------------------------------- */
+
+.barra-avisos {
+  /* Renglón propio, ancho completo: la línea va DEBAJO de la barra, no a su
+     derecha peleándose por el sitio con los botones. */
+  flex: 0 0 100%;
+  width: 100%;
+}
+
+.avisos {
+  display: grid;
+  gap: 8px;
+}
+
+.avisos:empty {
+  display: none;
+}
+
+.avisos .aviso {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--tinta);
+  color: var(--blanco);
+  font-size: var(--t12);
+  font-weight: 500;
+  margin-top: 10px;
+}
+
+.avisos .aviso.error {
+  background: var(--coral);
+}
+
+.avisos .aviso > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.aviso-cerrar {
+  color: inherit;
+  opacity: 0.6;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.aviso-cerrar:hover {
+  opacity: 1;
+}
+
+/* Sin barra donde aterrizar (la pantalla del PIN) se queda flotando abajo. */
+.avisos-flotantes {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 50;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+}
+
+/* ---------------------------------------------------------------------------
+ * Los últimos cabos: clases que se usaban sin que nadie las hubiera pintado
+ * ------------------------------------------------------------------------- */
+
+.error-reintentar {
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  margin-left: 8px;
+}
+
+/* El probador de reglas: escribir una descripción y ver qué la caza. */
+.probador-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.probador-fila .campo-linea {
+  flex: 1;
+  min-width: 200px;
+  max-width: none;
+}
+
+.probador-resultado {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--fondo);
+  font-size: var(--t14);
+}
+
+.probador-crear {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.probador-crear .campo-linea {
+  max-width: 240px;
+}
+
+/* Un grupo segmentado pequeño, para dentro de una tarjeta. */
+.segmentado.pequeno button {
+  height: 24px;
+  padding: 0 10px;
+  font-size: var(--t11);
+}
+
+.lista-meses {
+  margin-top: 12px;
+}
+
+.dinero-titular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Las columnas de total y media de la tabla del año pesan más que un mes. */
+.anual-celda.anual-total,
+.anual-celda.anual-media {
+  font-weight: 600;
+}
+
+.anual-celda.anual-media {
+  color: var(--tinta-2);
 }

@@ -53,7 +53,7 @@ type PropsMovimientos = {
   conceptos: Concepto[]
   mesReferencia: string
   onCambiar: (id: number, cambios: Record<string, unknown>) => Promise<void>
-  onBorrar: (movimiento: Movimiento) => void
+  onBorrar: (movimiento: Movimiento) => Promise<void>
   onCrear: (datos: { conceptoId: number; importe: number; descripcion: string }) => Promise<void>
   onImportar: () => void
   /** Sube cuando se pulsa «+ Apuntar» arriba: pone el foco en la línea. */
@@ -72,6 +72,12 @@ export function ListaMovimientos({
 }: PropsMovimientos) {
   const [editando, setEditando] = useState<number | null>(null)
   const [menu, setMenu] = useState<number | null>(null)
+  /*
+   * Qué fila está preguntando si la borras. La pregunta va en la propia fila:
+   * es donde estás mirando y ahí se ve de cuál se trata, que es justo lo que un
+   * diálogo en medio de la pantalla no te dice.
+   */
+  const [borrando, setBorrando] = useState<number | null>(null)
 
   // Los movimientos traen el id del concepto pero no su color: se busca aquí
   // una vez, y no una por fila.
@@ -133,6 +139,24 @@ export function ListaMovimientos({
                 Listo
               </button>
             </div>
+          ) : borrando === m.id ? (
+            <div className="fila fila-borrando" key={m.id}>
+              <span className="fila-texto">
+                ¿Borrar este apunte de {euros(Math.abs(m.importe))}?
+              </span>
+              <button
+                className="boton boton-negro peligroso"
+                onClick={() => {
+                  setBorrando(null)
+                  void onBorrar(m)
+                }}
+              >
+                Borrar
+              </button>
+              <button className="boton" onClick={() => setBorrando(null)}>
+                Cancelar
+              </button>
+            </div>
           ) : (
             <div className="fila" key={m.id}>
               <span className="fila-fecha">{fechaCorta(m.fechaCobro)}</span>
@@ -186,7 +210,7 @@ export function ListaMovimientos({
                     <button
                       onClick={() => {
                         setMenu(null)
-                        onBorrar(m)
+                        setBorrando(m.id)
                       }}
                     >
                       Borrar
@@ -304,6 +328,20 @@ function AltaRapida({
           <button className="boton-texto" onClick={() => setAbierta(false)}>
             Cancelar
           </button>
+          {/*
+            Un botón apagado sin decir por qué es un callejón sin salida: si
+            escribes «mercadona 12,30» y no hay un concepto que se llame así,
+            hay que decir que falta elegirlo, no dejarte pulsando.
+          */}
+          {!conceptoId || importe === null ? (
+            <span className="t12 alta-falta">
+              {!conceptoId && importe === null
+                ? 'Falta el concepto y el importe'
+                : !conceptoId
+                  ? 'Falta elegir el concepto'
+                  : 'Falta el importe'}
+            </span>
+          ) : null}
         </div>
       ) : null}
     </div>

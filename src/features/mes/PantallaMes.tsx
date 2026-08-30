@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ErrorApi, mensajeDeError } from '../../lib/api'
 import type { Concepto, MesCompleto, MesPorAbrir, Movimiento, PanelMes } from '../../lib/tipos'
-import { Confirmar } from '../../components/Basicos'
 import { useAvisos } from '../../components/Avisos'
-import { cuantos, hoyIso, NOMBRES_MESES } from '../../lib/formato'
+import { cuantos, euros, hoyIso, NOMBRES_MESES } from '../../lib/formato'
 import { BloquePrincipal, BloqueFijos, BloqueComida, BloqueExtras, BloqueAhorro } from './Bloques'
 import { ListaMovimientos, ListaFijos } from './Listas'
 import { registrarConceptos } from '../../lib/colores'
@@ -43,7 +42,6 @@ export function PantallaMes({
   const [error, setError] = useState('')
   const [abriendo, setAbriendo] = useState(false)
   const [menuAbierto, setMenuAbierto] = useState(false)
-  const [aBorrar, setABorrar] = useState<Movimiento | null>(null)
   // Sube cada vez que se pulsa «Apuntar»: la lista lo mira para poner el foco
   // en su línea. Un número y no un booleano, porque hay que poder pulsarlo dos
   // veces seguidas.
@@ -128,14 +126,38 @@ export function PantallaMes({
     }
   }
 
-  const borrar = async () => {
-    if (!aBorrar) return
-    const cual = aBorrar
-    setABorrar(null)
+  /**
+   * Borra un apunte y ofrece deshacerlo.
+   *
+   * No hay «papelera» en la API, así que deshacer es volver a crearlo con lo
+   * que tenía. Pierde el id, que es lo de menos: lo que importa es que el
+   * dinero vuelva a estar donde estaba.
+   */
+  const borrar = async (cual: Movimiento) => {
     try {
       await api(`/movimientos/${cual.id}`, { metodo: 'DELETE' })
-      avisar(`"${cual.concepto}" borrado`)
       await recargar()
+      avisar(`Borrado «${cual.concepto}» de ${euros(Math.abs(cual.importe))}`, {
+        deshacer: async () => {
+          if (!mes) return
+          try {
+            await api('/movimientos', {
+              metodo: 'POST',
+              cuerpo: {
+                mesId: mes.id,
+                conceptoId: cual.conceptoId,
+                importe: cual.importe,
+                descripcion: cual.descripcion,
+                fechaCobro: cual.fechaCobro,
+              },
+            })
+            await recargar()
+            avisar('Vuelve a estar')
+          } catch (causa) {
+            avisarError(mensajeDeError(causa))
+          }
+        },
+      })
     } catch (causa) {
       avisarError(mensajeDeError(causa))
     }
@@ -245,7 +267,7 @@ export function PantallaMes({
           conceptos={conceptosVariables}
           mesReferencia={mes.clave}
           onCambiar={cambiarMovimiento}
-          onBorrar={setABorrar}
+          onBorrar={borrar}
           onCrear={apuntar}
           onImportar={() => onImportarExtracto(mes.id)}
           pedirApunte={pedirApunte}
@@ -270,15 +292,6 @@ export function PantallaMes({
         }}
       />
 
-      <Confirmar
-        abierto={!!aBorrar}
-        titulo="¿Borrar el apunte?"
-        mensaje={`Se va "${aBorrar?.concepto}" de ${mes.nombreMes.toLowerCase()}.`}
-        textoConfirmar="Borrar"
-        peligroso
-        onConfirmar={() => void borrar()}
-        onCancelar={() => setABorrar(null)}
-      />
     </>
   )
 }

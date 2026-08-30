@@ -1,5 +1,6 @@
 import { useEffect, useState, type ComponentType, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { HUECO_AVISOS } from './Avisos'
 
 /**
  * La navegación.
@@ -51,6 +52,9 @@ export function BarraSuperior<T extends string>({ secciones, activa, onIr }: Pro
         ))}
       </div>
       <div className="barra-acciones" id={HUECO_ACCIONES} />
+      {/* La línea de «qué acaba de pasar» va aquí debajo, donde estabas
+          mirando, y no flotando al final de la página. */}
+      <div id={HUECO_AVISOS} className="barra-avisos" />
     </nav>
   )
 }

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Gastos · referencia v2 · pantalla Mes</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fondo:#F6F6F3; --superficie:#fff; --linea:#F0F0EC; --hueco:#E4E4DF;
+  --tinta:#111111; --tinta-2:#6B6B66; --tinta-3:#9A9A94;
+  --acento:#B7E62E; --acento-suave:#DDF2A6; --acento-fondo:#EEF9D6;
+  --comida:#E8562A; --comida-suave:#FFE8DF;
+  --extras:#6C5CE7; --extras-suave:#ECE9FF;
+  --ok:#2E8B57; --ok-suave:#E1F3E6;
+  --ambar:#C98A00; --ambar-suave:#FFF3D6;
+  --sombra:0 1px 2px rgba(0,0,0,.03),0 10px 30px rgba(20,20,20,.05);
+  --sombra-pill:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.06);
+  --r-card:20px; --r-tile:14px; --r-ico:9px;
+}
+body{margin:0;background:var(--fondo);font-family:'Manrope',system-ui,sans-serif;color:var(--tinta)}
+.page{max-width:1120px;margin:0 auto;padding:18px}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.pill{display:flex;gap:2px;background:var(--superficie);border-radius:999px;padding:4px;box-shadow:var(--sombra-pill)}
+.pill span{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;font-size:13px;font-weight:600;color:var(--tinta-2)}
+.pill span.on{background:var(--tinta);color:#fff}
+.ic{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.card{background:var(--superficie);border-radius:var(--r-card);box-shadow:var(--sombra)}
+.hero{padding:22px 24px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;background:linear-gradient(135deg,#fff 55%,var(--acento-fondo) 100%)}
+.big{font-size:64px;font-weight:800;letter-spacing:-.05em;line-height:.95}
+.muted{color:var(--tinta-2);font-size:13px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0}
+.tile{padding:16px 18px}
+.tile .h{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--tinta-2);font-weight:600}
+.tile .n{font-size:28px;font-weight:800;letter-spacing:-.04em;margin:6px 0 8px}
+.ico{width:28px;height:28px;border-radius:var(--r-ico);display:inline-flex;align-items:center;justify-content:center}
+.row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--linea);font-size:14px}
+.row .d{font-size:12px;color:var(--tinta-3);margin-top:1px}
+.amt{margin-left:auto;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.seg{display:flex;height:12px;border-radius:6px;overflow:hidden;gap:2px;margin-top:14px}
+.leg{display:flex;gap:16px;font-size:12px;color:var(--tinta-2);margin-top:8px}
+.leg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
+.btn-primary{background:var(--tinta);color:#fff;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700}
+.btn-text{font-size:13px;font-weight:600;color:var(--tinta-2)}
+.check{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}
+.check.on{background:var(--tinta);color:#fff}
+.check.late{border:2px solid var(--comida)}
+.check.off{border:2px solid #DDDDD8}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+@media (max-width:760px){.hero{grid-template-columns:1fr}.tiles{grid-template-columns:1fr}.two{grid-template-columns:1fr!important}.pill span{padding:7px 9px}.pill span:not(.on) svg+*{display:none}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="nav">
+    <div style="font-weight:800;font-size:18px;letter-spacing:-.03em">gastos<span style="color:var(--acento)">.</span></div>
+    <div class="pill">
+      <span class="on"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Mes</span>
+      <span><svg class="ic" viewBox="0 0 24 24"><path d="M3 20h18M6 16V10M11 16V6M16 16v-3M21 16V8"/></svg>Año</span>
+      <span><svg class="ic" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Analítica</span>
+      <span><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Conceptos</span>
+      <span><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Importar</span>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <span class="btn-text">Importar extracto</span>
+      <span class="btn-primary">+ Apuntar</span>
+    </div>
+  </div>
+
+  <div class="card hero">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600"><span style="color:var(--tinta-3)">‹</span>Septiembre<span style="color:var(--tinta-3)">›</span><span class="muted" style="font-weight:500">· 1 → 30 sep · día 3</span></div>
+      <div class="muted" style="margin-top:16px">Te queda</div>
+      <div class="big"><span id="n">0</span> €</div>
+      <div style="font-size:15px;font-weight:600;margin-top:10px">Vas bien. Con lo que llevas, te sobran <b>46 € al día</b> hasta la nómina.</div>
+      <div class="seg"><div style="flex:238;background:var(--tinta)"></div><div style="flex:1288;background:#C9C9C4"></div><div style="flex:1574;background:var(--acento-suave)"></div></div>
+      <div class="leg"><span><i style="background:var(--tinta)"></i>Pagado 238 €</span><span><i style="background:#C9C9C4"></i>Comprometido 1.288 €</span><span><i style="background:var(--acento-suave)"></i>Libre 1.574 €</span><span style="margin-left:auto">Nómina 3.100 €</span></div>
+    </div>
+    <svg viewBox="0 0 150 150" width="150" height="150" role="img"><title>Anillos: mes transcurrido y dinero usado</title>
+      <circle cx="75" cy="75" r="62" fill="none" stroke="#EFEFEA" stroke-width="10"/>
+      <circle cx="75" cy="75" r="62" fill="none" stroke="var(--tinta)" stroke-width="10" stroke-linecap="round" stroke-dasharray="39 390" transform="rotate(-90 75 75)"/>
+      <circle cx="75" cy="75" r="46" fill="none" stroke="#EFEFEA" stroke-width="10"/>
+      <circle cx="75" cy="75" r="46" fill="none" stroke="var(--acento)" stroke-width="10" stroke-linecap="round" stroke-dasharray="142 289" transform="rotate(-90 75 75)"/>
+      <text x="75" y="70" text-anchor="middle" font-family="Manrope" font-weight="800" font-size="22" fill="#111">49%</text>
+      <text x="75" y="88" text-anchor="middle" font-family="Manrope" font-size="10" fill="#7A7A75">usado · 10% del mes</text>
+    </svg>
+  </div>
+
+  <div class="tiles">
+    <div class="card tile"><div class="h"><span class="ico" style="background:#EFEFEA"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg></span>Fijos</div><div class="n">1.288 €</div>
+      <div style="display:flex;gap:4px"><span class="dot" style="background:var(--tinta)"></span><span class="dot" style="background:var(--tinta)"></span><span class="dot" style="background:var(--hueco)"></span><span class="dot" style="background:var(--hueco)"></span><span class="dot" style="background:var(--hueco)"></span><span class="dot" style="background:var(--hueco)"></span><span class="dot" style="background:var(--hueco)"></span><span class="dot" style="background:var(--hueco)"></span><span class="dot" style="background:var(--hueco)"></span><span class="dot" style="background:var(--hueco)"></span><span class="dot" style="background:var(--hueco)"></span><span class="dot" style="background:var(--hueco)"></span><span class="dot" style="background:var(--hueco)"></span><span class="dot" style="background:var(--hueco)"></span></div>
+      <div class="muted" style="margin-top:8px">2 de 14 cobrados · el siguiente, comunidad el día 5</div></div>
+    <div class="card tile"><div class="h"><span class="ico" style="background:var(--comida-suave)"><svg class="ic" viewBox="0 0 24 24" style="color:var(--comida)"><path d="M6 3v7a3 3 0 006 0V3M9 3v18M18 3c-2 2-2 6-2 8h2v10"/></svg></span>Comida</div><div class="n">104 €<span class="muted" style="font-size:14px;font-weight:600;letter-spacing:0"> / 500</span></div>
+      <div style="height:8px;border-radius:4px;background:var(--linea);overflow:hidden"><div style="width:21%;height:100%;background:var(--comida);border-radius:4px"></div></div>
+      <div class="muted" style="margin-top:8px">Te quedan 396 €, unos 14 € al día</div></div>
+    <div class="card tile"><div class="h"><span class="ico" style="background:var(--extras-suave)"><svg class="ic" viewBox="0 0 24 24" style="color:var(--extras)"><path d="M6 6h15l-1.5 9h-12zM6 6L5 3H2M9 20a1 1 0 100-2 1 1 0 000 2zM18 20a1 1 0 100-2 1 1 0 000 2z"/></svg></span>Extras</div><div class="n">134 €</div>
+      <svg viewBox="0 0 200 30" width="100%" height="30"><polyline points="0,28 20,26 40,27 60,22 80,24 100,18 120,20 140,12 160,14 180,8 200,6" fill="none" stroke="var(--extras)" stroke-width="2.5" stroke-linecap="round"/><circle cx="200" cy="6" r="3.5" fill="var(--extras)"/></svg>
+      <div class="muted" style="margin-top:6px">Un 30 % menos que en septiembre pasado</div></div>
+  </div>
+
+  <div class="two" style="display:grid;grid-template-columns:1.55fr 1fr;gap:12px">
+    <div class="card" style="padding:16px 20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-weight:800;font-size:16px;letter-spacing:-.02em">Movimientos</span><span class="muted">5 · 238 €</span></div>
+      <div style="display:flex;align-items:center;gap:10px;background:var(--fondo);border-radius:14px;padding:12px 14px;font-size:14px;color:var(--tinta-3);margin-bottom:8px"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Apunta algo… "peaje 9,76"<span style="margin-left:auto;display:flex;gap:10px"><svg class="ic" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3"/></svg><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6"/></svg></span></div>
+      <div class="muted" style="margin:10px 0 2px;font-weight:600">Hoy</div>
+      <div class="row"><span class="ico" style="background:var(--comida-suave);color:var(--comida)"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3v7a3 3 0 006 0V3M9 3v18M18 3c-2 2-2 6-2 8h2v10"/></svg></span><div><div style="font-weight:600">Mercadona Rambla</div><div class="d">Comida</div></div><span class="amt">16,65 €</span></div>
+      <div class="row"><span class="ico" style="background:var(--ok-suave);color:var(--ok)"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12h18M3 12l4-4M3 12l4 4"/></svg></span><div><div style="font-weight:600">Tunelspan Barrera Cadí</div><div class="d">Peaje</div></div><span class="amt">14,56 €</span></div>
+      <div class="muted" style="margin:12px 0 2px;font-weight:600">Ayer</div>
+      <div class="row"><span class="ico" style="background:var(--extras-suave);color:var(--extras)"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9h-12zM6 6L5 3H2"/></svg></span><div><div style="font-weight:600">Amazon</div><div class="d">Amazon · cargador</div></div><span class="amt">29,99 €</span></div>
+      <div class="row"><span class="ico" style="background:var(--ambar-suave);color:var(--ambar)"><svg class="ic" viewBox="0 0 24 24"><path d="M5 8h11v6a4 4 0 01-4 4H9a4 4 0 01-4-4zM16 9h2a2 2 0 010 4h-2"/></svg></span><div><div style="font-weight:600">Bar Cafetería Aying</div><div class="d">Bar</div></div><span class="amt">6,30 €</span></div>
+      <div class="row"><span class="ico" style="background:var(--ok-suave);color:var(--ok)"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span><div><div style="font-weight:600">Transferencia de Silvia</div><div class="d">Silvia · abono</div></div><span class="amt" style="color:var(--ok)">−117,00 €</span></div>
+    </div>
+    <div class="card" style="padding:16px 20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-weight:800;font-size:16px;letter-spacing:-.02em">Fijos</span><span class="muted">12 pendientes</span></div>
+      <div class="row"><span class="check on"><svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M5 12l4 4L19 6"/></svg></span><div><div style="font-weight:600">Hipoteca</div><div class="d">cobrado el 31</div></div><span class="amt">622,53 €</span></div>
+      <div class="row"><span class="check on"><svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M5 12l4 4L19 6"/></svg></span><div><div style="font-weight:600">Telf BCN</div><div class="d">cobrado el 30</div></div><span class="amt">34,00 €</span></div>
+      <div class="row"><span class="check late"></span><div><div style="font-weight:600">Comunidad</div><div class="d" style="color:var(--comida)">era el día 1</div></div><span class="amt" style="color:var(--tinta-3)">131,00 €</span></div>
+      <div class="row"><span class="check off"></span><div><div style="font-weight:600">Seguro casa</div><div class="d">día 5</div></div><span class="amt" style="color:var(--tinta-3)">28,45 €</span></div>
+      <div class="row"><span class="check off"></span><div><div style="font-weight:600">Luz, gas, agua</div><div class="d">día 19 · 176 € el mes pasado</div></div><span class="amt" style="color:var(--tinta-3)">—</span></div>
+      <div class="row"><span class="check off"></span><div><div style="font-weight:600">Gimnasio</div><div class="d">día 27</div></div><span class="amt" style="color:var(--tinta-3)">19,99 €</span></div>
+      <div class="muted" style="margin-top:10px;text-align:center">Ver los 14 ›</div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){var el=document.getElementById('n'),t=1574,s=null;function f(ts){if(!s)s=ts;var p=Math.min((ts-s)/900,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(t*e).toLocaleString('es-ES');if(p<1)requestAnimationFrame(f);}requestAnimationFrame(f);})();
+</script>
+</body>
+</html>

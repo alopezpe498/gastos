@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { MesCompleto, ResumenRegeneracion } from '../../lib/tipos'
 import { Sheet } from '../../components/Sheet'
-import { Confirmar } from '../../components/Basicos'
 import { Interruptor } from '../../components/Campos'
 import { useAvisos } from '../../components/Avisos'
 import { IconoAviso, IconoCandado, IconoPapelera, IconoRepetir } from '../../components/Iconos'
@@ -16,7 +15,13 @@ type Props = {
   onCambiarEstado: (estado: 'abierto' | 'cerrado') => Promise<void>
 }
 
-type Vista = 'menu' | 'regenerar'
+/*
+ * Las confirmaciones son una vista más de la hoja, no un diálogo encima.
+ * Preguntarte «¿seguro?» en otra ventana, sobre la ventana que acabas de
+ * abrir, es apilar capas para decir una frase; aquí la lista se aparta y la
+ * pregunta ocupa su sitio.
+ */
+type Vista = 'menu' | 'regenerar' | 'reiniciar' | 'borrar'
 
 /**
  * Las acciones del mes que no son del día a día.
@@ -37,12 +42,6 @@ export function MenuMes({ mes, abierto, onCerrar, onCambiado, onCambiarEstado }:
   const [aplicarComida, setAplicarComida] = useState(false)
   const [aplicarAhorro, setAplicarAhorro] = useState(false)
 
-  // El reinicio pide dos confirmaciones: la primera avisa, la segunda ejecuta.
-  const [avisoReinicio, setAvisoReinicio] = useState(false)
-  const [confirmaReinicio, setConfirmaReinicio] = useState(false)
-  // Borrar el mes entero pide las mismas dos confirmaciones.
-  const [avisoBorrado, setAvisoBorrado] = useState(false)
-  const [confirmaBorrado, setConfirmaBorrado] = useState(false)
   // Cuántas importaciones aceptadas tiene el mes: se deshacen al reiniciar.
   const [importaciones, setImportaciones] = useState(0)
 
@@ -123,7 +122,6 @@ export function MenuMes({ mes, abierto, onCerrar, onCambiado, onCambiarEstado }:
   }
 
   const borrar = async () => {
-    setConfirmaBorrado(false)
     setTrabajando(true)
     try {
       const r = await api<{ movimientos: number; importaciones: number; nombreMes: string }>(
@@ -141,7 +139,6 @@ export function MenuMes({ mes, abierto, onCerrar, onCambiado, onCambiarEstado }:
   }
 
   const reiniciar = async () => {
-    setConfirmaReinicio(false)
     setTrabajando(true)
     try {
       const { reinicio } = await api<{ reinicio: ResultadoReinicio }>(
@@ -273,6 +270,63 @@ export function MenuMes({ mes, abierto, onCerrar, onCambiado, onCambiarEstado }:
     )
   }
 
+  // ---------- confirmaciones ----------
+
+  if (vista === 'reiniciar' || vista === 'borrar') {
+    const esBorrar = vista === 'borrar'
+    const apuntes = mes.fijos.length + mes.variables.length
+
+    return (
+      <Sheet
+        abierta
+        titulo={esBorrar ? '¿Borrar el mes?' : '¿Reiniciar el mes?'}
+        onCerrar={onCerrar}
+        accionIzquierda={
+          <button className="boton-texto" onClick={() => setVista('menu')}>
+            Atrás
+          </button>
+        }
+        accionDerecha={<span />}
+      >
+        <div className="confirmacion">
+          <p className="confirmacion-frase">
+            {esBorrar
+              ? `${mes.nombreMes} de ${mes.anio} deja de existir, con sus ${cuantos(apuntes, 'apunte')}`
+              : `Se borran los ${cuantos(apuntes, 'apunte')} de ${mes.nombreMes.toLowerCase()} y se generan de nuevo ${cuantos(mes.fijos.length, 'fijo')} desde la plantilla`}
+            {importaciones > 0
+              ? `, y se ${importaciones === 1 ? 'deshace' : 'deshacen'} ${cuantos(importaciones, 'importación', 'importaciones')} del extracto`
+              : ''}
+            .
+          </p>
+
+          <p className="pista">
+            {esBorrar
+              ? 'Tendrás que volver a abrirlo desde la plantilla. Si solo quieres empezar de cero, usa «Reiniciar el mes».'
+              : 'El ingreso, el dinero en cuenta y las notas se conservan.'}
+            {' No se puede deshacer.'}
+          </p>
+
+          <div className="confirmacion-botones">
+            <button
+              className="boton boton-negro peligroso"
+              disabled={trabajando}
+              onClick={() => void (esBorrar ? borrar() : reiniciar())}
+            >
+              {trabajando
+                ? 'Un momento…'
+                : esBorrar
+                  ? 'Sí, borrar el mes'
+                  : 'Sí, reiniciar el mes'}
+            </button>
+            <button className="boton" disabled={trabajando} onClick={() => setVista('menu')}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </Sheet>
+    )
+  }
+
   // ---------- menú ----------
 
   return (
@@ -307,7 +361,10 @@ export function MenuMes({ mes, abierto, onCerrar, onCambiado, onCambiarEstado }:
           <button
             className="fila fila-boton"
             disabled={cerrado}
-            onClick={() => setAvisoReinicio(true)}
+            onClick={() => {
+              void contarImportaciones()
+              setVista('reiniciar')
+            }}
           >
             <IconoPapelera size={20} />
             <span className="fila-cuerpo">
@@ -327,7 +384,7 @@ export function MenuMes({ mes, abierto, onCerrar, onCambiado, onCambiarEstado }:
             disabled={trabajando}
             onClick={() => {
               void contarImportaciones()
-              setAvisoBorrado(true)
+              setVista('borrar')
             }}
           >
             <IconoPapelera size={20} />
@@ -356,66 +413,6 @@ export function MenuMes({ mes, abierto, onCerrar, onCambiado, onCambiarEstado }:
         </div>
       </Sheet>
 
-      {/* Primera confirmación: avisa de lo que se pierde. */}
-      <Confirmar
-        abierto={avisoReinicio}
-        titulo={`¿Reiniciar ${mes.nombreMes.toLowerCase()}?`}
-        mensaje={
-          (mes.variables.length > 0
-            ? `Se ${mes.variables.length === 1 ? 'borrará' : 'borrarán'} ${cuantos(mes.variables.length, 'gasto variable', 'gastos variables')} y todos los cobros marcados. El ingreso, el dinero en cuenta y las notas se conservan.`
-            : 'Se borrarán todos los fijos y se generarán de nuevo. Este mes no tiene gastos variables que perder.') +
-          (importaciones > 0
-            ? ` Se ${importaciones === 1 ? 'deshará' : 'desharán'} ${cuantos(importaciones, 'importación', 'importaciones')}, así que el extracto se podrá volver a subir.`
-            : '')
-        }
-        textoConfirmar="Continuar"
-        peligroso={mes.variables.length > 0}
-        onConfirmar={() => {
-          setAvisoReinicio(false)
-          setConfirmaReinicio(true)
-        }}
-        onCancelar={() => setAvisoReinicio(false)}
-      />
-
-      {/* Segunda: la que ejecuta. */}
-      <Confirmar
-        abierto={avisoBorrado}
-        titulo={`¿Borrar ${mes.nombreMes.toLowerCase()} de ${mes.anio} entero?`}
-        mensaje={
-          `Desaparece el mes con sus ${cuantos(mes.fijos.length + mes.variables.length, 'apunte')}` +
-          (importaciones > 0
-            ? ` y ${cuantos(importaciones, 'importación', 'importaciones')} de extracto`
-            : '') +
-          '. Si solo quieres empezar de cero, usa «Reiniciar el mes».'
-        }
-        textoConfirmar="Continuar"
-        peligroso
-        onConfirmar={() => {
-          setAvisoBorrado(false)
-          setConfirmaBorrado(true)
-        }}
-        onCancelar={() => setAvisoBorrado(false)}
-      />
-
-      <Confirmar
-        abierto={confirmaBorrado}
-        titulo="Esto no se puede deshacer"
-        mensaje={`${mes.nombreMes} de ${mes.anio} dejará de existir. Tendrás que volver a abrirlo desde la plantilla.`}
-        textoConfirmar="Borrar el mes"
-        peligroso
-        onConfirmar={() => void borrar()}
-        onCancelar={() => setConfirmaBorrado(false)}
-      />
-
-      <Confirmar
-        abierto={confirmaReinicio}
-        titulo="Esto no se puede deshacer"
-        mensaje={`${cuantos(mes.fijos.length + mes.variables.length, 'apunte')} de ${mes.nombreMes.toLowerCase()} se van a borrar y se generarán ${cuantos(mes.fijos.length, 'fijo')} desde la plantilla.`}
-        textoConfirmar="Reiniciar el mes"
-        peligroso
-        onConfirmar={() => void reiniciar()}
-        onCancelar={() => setConfirmaReinicio(false)}
-      />
     </>
   )
 }
