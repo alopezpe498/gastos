@@ -147,16 +147,16 @@ export function SeccionIa({ config, onCambio }: Props) {
           : 'La clave se guarda en el servidor y nunca se envía al navegador.'}
       </p>
 
-      <div className="fila-campos">
+      <div className="acciones-pie">
         <button
-          className="boton boton-principal"
+          className="boton boton-negro"
           onClick={() => void guardar()}
           disabled={guardando}
         >
           {guardando ? 'Guardando…' : 'Guardar'}
         </button>
         <button
-          className="boton boton-secundario"
+          className="boton"
           onClick={() => void probar()}
           disabled={probando || !config?.configurada}
         >
@@ -172,13 +172,17 @@ export function SeccionIa({ config, onCambio }: Props) {
         </p>
       ) : null}
 
-      {config?.configurada ? (
-        <button className="boton boton-texto peligro" onClick={() => void olvidar()}>
-          Borrar la clave guardada
-        </button>
-      ) : null}
-
-      <p className="pista">Esta configuración la comparten todos los dispositivos.</p>
+      <p className="pista pie-seccion">
+        Esta configuración la comparten todos los dispositivos.
+        {config?.configurada ? (
+          <>
+            {' · '}
+            <button className="boton-texto peligro" onClick={() => void olvidar()}>
+              Borrar la clave guardada
+            </button>
+          </>
+        ) : null}
+      </p>
     </section>
   )
 }

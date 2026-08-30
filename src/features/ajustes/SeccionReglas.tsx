@@ -243,12 +243,12 @@ export function SeccionReglas({ conceptos }: { conceptos: Concepto[] }) {
                 valor={regla.texto}
                 ariaLabel={`Texto de la regla ${regla.texto}`}
                 maxLength={60}
-                className="campo"
+                className="campo regla-texto"
                 onGuardar={(texto) => void cambiar(regla, { texto })}
               />
 
               <select
-                className="campo"
+                className="campo regla-concepto"
                 aria-label={`Concepto de la regla ${regla.texto}`}
                 value={regla.conceptoId ?? ''}
                 onChange={(e) => {
@@ -268,7 +268,7 @@ export function SeccionReglas({ conceptos }: { conceptos: Concepto[] }) {
               </select>
 
               <select
-                className="campo"
+                className="campo regla-encaje"
                 aria-label={`Cómo encaja la regla ${regla.texto}`}
                 value={regla.coincidencia}
                 onChange={(e) =>

@@ -27,10 +27,20 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/*
+ * Los títulos no heredan el tamaño del navegador: aquí lo pone siempre una
+ * clase. Sin esto, un <h2> sin clase salía a 24 px en medio de una pantalla
+ * donde el texto grande es una decisión, no un descuido.
+ */
 h1,
 h2,
 h3,
-h4,
+h4 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: 600;
+}
+
 p {
   margin: 0;
 }
@@ -958,4 +968,59 @@ select.campo {
   .bloque {
     border: 1px solid #ccc;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Valores que se cambian donde se leen
+ * ------------------------------------------------------------------------- */
+
+/*
+ * La nómina, el sobre de comida y el objetivo de ahorro se editan pulsando el
+ * número, que es donde se está mirando. Antes vivían en un formulario aparte y
+ * había que acordarse de dónde estaba.
+ */
+.valor-al-vuelo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  color: inherit;
+  border-radius: 6px;
+  padding: 0 3px;
+  margin: 0 -3px;
+  text-align: left;
+  transition: background var(--rapido) var(--curva);
+}
+
+.valor-al-vuelo:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.valor-al-vuelo strong {
+  font-weight: 600;
+}
+
+.valor-al-vuelo.editando {
+  background: none;
+}
+
+/* Fuera del bloque de color el valor es una línea más de las pequeñas. */
+.bloque-comida .valor-al-vuelo,
+.bloque-ahorro .valor-al-vuelo {
+  margin-top: 4px;
+  font-size: var(--t12);
+  color: inherit;
+  opacity: 0.85;
+}
+
+.bloque-comida .valor-al-vuelo {
+  color: var(--coral-texto);
+}
+
+.bloque-ahorro .valor-al-vuelo {
+  color: var(--azul-texto);
+}
+
+.bloque-ahorro.sin-ahorro .valor-al-vuelo {
+  color: var(--coral-texto);
 }

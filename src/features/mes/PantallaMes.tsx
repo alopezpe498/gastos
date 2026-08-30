@@ -228,11 +228,15 @@ export function PantallaMes({
           panel={panel}
           onIr={(anio, numeroMes) => onCambioDeMes({ anio, mes: numeroMes })}
           onCambiarSaldo={(valor) => cambiarMes({ dineroEnCuenta: valor })}
+          onCambiarIngreso={(valor) => cambiarMes({ ingreso: valor })}
         />
         <BloqueFijos panel={panel} />
-        <BloqueComida mes={mes} />
+        <BloqueComida
+          mes={mes}
+          onCambiarPresupuesto={(valor) => cambiarMes({ presupuestoComida: valor })}
+        />
         <BloqueExtras panel={panel} />
-        <BloqueAhorro mes={mes} />
+        <BloqueAhorro mes={mes} onCambiarObjetivo={(valor) => cambiarMes({ objetivoAhorro: valor })} />
       </div>
 
       <div className="rejilla-abajo">

@@ -53,7 +53,30 @@
 }
 
 .acciones-pie {
-  margin-top: 16px;
+  margin-top: 18px;
+}
+
+.pie-seccion {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--linea);
+}
+
+/*
+ * Ajustes en dos columnas: son bloques pequeños y sueltos, igual que los de
+ * Mes, y apilados en una sola columna la pantalla se hacía muy larga para lo
+ * poco que dice cada uno.
+ */
+.rejilla-ajustes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+.rejilla-ajustes > .seccion,
+.rejilla-ajustes > .bloque {
+  margin-top: 0;
 }
 
 .titulo,
@@ -229,7 +252,6 @@
  * Campos y formularios
  * ------------------------------------------------------------------------- */
 
-.campo-linea,
 .fila-campos,
 .etiquetas-fila {
   display: flex;
@@ -238,8 +260,32 @@
   flex-wrap: wrap;
 }
 
+/* ---------------------------------------------------------------------------
+ * Formularios
+ *
+ * En una lista un valor es texto hasta que lo tocas; en un formulario de
+ * ajustes no, porque ahí has venido precisamente a escribir y un campo que no
+ * se ve es un campo que no se encuentra. Son dos situaciones distintas y por
+ * eso tienen dos aspectos: `.campo` a secas es invisible dentro de una fila, y
+ * se dibuja como campo cuando cuelga directamente de un bloque.
+ * ------------------------------------------------------------------------- */
+
 .campo-etiqueta,
-.etiqueta-campo,
+.etiqueta-campo {
+  display: block;
+  margin: 16px 0 5px;
+  font-size: var(--t12);
+  font-weight: 600;
+  color: var(--tinta-2);
+}
+
+/* La primera etiqueta de un bloque no necesita separarse de nada. */
+.bloque > .campo-etiqueta:first-of-type,
+.tarjeta > .campo-etiqueta:first-of-type,
+.sheet-cuerpo > .campo-etiqueta:first-of-type {
+  margin-top: 0;
+}
+
 .etiqueta,
 .etiqueta-mini,
 .resumen-etiqueta,
@@ -250,27 +296,93 @@
 }
 
 .campo-texto,
-.campo-buscar,
-.campo-fecha-nativo {
+.campo-linea,
+.campo-fecha-nativo,
+.bloque > .campo,
+.tarjeta > .campo,
+.sub-bloque > .campo,
+.grupo > .campo,
+.sheet-cuerpo > .campo,
+.rejilla-previsto .campo {
+  display: block;
   width: 100%;
-  height: 34px;
+  max-width: 420px;
+  height: 36px;
   padding: 0 12px;
-  border-radius: 10px;
   border: 1px solid var(--linea);
+  border-radius: 10px;
   background: var(--blanco);
+  font-size: var(--t14);
+  transition: border-color var(--rapido) var(--curva);
 }
 
-.campo-buscar {
-  background: var(--fondo);
-  border-color: transparent;
+.campo-texto:hover,
+.campo-linea:hover,
+.bloque > .campo:hover,
+.tarjeta > .campo:hover,
+.sheet-cuerpo > .campo:hover {
+  border-color: var(--hueco);
 }
 
 .campo-texto:focus,
-.campo-buscar:focus,
-.campo-fecha-nativo:focus {
+.campo-linea:focus,
+.campo-fecha-nativo:focus,
+.bloque > .campo:focus,
+.tarjeta > .campo:focus,
+.sub-bloque > .campo:focus,
+.grupo > .campo:focus,
+.sheet-cuerpo > .campo:focus,
+.rejilla-previsto .campo:focus {
   outline: none;
-  border-color: var(--hueco);
+  border-color: var(--tinta);
   background: var(--blanco);
+}
+
+/* Un área de texto crece; no se le puede fijar el alto de una línea. */
+textarea.campo-texto,
+textarea.campo,
+.bloque > textarea.campo {
+  height: auto;
+  max-width: none;
+  padding: 10px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+/* Los desplegables llevan su flecha dibujada, que la nativa no se puede pintar. */
+select.campo-linea,
+.bloque > select.campo,
+.tarjeta > select.campo,
+.sheet-cuerpo > select.campo {
+  appearance: none;
+  padding-right: 30px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--tinta-2) 50%),
+    linear-gradient(135deg, var(--tinta-2) 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) 16px,
+    calc(100% - 11px) 16px;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/*
+ * Sobre el fondo de la página un campo del color del fondo desaparece: la
+ * línea es lo único que dice que ahí se puede escribir.
+ */
+.campo-buscar {
+  background: var(--blanco);
+  border-color: var(--linea);
+}
+
+.campo-buscar:focus {
+  background: var(--blanco);
+}
+
+/* Un grupo de opciones va pegado a su etiqueta y separado de lo siguiente. */
+.bloque > .segmentado,
+.tarjeta > .segmentado,
+.sheet-cuerpo > .segmentado {
+  margin-bottom: 4px;
 }
 
 .campo-fecha {
@@ -307,12 +419,23 @@
   border-top: 0;
 }
 
-/* Sin ancho propio el campo se lleva la fila entera y deja la etiqueta sola. */
+/*
+ * Sin ancho propio el campo se lleva la fila entera y deja la etiqueta sola.
+ * Ni tan ancho que se coma la fila ni tan estrecho que no quepa «F. Operativa».
+ */
 .fila-ajuste .campo,
 .fila-ajuste .campo-texto,
+.fila-ajuste .campo-linea,
 .casilla .campo {
-  width: 110px;
+  width: 240px;
+  max-width: 50%;
   flex: none;
+}
+
+/* Un número sí se alinea a la derecha, para poder compararlos de un vistazo. */
+.fila-ajuste .campo.importe,
+.fila-ajuste .campo.dinero {
+  width: 130px;
   text-align: right;
 }
 
@@ -622,12 +745,24 @@
  * Filas de catálogo: el concepto a la izquierda, sus datos en gris a la derecha
  * ------------------------------------------------------------------------- */
 
-.fila-cuerpo,
 .fila-boton {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 12px;
   width: 100%;
+  text-align: left;
+}
+
+/*
+ * El cuerpo de una fila apila: arriba lo que se hace, debajo lo que pasa si lo
+ * haces. Es la forma de un menú de acciones, y ponerlo en una línea recortaba
+ * el nombre de la acción para dejarle sitio a su explicación.
+ */
+.fila-cuerpo {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
   text-align: left;
 }
 
@@ -635,18 +770,19 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .fila-detalle {
-  margin-left: auto;
   font-size: var(--t12);
   color: var(--tinta-2);
+  line-height: 1.45;
+}
+
+/* Suelto dentro de una fila sí es un dato a la derecha, no una explicación. */
+.fila > .fila-detalle {
+  margin-left: auto;
   white-space: nowrap;
 }
 
@@ -696,7 +832,23 @@
   height: 10px;
 }
 
+/*
+ * La fila de un concepto es una rejilla y no una caja flexible: con seis cosas
+ * dentro, en flex el nombre era lo único que podía encogerse y en el móvil se
+ * quedaba en una letra. Con columnas, lo que se encoge lo decides tú.
+ */
+.fila-concepto {
+  display: grid;
+  grid-template-columns: 18px 24px minmax(0, 1fr) auto auto 40px;
+  align-items: center;
+  gap: 10px;
+}
+
 .fila-nombre {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 500;
 }
 
@@ -726,8 +878,52 @@
   border-top-color: var(--tinta);
 }
 
-.fila-concepto.apagada .fila-titulo {
+.fila-concepto.apagada .fila-nombre,
+.fila-concepto.apagada .fila-detalle {
   color: var(--tinta-2);
+}
+
+@media (max-width: 760px) {
+  /*
+   * En el móvil el nombre se queda solo en su línea y sus datos bajan debajo.
+   * El chip del tipo se va: la cabecera de la sección ya dice si son fijos,
+   * sobres o variables, y repetirlo en cada fila costaba el nombre.
+   */
+  .fila-concepto {
+    grid-template-columns: 18px 24px minmax(0, 1fr) 40px;
+    grid-template-areas:
+      'agarre punto nombre activo'
+      'agarre punto datos datos';
+    row-gap: 2px;
+  }
+
+  .fila-concepto > .agarre {
+    grid-area: agarre;
+    align-self: start;
+  }
+
+  .fila-concepto > .punto-boton {
+    grid-area: punto;
+    align-self: start;
+  }
+
+  .fila-concepto > .fila-nombre {
+    grid-area: nombre;
+  }
+
+  .fila-concepto > .chip-tipo {
+    display: none;
+  }
+
+  .fila-concepto > .fila-detalle {
+    grid-area: datos;
+    margin-left: 0;
+    white-space: normal;
+  }
+
+  .fila-concepto > .interruptor {
+    grid-area: activo;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -904,19 +1100,71 @@
   padding: 4px 8px;
 }
 
-/* El mapa de calor: una sola tinta, más o menos intensa. */
+/*
+ * El mapa de calor: una sola tinta, más o menos intensa.
+ *
+ * La celda no lleva número: el valor va en el `title` y para los lectores de
+ * pantalla. Lo que se mira aquí es la forma —qué meses se disparan— y doce
+ * cifras por fila la taparían. La intensidad la pone el componente en
+ * `--intensidad`, de 0 a 1, y aquí se usa como alfa.
+ */
+.mapa-calor-marco {
+  background: var(--blanco);
+  border-radius: var(--radio);
+  padding: 14px 18px;
+}
+
 .mapa-calor {
   border-collapse: separate;
   border-spacing: 3px;
   font-size: var(--t11);
 }
 
-.mapa-calor td,
+.mapa-calor thead th {
+  font-size: var(--t11);
+  font-weight: 600;
+  color: var(--tinta-2);
+  padding-bottom: 2px;
+}
+
+.mapa-calor tbody th {
+  text-align: left;
+  font-weight: 500;
+  font-size: var(--t12);
+  white-space: nowrap;
+  padding-right: 8px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .celda-calor {
-  border-radius: 6px;
-  padding: 6px 8px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+  width: 26px;
+  height: 22px;
+  border-radius: 5px;
+  background-color: rgb(108 92 231 / var(--intensidad, 0));
+  /* El fondo del hueco se ve por debajo cuando la intensidad es baja. */
+  box-shadow: inset 0 0 0 100px rgb(227 226 220 / 0.5);
+}
+
+.celda-calor:not(.vacia) {
+  box-shadow: none;
+}
+
+/* Un mes sin datos no es un cero: se deja hueco y no se colorea. */
+.celda-calor.vacia {
+  background-color: transparent;
+}
+
+/* El mes que se dispara lleva marco: es lo que se ha venido a buscar. */
+.celda-calor.punta {
+  outline: 2px solid var(--tinta);
+  outline-offset: -2px;
+}
+
+.celda-calor[onclick],
+.mapa-calor td:hover {
+  cursor: pointer;
 }
 
 .leyenda {
@@ -1030,6 +1278,81 @@
 }
 
 /*
+ * Las series de los gráficos.
+ *
+ * Cada clase solo pone `color`, y las piezas de dentro tiran de `currentColor`:
+ * así una misma serie sale igual siendo línea, barra, área o punto de leyenda,
+ * y añadir un color nuevo es una línea y no seis. Son las mismas tintas que
+ * reparte el catálogo de conceptos, para que la app hable un solo idioma.
+ */
+.serie-1 {
+  color: #6c5ce7;
+}
+
+.serie-2 {
+  color: #f5a623;
+}
+
+.serie-3 {
+  color: #2fbf71;
+}
+
+.serie-4 {
+  color: #12a8a0;
+}
+
+.serie-5 {
+  color: #d6478e;
+}
+
+.serie-6 {
+  color: #8a9a2b;
+}
+
+/* La media y lo previsto no son series: son referencias, y van apagadas. */
+.media {
+  color: var(--tinta-2);
+}
+
+.previsto {
+  color: var(--hueco);
+}
+
+/* Los tres bloques de la regla, con los colores que ya usa el análisis. */
+.necesario {
+  color: var(--azul);
+}
+
+.prescindible {
+  color: var(--ambar);
+}
+
+.ahorro {
+  color: var(--verde);
+}
+
+.barra-relleno {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: currentColor;
+  transition: width 240ms var(--curva);
+}
+
+.barra-importe,
+.barra-porcentaje {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.barra-porcentaje {
+  width: 48px;
+  text-align: right;
+  font-size: var(--t12);
+  color: var(--tinta-2);
+}
+
+/*
  * Una línea es una línea: sin `fill: none` el navegador cierra el trazo y la
  * sparkline sale como una mancha negra.
  */
@@ -1052,16 +1375,19 @@
 }
 
 .grafico .barra {
-  fill: var(--lavanda-suave);
+  fill: currentColor;
+  color: var(--lavanda-suave);
 }
 
 .grafico .barra.pulsable:hover {
-  fill: var(--lavanda);
+  color: var(--lavanda);
 }
 
+/* El área apilada toma el color de su serie; sin esto sale toda negra. */
 .grafico .area {
+  fill: currentColor;
   stroke: none;
-  opacity: 0.5;
+  opacity: 0.85;
 }
 
 .sparkline-vacia {
@@ -1235,6 +1561,31 @@
   color: var(--tinta-2);
 }
 
+/*
+ * Una zona de soltar que es ella misma el `<label>` del input (la del Excel):
+ * lleva la caja puesta, porque no hay nada más alrededor que la dibuje.
+ */
+label.zona-archivo {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 34px 20px;
+  border: 1px dashed var(--hueco);
+  border-radius: 14px;
+  background: var(--fondo);
+  text-align: center;
+  cursor: pointer;
+  margin-top: 12px;
+  transition:
+    border-color var(--rapido) var(--curva),
+    background var(--rapido) var(--curva);
+}
+
+label.zona-archivo:hover {
+  border-color: var(--tinta);
+  background: var(--blanco);
+}
+
 .zona-archivo-titulo,
 .zona-pegado-titulo {
   font-weight: 600;
@@ -1357,6 +1708,17 @@
   color: var(--verde-texto);
 }
 
+/*
+ * Un aviso que es un párrafo con texto corrido va en bloque: en flex, cada
+ * `<strong>` y cada `<code>` se convierte en una columna y la frase se parte
+ * en trozos verticales.
+ */
+p.aviso,
+p.pista.aviso,
+p.resumen-nota.aviso {
+  display: block;
+}
+
 .banda-accion {
   margin-left: auto;
 }
@@ -1414,8 +1776,26 @@
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  padding: 8px 18px 12px;
+  padding: 10px 18px 12px;
   font-weight: 600;
+}
+
+/* El título de una hoja es un rótulo, no un titular de pantalla. */
+.sheet-cabecera .titulo {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--t16);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.sheet-accion {
+  min-width: 64px;
+}
+
+.sheet-accion.derecha {
+  justify-content: flex-end;
 }
 
 .sheet-cuerpo {
@@ -1717,11 +2097,17 @@
   }
 }
 
+/*
+ * El menú «Más» de la barra de abajo sube; no baja. `.menu` lo coloca con
+ * `top: 100%`, que aquí lo mandaba justo debajo del borde de la pantalla: las
+ * secciones que viven ahí (Analítica y Ajustes) no había forma de abrirlas en
+ * el móvil. Hay que anular ese `top`, no solo poner un `bottom`.
+ */
 .menu-abajo {
-  position: absolute;
+  top: auto;
   right: 8px;
-  bottom: 100%;
-  margin-bottom: 8px;
+  bottom: calc(100% + 8px);
+  z-index: 25;
 }
 
 code {
@@ -2443,16 +2829,21 @@ input.casilla {
     align-self: start;
   }
 
-  .regla-fila > .campo:first-of-type {
+  /*
+   * Por clase y no por `:first-of-type`: el desplegable del concepto también
+   * lleva la clase `.campo`, así que se colaba en la misma celda que el texto
+   * y los dos se pintaban encima.
+   */
+  .regla-texto {
     grid-area: texto;
   }
 
-  .regla-fila > select:first-of-type {
+  .regla-concepto {
     grid-area: concepto;
   }
 
   /* El modo de encaje se decide una vez y casi nunca se toca. */
-  .regla-fila > select:last-of-type,
+  .regla-encaje,
   .regla-usos {
     display: none;
   }

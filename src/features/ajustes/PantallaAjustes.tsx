@@ -110,8 +110,12 @@ export function PantallaAjustes({
       <Cabecera titulo="Ajustes" debajo={pestanas} />
 
       <div className="limite">
+        {/*
+          En dos columnas, como los bloques de Mes: son cuatro cosas pequeñas y
+          en una sola columna la página se hacía interminable.
+        */}
         {pestana === 'general' ? (
-          <>
+          <div className="rejilla-ajustes">
             <SeccionCalculo
               ajustes={ajustes}
               conceptos={conceptos}
@@ -149,9 +153,7 @@ export function PantallaAjustes({
                 </p>
               )}
             </section>
-
-            <p className="pie-version">Gastos · fase 3</p>
-          </>
+          </div>
         ) : null}
 
         {pestana === 'ia' ? <SeccionIa config={configIa} onCambio={setConfigIa} /> : null}
@@ -159,6 +161,8 @@ export function PantallaAjustes({
         {pestana === 'reglas' ? <SeccionReglas conceptos={conceptos} /> : null}
 
         {pestana === 'formato' ? <SeccionFormatoBanco /> : null}
+
+        <p className="pie-version">Gastos · fase 3</p>
       </div>
     </>
   )

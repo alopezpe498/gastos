@@ -19,6 +19,8 @@ type PropsImporte = {
   ariaLabel: string
   disabled?: boolean
   placeholder?: string
+  /** Para los campos que aparecen al pulsar un valor: el cursor ya va dentro. */
+  autoFoco?: boolean
 }
 
 export function CampoImporte({
@@ -29,11 +31,18 @@ export function CampoImporte({
   ariaLabel,
   disabled = false,
   placeholder = '0,00',
+  autoFoco = false,
 }: PropsImporte) {
   const [enFoco, setEnFoco] = useState(false)
   const [borrador, setBorrador] = useState('')
   const [guardado, setGuardado] = useState(false)
   const campo = useRef<HTMLInputElement>(null)
+
+  // El campo ha salido porque se ha pulsado el valor: sería absurdo pedir un
+  // segundo clic para poder escribir.
+  useEffect(() => {
+    if (autoFoco) campo.current?.select()
+  }, [autoFoco])
 
   // Si el valor cambia desde fuera (otro dispositivo, recarga) y no se esta
   // editando, el campo lo recoge; si se esta editando, no se pisa lo escrito.

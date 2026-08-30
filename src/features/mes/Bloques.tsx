@@ -21,6 +21,7 @@ type PropsPrincipal = {
   panel: PanelMes
   onIr: (anio: number, mes: number) => void
   onCambiarSaldo: (valor: number | null) => Promise<void>
+  onCambiarIngreso: (valor: number) => Promise<void>
 }
 
 /**
@@ -30,7 +31,13 @@ type PropsPrincipal = {
  * alto pero aún queda, coral si ya te has pasado. En ningún otro sitio hay
  * rojos sueltos.
  */
-export function BloquePrincipal({ mes, panel, onIr, onCambiarSaldo }: PropsPrincipal) {
+export function BloquePrincipal({
+  mes,
+  panel,
+  onIr,
+  onCambiarSaldo,
+  onCambiarIngreso,
+}: PropsPrincipal) {
   const queda = mes.resumen.sobrante
   const { diasQueQuedan, dias, diaActual } = panel.periodo
 
@@ -61,7 +68,10 @@ export function BloquePrincipal({ mes, panel, onIr, onCambiarSaldo }: PropsPrinc
         (fijosPendientes > 0 ? `; los fijos que faltan suman ${redondo(fijosPendientes)}` : '')
       : rapido
         ? 'Cuidado: a este ritmo te quedas sin nada antes de la nómina'
-        : `Vas bien: te sobran ${redondo(alDia)} al día hasta la nómina`
+        : diasQueQuedan === 1
+          // Un solo día no es un ritmo: repartirlo «al día» no dice nada.
+          ? `Vas bien: te queda ${redondo(queda)} para el último día`
+          : `Vas bien: te sobran ${redondo(alDia)} al día hasta la nómina`
 
   const descuadre =
     mes.resumen.dineroEnCuenta === null
@@ -86,7 +96,12 @@ export function BloquePrincipal({ mes, panel, onIr, onCambiarSaldo }: PropsPrinc
       <div className="principal-pie">
         <div className="principal-cifras">
           <span>Gastado {redondo(mes.resumen.gastos)}</span>
-          <span>Nómina {redondo(mes.ingreso)}</span>
+          <ValorAlVuelo
+            etiqueta="Nómina"
+            valor={mes.ingreso}
+            ariaLabel="Nómina del mes"
+            onCambiar={(valor) => onCambiarIngreso(valor ?? 0)}
+          />
         </div>
         <div className="principal-barra">
           <div
@@ -110,6 +125,66 @@ export function BloquePrincipal({ mes, panel, onIr, onCambiarSaldo }: PropsPrinc
         />
       </div>
     </div>
+  )
+}
+
+/**
+ * Un número del mes que se cambia donde se lee.
+ *
+ * Es la regla de la casa: en reposo un valor es texto; al pulsarlo se convierte
+ * en campo. Vale igual dentro del bloque de color (donde hereda su tinta) que
+ * en uno blanco, y evita tener que ir a buscar un formulario en otra pantalla
+ * para cambiar la nómina de este mes.
+ */
+export function ValorAlVuelo({
+  etiqueta,
+  valor,
+  ariaLabel,
+  sufijo,
+  vacio,
+  onCambiar,
+}: {
+  etiqueta: string
+  valor: number | null
+  ariaLabel: string
+  /** Lo que va detrás del número, si hace falta («del sobre»). */
+  sufijo?: string
+  /** Qué poner cuando no hay valor. «Objetivo de 0 €» no dice nada. */
+  vacio?: string
+  onCambiar: (valor: number | null) => Promise<void>
+}) {
+  const [editando, setEditando] = useState(false)
+
+  if (!editando) {
+    return (
+      <button className="valor-al-vuelo" onClick={() => setEditando(true)}>
+        {vacio && !valor ? (
+          vacio
+        ) : (
+          <>
+            {etiqueta} <strong>{redondo(valor)}</strong>
+            {sufijo ? ` ${sufijo}` : ''}
+          </>
+        )}
+      </button>
+    )
+  }
+
+  return (
+    <span className="valor-al-vuelo editando">
+      {etiqueta}
+      <CampoImporte
+        valor={valor}
+        admiteVacio
+        autoFoco
+        ariaLabel={ariaLabel}
+        className="campo importe campo-en-color"
+        onGuardar={async (nuevo) => {
+          setEditando(false)
+          await onCambiar(nuevo)
+        }}
+      />
+    </span>
   )
 }
 
@@ -198,7 +273,13 @@ export function BloqueFijos({ panel }: { panel: PanelMes }) {
   )
 }
 
-export function BloqueComida({ mes }: { mes: MesCompleto }) {
+export function BloqueComida({
+  mes,
+  onCambiarPresupuesto,
+}: {
+  mes: MesCompleto
+  onCambiarPresupuesto: (valor: number) => Promise<void>
+}) {
   const { presupuesto, gastado } = mes.resumen.comida
   const exceso = Math.max(0, gastado - presupuesto)
   const total = Math.max(presupuesto, gastado, 1)
@@ -220,6 +301,14 @@ export function BloqueComida({ mes }: { mes: MesCompleto }) {
             ? `Te quedan ${redondo(presupuesto - gastado)} del sobre`
             : 'Sin presupuesto puesto'}
       </div>
+
+      <ValorAlVuelo
+        etiqueta="Sobre de"
+        valor={presupuesto}
+        ariaLabel="Presupuesto de comida del mes"
+        vacio="Poner un presupuesto"
+        onCambiar={(valor) => onCambiarPresupuesto(valor ?? 0)}
+      />
     </div>
   )
 }
@@ -292,7 +381,13 @@ export function BloqueExtras({ panel }: { panel: PanelMes }) {
  * ahorro sale negativo el bloque se vuelve coral: no es un matiz, es que ese
  * mes has vivido de lo ahorrado.
  */
-export function BloqueAhorro({ mes }: { mes: MesCompleto }) {
+export function BloqueAhorro({
+  mes,
+  onCambiarObjetivo,
+}: {
+  mes: MesCompleto
+  onCambiarObjetivo: (valor: number) => Promise<void>
+}) {
   const queda = mes.resumen.sobrante
   const porcentaje = mes.ingreso > 0 ? Math.round((queda / mes.ingreso) * 100) : 0
   const objetivo =
@@ -306,15 +401,23 @@ export function BloqueAhorro({ mes }: { mes: MesCompleto }) {
     <div className={`bloque bloque-ahorro${enRojo ? ' sin-ahorro' : ''}`}>
       <div className="t12">Ahorro real</div>
       <div className="cifra">{porcentaje} %</div>
-      <div className="t12">
-        {enRojo
-          ? 'Este mes no ahorras'
-          : objetivo === null
-            ? 'Sin objetivo puesto'
+      {objetivo === null ? null : (
+        <div className="t12">
+          {enRojo
+            ? 'Este mes no ahorras'
             : porcentaje >= objetivo
               ? `Objetivo ${objetivo} % · lo vas a cumplir`
               : `Objetivo ${objetivo} % · te faltan ${objetivo - porcentaje} puntos`}
-      </div>
+        </div>
+      )}
+
+      <ValorAlVuelo
+        etiqueta="Objetivo de"
+        valor={mes.objetivoAhorro}
+        ariaLabel="Objetivo de ahorro del mes"
+        vacio="Ponerte un objetivo"
+        onCambiar={(valor) => onCambiarObjetivo(valor ?? 0)}
+      />
     </div>
   )
 }
