@@ -578,6 +578,8 @@ export type PanelMes = {
   comprometido: number
   /** ingreso − pagado − comprometido. */
   libre: number
+  /** Lo pagado sin los fijos: es lo único con lo que se juzga el ritmo. */
+  pagadoSinFijos: number
   fijos: {
     movimientoId: number
     conceptoId: number

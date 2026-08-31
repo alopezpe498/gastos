@@ -13,6 +13,23 @@ export { ErrorLectura }
 const CONCEPTO_AJUSTE = 'Ajuste importación'
 
 /**
+ * Una fecha de cobro solo vale si ya ha pasado; si no, el apunte queda pendiente.
+ *
+ * Nada puede estar cobrado en el futuro. Es la regla que faltaba: la hoja anual
+ * trae los doce meses y los que aun no han llegado son una prevision.
+ */
+function siYaPaso(fecha) {
+  return fecha <= hoy() ? fecha : null
+}
+
+const hoy = () => new Date().toISOString().slice(0, 10)
+
+/** Si el mes todavia no ha empezado, lo que trae la hoja es una prevision. */
+function mesYaEmpezado(anio, mes) {
+  return `${claveMes(anio, mes)}-01` <= hoy()
+}
+
+/**
  * Importacion de una hoja anual.
  *
  * Dos pasos a proposito: primero se ensena lo que se va a hacer (vistaPrevia) y
@@ -372,16 +389,32 @@ const ejecutar = bd.transaction(({ lectura, anio, mapeos, sobrescribir, crearAju
         importe: valor,
         importePrevisto: plantilla?.importePrevisto ?? null,
         diaPrevisto: plantilla?.diaPrevisto ?? null,
-        // Lo del Excel ya esta cobrado: se fecha en su dia previsto y, si no lo
-        // tiene, el dia 1.
-        fechaCobro: fechaDelDiaPrevisto(anio, numeroMes, plantilla?.diaPrevisto),
+        /*
+         * Lo del Excel ya esta cobrado: se fecha en su dia previsto y, si no lo
+         * tiene, el dia 1. PERO solo si ese dia ya ha pasado.
+         *
+         * La hoja trae el año entero, con los importes de los meses que aun no
+         * han llegado; son una prevision, no un cobro. Fecharlos igual dejaba
+         * septiembre con sus catorce fijos «cobrados» antes de empezar, y con
+         * ellos fuera de lo comprometido: la pantalla decia que te quedaba
+         * mucho mas dinero del que te quedaba.
+         */
+        fechaCobro: siYaPaso(fechaDelDiaPrevisto(anio, numeroMes, plantilla?.diaPrevisto)),
         origen: 'excel',
       })
       resumen.fijos += 1
     }
 
+    /*
+     * Un mes que aun no ha empezado no tiene gastos: lo que la hoja trae de el
+     * son los importes previstos de los fijos, y esos ya se han creado arriba
+     * como pendientes. Crear ademas sus variables y su comida diria que te has
+     * gastado en septiembre un dinero que aun no has tocado.
+     */
+    const empezado = mesYaEmpezado(anio, numeroMes)
+
     // ---------- variables ----------
-    const apuntes = lectura.variables.get(numeroMes) ?? []
+    const apuntes = empezado ? lectura.variables.get(numeroMes) ?? [] : []
     // El Excel no guarda la fecha de cada gasto variable, solo el mes. Se
     // fechan el dia 1: asi cuentan como cobrados y no como pendientes, que es
     // lo que son en un mes ya cerrado.
@@ -404,7 +437,7 @@ const ejecutar = bd.transaction(({ lectura, anio, mapeos, sobrescribir, crearAju
     // Si la comida del mes es un importe unico y no hay apuntes de comida, se
     // guarda ademas como un movimiento del sobre: sin el, "gastado en comida"
     // saldria a cero y el sobre pareceria intacto.
-    if (sobre && presupuestoComida !== 0 && !hayComidaDetallada) {
+    if (empezado && sobre && presupuestoComida !== 0 && !hayComidaDetallada) {
       movimientosBd.crear({
         mesId: mes.id,
         conceptoId: sobre.id,
@@ -416,7 +449,7 @@ const ejecutar = bd.transaction(({ lectura, anio, mapeos, sobrescribir, crearAju
     }
 
     // ---------- descuadre ----------
-    const otrosExcel = lectura.totales.otros.get(numeroMes)
+    const otrosExcel = empezado ? lectura.totales.otros.get(numeroMes) : undefined
     if (otrosExcel !== undefined) {
       const diferencia = redondear(otrosExcel - sumaVariables(lectura, numeroMes))
       if (diferencia !== 0) {

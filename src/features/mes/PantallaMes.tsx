@@ -225,29 +225,55 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onB
   const { diasQueQuedan, dias, diaActual } = panel.periodo
   const cerrado = mes.estado === 'cerrado'
   const terminado = (diasQueQuedan === 0 && diaActual > 0) || cerrado
-  /*
-   * El ritmo se mide solo con lo PAGADO. Meter lo comprometido diría que vas
-   * fatal el día 1, cuando lo único que pasa es que los recibos aún no han
-   * llegado.
-   */
-  const parteGasto = mes.ingreso > 0 ? panel.pagado / mes.ingreso : 0
-  const partePeriodo = dias > 0 ? diaActual / dias : 0
   const pasado = panel.libre < 0
-  const rapido = !pasado && !terminado && parteGasto > partePeriodo + 0.08
+
+  /*
+   * El ritmo se mide con lo pagado SIN LOS FIJOS, contra los días que llevas.
+   *
+   * Los fijos no dependen de cómo te portes este mes: llegan cuando llegan, y
+   * meterlos hacía que el día que pasa la hipoteca la app te riñera. Lo que dice
+   * si vas rápido es lo que decides tú —los variables y la comida— frente a lo
+   * que llevas de mes.
+   */
+  const partePeriodo = dias > 0 ? diaActual / dias : 0
+  const parteRitmo = mes.ingreso > 0 ? panel.pagadoSinFijos / mes.ingreso : 0
+  /*
+   * Y no se juzga nada hasta el segundo día. Con el 0 % del mes transcurrido
+   * cualquier gasto «se pasa del ritmo», así que un café el día 1 disparaba un
+   * «Cuidado» que no significaba nada.
+   */
+  const hayRitmo = diaActual >= 2
+  const rapido = !pasado && !terminado && hayRitmo && parteRitmo > partePeriodo + 0.08
 
   const alDia = diasQueQuedan > 0 ? panel.libre / diasQueQuedan : panel.libre
   const nombreMes = mes.nombreMes.toLowerCase()
+  // «el 1 de septiembre» y no «el 1 sep.»: va dentro de una frase, no en una
+  // tabla, y ahí las abreviaturas cantan.
+  const empieza = largo(panel.periodo.desde)
+
   const frase = terminado
     ? pasado
       ? `Cerraste ${nombreMes} con ${redondo(Math.abs(panel.libre))} de más.`
       : `Cerraste ${nombreMes} con ${redondo(panel.libre)} de sobra.`
-    : pasado
-      ? `Te has pasado ${redondo(Math.abs(panel.libre))} de lo que entra este mes.`
-      : rapido
-        ? 'Cuidado: llevas gastado más de lo que llevas de mes.'
-        : diasQueQuedan === 1
-          ? `Vas bien. Te queda ${redondo(panel.libre)} para el último día.`
-          : `Vas bien. Con lo que llevas, te sobran ${redondo(alDia)} al día hasta la nómina.`
+    : diaActual === 0
+      ? // El periodo aún no ha empezado: no hay nada que juzgar todavía.
+        `El mes empieza el ${empieza}.`
+      : pasado
+        ? `Te has pasado ${redondo(Math.abs(panel.libre))} de lo que entra este mes.`
+        : !hayRitmo
+          ? 'Acabas de empezar el mes.'
+          : rapido
+            ? 'Cuidado: llevas gastado más de lo que llevas de mes.'
+            : diasQueQuedan === 1
+              ? `Vas bien. Te queda ${redondo(panel.libre)} para el último día.`
+              : `Vas bien. Con lo que llevas, te sobran ${redondo(alDia)} al día hasta la nómina.`
+
+  /*
+   * El anillo de dentro es cuánto de la nómina tiene ya destino, pagado o
+   * comprometido. Con solo lo pagado marcaba 0 % el día 1 de un mes cuyos
+   * recibos ya estaban decididos, que es justo lo contrario de lo que pasa.
+   */
+  const parteUsada = mes.ingreso > 0 ? (panel.pagado + panel.comprometido) / mes.ingreso : 0
 
   const cobrados = panel.fijos.filter((f) => f.cobrado).length
   const excesoComida = panel.comida.gastado > panel.comida.presupuesto && panel.comida.presupuesto > 0
@@ -331,8 +357,8 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onB
 
         <Anillos
           partePeriodo={partePeriodo}
-          parteGasto={parteGasto}
-          centro={`${Math.round(parteGasto * 100)}%`}
+          parteGasto={parteUsada}
+          centro={`${Math.round(parteUsada * 100)}%`}
           pie={`usado · ${Math.round(partePeriodo * 100)}% del mes`}
         />
       </div>

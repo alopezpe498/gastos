@@ -768,6 +768,7 @@ server/
 pruebas/
   entorno.mjs           levanta un servidor con su propia base de datos
   ejecutar.mjs          lanza las suites y comprueba que gastos.db no cambia
+  reparto.mjs           pagado, comprometido y libre, con el caso que falló
   interfaz.mjs          pulsa la aplicación de verdad en un navegador
   copia-bd.mjs          copia con fecha, con rotación
   fixtures/             el libro de ejemplo con el formato real

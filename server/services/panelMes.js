@@ -1,7 +1,7 @@
 import * as movimientosBd from '../db/movimientos.js'
 import * as mesesBd from '../db/meses.js'
 import * as conceptosBd from '../db/conceptos.js'
-import { comidaQueCuenta } from './calculos.js'
+import { comidaQueCuenta, repartoDelMes } from './calculos.js'
 import { diasDelMes } from '../lib/fechas.js'
 import { redondear } from '../lib/http.js'
 
@@ -137,20 +137,12 @@ export function panel(mes, ajustes) {
   })
 
   /*
-   * Pagado, comprometido y libre.
-   *
-   * La diferencia importa: lo comprometido es dinero que todavia esta en la
-   * cuenta pero ya tiene dueno (los fijos que faltan por cobrar). Meterlo en el
-   * mismo saco que lo gastado hace creer que te queda menos, y dejarlo fuera
-   * hace creer que te queda mas. Van separados y se dicen los tres.
+   * Pagado, comprometido y libre los decide `repartoDelMes`, que es la unica
+   * que sabe de esto. Aqui NO se recalcula: el acumulado de la barra va dia a
+   * dia y solo cuenta lo que cae dentro del periodo, asi que no sirve para el
+   * total (un fijo cobrado el 31 del mes pasado se quedaba fuera).
    */
-  const comprometido = redondear(
-    movimientos
-      .filter((m) => m.tipo === 'fijo' && !m.cobrado && !m.esObjetivo)
-      .reduce((t, m) => t + m.importe, 0),
-  )
-  const pagado = acumulado
-  const libre = redondear((mes.ingreso ?? 0) - pagado - comprometido)
+  const reparto = repartoDelMes(mes, movimientos, ajustes)
 
   // ---- los fijos ----
   const delMesAnterior = importesDelMesAnterior(mes)
@@ -192,9 +184,11 @@ export function panel(mes, ajustes) {
     },
     puntos,
     gastado: acumulado,
-    pagado,
-    comprometido,
-    libre,
+    pagado: reparto.pagado,
+    comprometido: reparto.comprometido,
+    libre: reparto.libre,
+    /* Con esto se juzga el ritmo, y solo con esto: los fijos no cuentan. */
+    pagadoSinFijos: reparto.pagadoSinFijos,
     fijos,
     pendientes: pendientes.length,
     siguienteFijo: siguiente

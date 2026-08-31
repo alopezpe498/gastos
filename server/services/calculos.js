@@ -40,6 +40,71 @@ export function comidaQueCuenta(presupuesto, gastado, criterio) {
   return criterio === 'gastado' ? gasto : Math.max(presu, gasto)
 }
 
+/**
+ * EN QUE ESTADO ESTA EL DINERO DEL MES: pagado, comprometido y libre.
+ *
+ * Igual que `comidaQueCuenta`, esta funcion es la unica que decide esto. La
+ * usan el panel de la pantalla Mes y el resumen, y si alguien vuelve a
+ * calcularlo por su cuenta las dos barras dejaran de cuadrar.
+ *
+ * La distincion importa y no es cosmetica:
+ *
+ *   PAGADO        lo que YA ha salido de la cuenta: los fijos que se han
+ *                 cobrado, los gastos variables y lo que se lleva gastado de
+ *                 comida. Nada mas.
+ *
+ *   COMPROMETIDO  lo que sigue en la cuenta pero ya tiene dueno: los fijos que
+ *                 faltan por cobrar y, si la comida cuenta por el presupuesto,
+ *                 lo que queda del sobre. Ese resto NO esta gastado, pero
+ *                 tampoco es tuyo para otra cosa: por eso no es «libre».
+ *
+ *   LIBRE         nomina - pagado - comprometido. Es lo que de verdad queda.
+ *
+ * El error que habia: el sobre entero se metia en «pagado» desde el dia 1, asi
+ * que un mes recien abierto sin gastar un euro decia que llevabas 500 pagados.
+ * Y los fijos cobrados no entraban porque se contaban dia a dia y su fecha caia
+ * fuera del periodo; el resultado era una barra que no describia nada.
+ *
+ * Con el criterio 'gastado' la comida no compromete nada: solo cuenta lo que se
+ * ha ido, que es justo lo que dice esa opcion.
+ */
+export function repartoDelMes(mes, movimientos, ajustes) {
+  const sinObjetivo = movimientos.filter((m) => !m.esObjetivo)
+  const fijos = sinObjetivo.filter((m) => m.tipo === 'fijo')
+  const variables = sinObjetivo.filter((m) => m.tipo === 'variable')
+
+  const fijosCobrados = suma(fijos.filter((m) => m.cobrado))
+  const fijosPendientes = suma(fijos.filter((m) => !m.cobrado))
+  const comidaGastada = suma(sinObjetivo.filter((m) => m.tipo === 'sobre'))
+
+  const presupuestoComida = redondear(mes.presupuestoComida ?? 0)
+  const porPresupuesto = ajustes.comidaEnTotal !== 'gastado'
+  // Solo lo que queda del sobre, y solo si queda: pasarse no compromete mas.
+  const sobreSinGastar = porPresupuesto
+    ? Math.max(0, redondear(presupuestoComida - comidaGastada))
+    : 0
+
+  const pagado = redondear(fijosCobrados + suma(variables) + comidaGastada)
+  const comprometido = redondear(fijosPendientes + sobreSinGastar)
+  const libre = redondear((mes.ingreso ?? 0) - pagado - comprometido)
+
+  return {
+    pagado,
+    comprometido,
+    libre,
+    /*
+     * Lo pagado SIN los fijos. Es con lo unico que se puede juzgar el ritmo:
+     * los fijos no dependen de como te portes este mes, llegan cuando llegan, y
+     * meterlos hace que el dia que pasa la hipoteca parezca un desastre.
+     */
+    pagadoSinFijos: redondear(suma(variables) + comidaGastada),
+    fijosCobrados,
+    fijosPendientes,
+    comidaGastada,
+    sobreSinGastar,
+  }
+}
+
 /** Porcentaje sobre los ingresos; null si no hay ingresos con los que dividir. */
 function porcentaje(parte, total) {
   if (!total) return null

@@ -15,6 +15,7 @@ const aqui = path.dirname(fileURLToPath(import.meta.url))
 
 const SUITES = [
   { nombre: 'Cálculos', archivo: 'calculos.mjs' },
+  { nombre: 'Pagado, comprometido y libre', archivo: 'reparto.mjs' },
   { nombre: 'API', archivo: 'api.mjs' },
   { nombre: 'Importación desde Excel', archivo: 'importacion-excel.mjs' },
   { nombre: 'Inteligencia artificial', archivo: 'ia.mjs' },
