@@ -3,6 +3,7 @@ import { bd } from '../db/index.js'
 import * as conceptosBd from '../db/conceptos.js'
 import * as mesesBd from '../db/meses.js'
 import * as analitica from '../services/analitica.js'
+import * as compra from '../services/analiticaCompra.js'
 import { fallo, ruta, enteroDe } from '../lib/http.js'
 import { claveMes } from '../lib/fechas.js'
 
@@ -173,5 +174,94 @@ rutasAnalitica.get(
       generales: datos.totales[anio] ?? null,
       desde: claveMes(anio, 1),
     })
+  }),
+)
+
+// ---------------------------------------------------------------------------
+// La compra: en que se va el sobre de comida, por dentro
+// ---------------------------------------------------------------------------
+//
+// Todo esto sale de las lineas de los tickets, no de los movimientos. El mes ya
+// sabe cuanto se ha gastado en comida; lo que se pregunta aqui es OTRA cosa —en
+// que se reparte ese dinero— y solo esta en el detalle.
+
+/** El reparto por categoria: la puerta de entrada, de la que se baja. */
+rutasAnalitica.get(
+  '/compra/reparto',
+  ruta((req, res) => {
+    const rango = rangoDe(req, res)
+    if (!rango) return undefined
+    return res.json({ rango: { desde: comoClave(rango.desde), hasta: comoClave(rango.hasta) }, ...compra.reparto({ rango }) })
+  }),
+)
+
+/** Los productos, todos o los de una categoria. */
+rutasAnalitica.get(
+  '/compra/productos',
+  ruta((req, res) => {
+    const rango = rangoDe(req, res)
+    if (!rango) return undefined
+    const categoriaId = req.query.categoria ? enteroDe(req.query.categoria) : null
+    return res.json(compra.productos({ rango, categoriaId }))
+  }),
+)
+
+/** Un producto por dentro: variantes, compras y evolucion del precio. */
+rutasAnalitica.get(
+  '/compra/producto/:id',
+  ruta((req, res) => {
+    const rango = rangoDe(req, res)
+    if (!rango) return undefined
+    const id = enteroDe(req.params.id)
+    const ficha = id ? compra.producto({ rango, productoId: id }) : null
+    if (!ficha) return fallo(res, 404, 'Ese producto no existe.')
+    return res.json({ ...ficha, tiendas: compra.comparativaDeTiendas({ rango, productoId: id }) })
+  }),
+)
+
+/** Buscar un producto por nombre: «pollo» y lo que haya debajo. */
+rutasAnalitica.get(
+  '/compra/buscar',
+  ruta((req, res) => {
+    const rango = rangoDe(req, res)
+    if (!rango) return undefined
+    return res.json(compra.buscar({ rango, texto: String(req.query.q ?? '') }))
+  }),
+)
+
+/** Gasto y ticket medio por tienda. */
+rutasAnalitica.get(
+  '/compra/tiendas',
+  ruta((req, res) => {
+    const rango = rangoDe(req, res)
+    if (!rango) return undefined
+    return res.json(compra.tiendas({ rango }))
+  }),
+)
+
+/** Cuando se compra: dia de la semana, ticket medio, lineas por ticket. */
+rutasAnalitica.get(
+  '/compra/habitos',
+  ruta((req, res) => {
+    const rango = rangoDe(req, res)
+    if (!rango) return undefined
+    return res.json(compra.habitos({ rango }))
+  }),
+)
+
+/**
+ * El resumen de un mes, para la linea de dentro del tile de Comida.
+ *
+ * Devuelve 204 si ese mes no tiene tickets: la linea no se pinta, en vez de
+ * decir «0 tickets», que ocupa lo mismo y no dice nada.
+ */
+rutasAnalitica.get(
+  '/compra/mes/:mesId',
+  ruta((req, res) => {
+    const mesId = enteroDe(req.params.mesId)
+    if (!mesId || !mesesBd.obtener(mesId)) return fallo(res, 404, 'Ese mes ya no existe.')
+    const resumen = compra.resumenDelMes(mesId)
+    if (!resumen) return res.status(204).end()
+    return res.json(resumen)
   }),
 )

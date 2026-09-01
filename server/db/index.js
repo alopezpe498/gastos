@@ -14,6 +14,15 @@ export const CARPETA_DATOS = path.resolve(aqui, '..', 'data')
  * NOT EXISTS). Las pruebas nunca la tocan: arrancan su propio servidor con
  * GASTOS_DB apuntando a un archivo aparte, que crean y destruyen ellas.
  */
+/*
+ * Los archivos originales de los tickets: la foto o el PDF.
+ *
+ * Al lado de la base de datos y fuera del repositorio, como todo lo que son
+ * datos. Se guardan porque son la unica forma de comprobar una linea seis meses
+ * despues: el texto que saco la IA puede estar mal, la foto no.
+ */
+export const CARPETA_TICKETS = path.join(CARPETA_DATOS, 'tickets')
+
 export const RUTA_BD = process.env.GASTOS_DB
   ? path.resolve(process.env.GASTOS_DB)
   : path.join(CARPETA_DATOS, 'gastos.db')
@@ -237,6 +246,105 @@ CREATE TABLE IF NOT EXISTS config (
   clave TEXT PRIMARY KEY,
   valor TEXT
 );
+
+-- ---------------------------------------------------------------------------
+-- El detalle de la compra
+-- ---------------------------------------------------------------------------
+--
+-- Un ticket del super es UN movimiento del sobre Comida con su total, y eso no
+-- cambia: estas tablas cuelgan de ese movimiento y no suman nada por su cuenta.
+-- Lo que anaden es poder preguntar en que se va la comida, cuanto se gasta en
+-- pollo o cuanto ha subido el aceite, que del total no se saca.
+--
+-- Tres niveles a proposito, porque son tres preguntas distintas:
+--   categoria  Carne y charcuteria      -> en que se va la compra
+--   producto   Pollo                    -> cuanto gasto en pollo
+--   variante   Pechuga de pollo         -> que compro exactamente, y a como
+
+CREATE TABLE IF NOT EXISTS categorias_producto (
+  id     INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre TEXT NOT NULL UNIQUE,
+  orden  INTEGER NOT NULL DEFAULT 0,
+  activa INTEGER NOT NULL DEFAULT 1
+);
+
+-- El nombre generico, en castellano y SIN marca: "Pollo", "Leche", "Lejia".
+CREATE TABLE IF NOT EXISTS productos (
+  id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre               TEXT NOT NULL UNIQUE,
+  categoria_id         INTEGER NOT NULL REFERENCES categorias_producto(id),
+  activo               INTEGER NOT NULL DEFAULT 1,
+  -- Reservado para emparejar con la despensa de las otras apps. Aqui no se usa.
+  id_externo_despensa  TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_productos_categoria ON productos(categoria_id);
+
+-- Lo que de verdad se compra. La marca va aparte: "Petit suisse" es lo mismo
+-- sea Nesquik o no, y solo separandola se puede comparar el precio.
+CREATE TABLE IF NOT EXISTS variantes (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  producto_id      INTEGER NOT NULL REFERENCES productos(id),
+  nombre           TEXT NOT NULL,
+  marca            TEXT,
+  unidad_habitual  TEXT NOT NULL DEFAULT 'ud' CHECK (unidad_habitual IN ('ud','kg','l')),
+  activa           INTEGER NOT NULL DEFAULT 1,
+  UNIQUE (producto_id, nombre, marca)
+);
+CREATE INDEX IF NOT EXISTS idx_variantes_producto ON variantes(producto_id);
+
+-- La memoria: como se llama esa cosa en el ticket de esa cadena.
+--
+-- La tienda va en la clave porque el mismo texto significa cosas distintas en
+-- cadenas distintas. NULL = vale en cualquiera. Y "confirmado" separa lo que
+-- he dicho yo de lo que solo propuso la IA: lo segundo se vuelve a preguntar.
+CREATE TABLE IF NOT EXISTS alias_ticket (
+  id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+  texto_ticket          TEXT NOT NULL,
+  tienda                TEXT,
+  variante_id           INTEGER NOT NULL REFERENCES variantes(id) ON DELETE CASCADE,
+  veces_visto           INTEGER NOT NULL DEFAULT 1,
+  confirmado_por_usuario INTEGER NOT NULL DEFAULT 0,
+  UNIQUE (texto_ticket, tienda)
+);
+CREATE INDEX IF NOT EXISTS idx_alias_texto ON alias_ticket(texto_ticket);
+
+-- El ticket, pegado a su movimiento. Uno por movimiento: por eso es UNIQUE.
+CREATE TABLE IF NOT EXISTS tickets (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  movimiento_id   INTEGER NOT NULL UNIQUE REFERENCES movimientos(id) ON DELETE CASCADE,
+  tienda          TEXT,
+  direccion       TEXT,
+  fecha_hora      TEXT,
+  total           REAL NOT NULL DEFAULT 0,
+  forma_pago      TEXT,
+  ultimos4_tarjeta TEXT,
+  n_lineas        INTEGER NOT NULL DEFAULT 0,
+  archivo_ruta    TEXT,
+  texto_extraido  TEXT,
+  origen          TEXT NOT NULL DEFAULT 'foto' CHECK (origen IN ('foto','pdf','portapapeles')),
+  estado          TEXT NOT NULL DEFAULT 'revisado' CHECK (estado IN ('revisado','pendiente')),
+  fecha_creacion  TEXT NOT NULL
+);
+
+-- Una linea impresa del ticket. "variante_id" puede ser NULL: una linea sin
+-- asignar sigue contando en el total, que es lo que tiene que cuadrar.
+CREATE TABLE IF NOT EXISTS lineas_ticket (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  ticket_id         INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+  orden             INTEGER NOT NULL DEFAULT 0,
+  texto_ticket      TEXT NOT NULL,
+  cantidad          REAL NOT NULL DEFAULT 1,
+  unidad            TEXT NOT NULL DEFAULT 'ud' CHECK (unidad IN ('ud','kg','l')),
+  precio_unitario   REAL,
+  importe           REAL NOT NULL DEFAULT 0,
+  variante_id       INTEGER REFERENCES variantes(id),
+  origen_asignacion TEXT NOT NULL DEFAULT 'ninguno'
+                    CHECK (origen_asignacion IN ('alias','ia','manual','ninguno')),
+  dudosa            INTEGER NOT NULL DEFAULT 0,
+  nota              TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_lineas_ticket ON lineas_ticket(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_lineas_variante ON lineas_ticket(variante_id);
 `
 
 /*

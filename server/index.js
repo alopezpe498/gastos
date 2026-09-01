@@ -8,6 +8,7 @@ import { RUTA_BD } from './db/index.js'
 import { sembrar } from './db/semilla.js'
 import { sembrarReglas } from './db/semillaReglas.js'
 import { sembrarFormatos } from './db/formatosBanco.js'
+import { sembrarCategorias } from './db/semillaProductos.js'
 import { exigirAuth, PROTEGIDO } from './lib/auth.js'
 import { fallo } from './lib/http.js'
 import { ErrorLectura } from './services/lecturaExcel.js'
@@ -24,6 +25,8 @@ import { rutasConfig } from './routes/config.js'
 import { rutasImportar } from './routes/importar.js'
 import { rutasExportar } from './routes/exportar.js'
 import { rutasAnalitica } from './routes/analitica.js'
+import { rutasTickets } from './routes/tickets.js'
+import { rutasProductos, rutasCategoriasProducto } from './routes/productos.js'
 
 const aqui = path.dirname(fileURLToPath(import.meta.url))
 const RAIZ = path.resolve(aqui, '..')
@@ -36,6 +39,8 @@ const sembrado = sembrar()
 // creado y aun asi no tener reglas, porque son de la fase 3.
 const reglasSembradas = sembrarReglas()
 sembrarFormatos()
+// El catalogo de la compra: catorce categorias y el cajon de «Otros».
+sembrarCategorias()
 
 const app = express()
 // Detras de nginx: req.ip debe ser la IP real para que el limitador de intentos
@@ -57,6 +62,9 @@ app.use('/api/extracto', rutasExtracto)
 app.use('/api/meses', rutasMeses)
 app.use('/api/movimientos', rutasMovimientos)
 app.use('/api/anual', rutasAnual)
+app.use('/api/tickets', rutasTickets)
+app.use('/api/productos', rutasProductos)
+app.use('/api/categorias-producto', rutasCategoriasProducto)
 app.use('/api/config', rutasConfig)
 app.use('/api/importar', rutasImportar)
 app.use('/api/exportar', rutasExportar)

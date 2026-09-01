@@ -21,6 +21,9 @@ import http from 'node:http'
  */
 export async function levantarIaFalsa({ responder, estado = 200, motivoFin = 'stop' } = {}) {
   const recibidas = []
+  // Mutable: una prueba puede necesitar que la segunda llamada conteste otra
+  // cosa —el mismo ticket con otro total, para probar la vinculacion—.
+  let contestar = responder
 
   const servidor = http.createServer((req, res) => {
     let cuerpo = ''
@@ -42,7 +45,7 @@ export async function levantarIaFalsa({ responder, estado = 200, motivoFin = 'st
         return
       }
 
-      const contestacion = responder(peticion)
+      const contestacion = contestar(peticion)
       const texto = typeof contestacion === 'string' ? contestacion : JSON.stringify(contestacion)
 
       res.writeHead(200, { 'content-type': 'application/json' })
@@ -80,6 +83,10 @@ export async function levantarIaFalsa({ responder, estado = 200, motivoFin = 'st
       return Array.isArray(usuario?.content)
         ? usuario.content.some((p) => p.type === 'image_url')
         : false
+    },
+    /** Cambia lo que contesta a partir de la siguiente llamada. */
+    cambiarRespuesta(nuevo) {
+      contestar = nuevo
     },
     async cerrar() {
       await new Promise((resolver) => servidor.close(resolver))
