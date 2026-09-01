@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Mes } from '../../lib/tipos'
 import { Cabecera, ErrorLinea, Esqueleto, Tabs } from '../../components/ui/Basicos'
@@ -68,6 +68,28 @@ export function PantallaImportar({
     void cargar()
   }, [cargar])
 
+  /*
+   * El mes que se propone: EL EN CURSO.
+   *
+   * Se decide aquí y no en cada pestaña para que el extracto y los tickets
+   * propongan lo mismo. Antes cada una cogía «el último abierto», que es el
+   * más nuevo de la lista: en septiembre proponía agosto si septiembre aún no
+   * estaba abierto, y octubre si alguien se había adelantado a abrirlo.
+   *
+   * Si el mes de hoy no existe todavía se cae en el más reciente que sí: un
+   * mes se abre desde Mes, no importando algo en él.
+   */
+  const mesPropuesto = useMemo(() => {
+    if (mesInicial) return mesInicial
+    if (!meses || meses.length === 0) return null
+    const hoy = new Date()
+    const enCurso = meses.find(
+      (m) => m.anio === hoy.getFullYear() && m.mes === hoy.getMonth() + 1,
+    )
+    const abiertos = meses.filter((m) => m.estado === 'abierto')
+    return (enCurso ?? abiertos[0] ?? meses[0]).id
+  }, [meses, mesInicial])
+
   // Al entrar desde el botón del mes, la pestaña y el mes vienen dados.
   useEffect(() => setPestana(pestanaInicial), [pestanaInicial])
 
@@ -96,7 +118,7 @@ export function PantallaImportar({
           ) : (
             <PantallaExtracto
               meses={meses}
-              mesPorDefecto={mesInicial}
+              mesPorDefecto={mesPropuesto}
               pedirArchivo={pedirArchivo}
               onVerReglas={onVerReglas}
               onAplicado={() => {
@@ -110,7 +132,7 @@ export function PantallaImportar({
         {pestana === 'tickets' ? (
           <SeccionTickets
             meses={meses ?? []}
-            mesInicial={mesInicial}
+            mesInicial={mesPropuesto}
             onCambioGlobal={onCambioGlobal}
           />
         ) : null}

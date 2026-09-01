@@ -77,6 +77,17 @@ export function SeccionTickets({ meses, mesInicial = null, onCambioGlobal }: Pro
   }
   const [texto, setTexto] = useState('')
 
+  /*
+   * La lista de meses llega DESPUÉS del primer pintado. Sin esto, al entrar
+   * directamente en esta pestaña el mes se quedaba a nulo para siempre —«no
+   * hay ningún mes abierto»— y solo se arreglaba cambiando de pestaña y
+   * volviendo, que es lo que remontaba el componente.
+   */
+  useEffect(() => {
+    if (mesId !== null && meses.some((m) => m.id === mesId)) return
+    if (mesInicial !== null) setMesId(mesInicial)
+  }, [meses, mesInicial, mesId])
+
   const mes = meses.find((m) => m.id === mesId) ?? null
   const cerrado = mes?.estado === 'cerrado'
 

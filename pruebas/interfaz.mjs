@@ -799,6 +799,60 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nImportar propone el mes en curso, y no lo pierde')
+  // -------------------------------------------------------------------------
+  //
+  // Dos fallos que iban juntos. Cada pestaña cogía «el último abierto», que es
+  // el más nuevo de la lista y no el de hoy. Y la lista de meses llega después
+  // del primer pintado: al entrar directamente en Tickets, el mes se quedaba a
+  // nulo para siempre —«no hay ningún mes abierto»— y solo se arreglaba
+  // cambiando de pestaña y volviendo.
+  {
+    const NOMBRES = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+    ]
+    const nombreDeHoy = NOMBRES[MES - 1]
+
+    // Un mes MÁS NUEVO que el de hoy, que es el que se colaba antes.
+    const siguiente = MES === 12 ? { anio: ANIO + 1, mes: 1 } : { anio: ANIO, mes: MES + 1 }
+    await llamar('/meses/asegurar', { metodo: 'POST', cuerpo: siguiente })
+
+    await abrirApp()
+    await pagina.getByRole('button', { name: 'Importar', exact: true }).first().click()
+    await pagina.waitForTimeout(900)
+
+    const delExtracto = await pagina.locator('.card').first().innerText()
+    comprobar(
+      delExtracto.includes(nombreDeHoy),
+      'el extracto propone el mes en curso, no el más nuevo',
+      delExtracto.split('\n').find((l) => NOMBRES.some((n) => l.includes(n))) ?? '?',
+    )
+
+    await pagina.getByRole('tab', { name: 'Tickets', exact: true }).click()
+    await pagina.waitForTimeout(800)
+    const deTickets = await pagina.locator('.card').first().innerText()
+    comprobar(deTickets.includes(nombreDeHoy), 'y los tickets proponen el mismo', deTickets.split('\n')[1] ?? '?')
+
+    // Ir a Mes y volver: antes esto dejaba los tickets sin mes.
+    await pagina.getByRole('button', { name: 'Mes', exact: true }).first().click()
+    await pagina.waitForTimeout(1200)
+    await pagina.getByRole('button', { name: 'Importar', exact: true }).first().click()
+    await pagina.waitForTimeout(1200)
+
+    const alVolver = await pagina.locator('.card').first().innerText()
+    comprobar(
+      !alVolver.includes('No hay ningún mes abierto'),
+      'al volver desde Mes, la pestaña de tickets sigue teniendo mes',
+      alVolver.slice(0, 80),
+    )
+    comprobar(
+      alVolver.includes(nombreDeHoy),
+      'y es el mes en curso, sin tener que cambiar de pestaña para recuperarlo',
+    )
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nLa fecha se escribe siempre en dd/mm/aaaa')
   // -------------------------------------------------------------------------
   //

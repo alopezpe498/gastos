@@ -48,6 +48,12 @@ export function PantallaExtracto({
   const [refrescos, setRefrescos] = useState(0)
   const botonArchivo = useRef<HTMLButtonElement>(null)
 
+  // Igual que en los tickets: la lista llega después del primer pintado.
+  useEffect(() => {
+    if (mesId && meses.some((m) => m.id === mesId)) return
+    if (mesPorDefecto) setMesId(mesPorDefecto)
+  }, [meses, mesPorDefecto, mesId])
+
   const mes = meses.find((m) => m.id === mesId) ?? null
   const cerrado = mes?.estado === 'cerrado'
 
