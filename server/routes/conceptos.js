@@ -1,6 +1,7 @@
 import express from 'express'
 import * as conceptosBd from '../db/conceptos.js'
 import * as plantillaBd from '../db/plantilla.js'
+import { CRITERIOS } from '../services/plantilla.js'
 import { fallo, ruta, enteroDe, textoDe, importeDe } from '../lib/http.js'
 import { claveMes } from '../lib/fechas.js'
 
@@ -190,10 +191,21 @@ rutasConceptos.post(
     const importe = importeDe(req.body?.importePrevisto)
     if (importe === null) return fallo(res, 400, 'El importe previsto no se entiende.')
 
+    /*
+     * El criterio dice si manda ese importe o lo que costo en otro mes. El
+     * importe se pide igual: cuando no hay dato del mes de referencia, es el
+     * que se usa.
+     */
+    const criterio = textoDe(req.body?.criterio ?? 'importe', { max: 20 }) || 'importe'
+    if (!CRITERIOS.includes(criterio)) {
+      return fallo(res, 400, `"${criterio}" no es un criterio de importe.`)
+    }
+
     return res.json(
       plantillaBd.guardar(id, {
         diaPrevisto: textoDe(req.body?.diaPrevisto ?? '', { max: 20 }) || null,
         importePrevisto: importe,
+        criterio,
         vigenteDesde,
       }),
     )

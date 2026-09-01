@@ -8,6 +8,8 @@ function aEntrada(e) {
     conceptoId: e.concepto_id,
     diaPrevisto: e.dia_previsto,
     importePrevisto: e.importe_previsto,
+    // Nulo en las entradas de siempre: el importe escrito es el que vale.
+    criterio: e.criterio || 'importe',
     vigenteDesde: e.vigente_desde,
   }
 }
@@ -49,7 +51,7 @@ export function vigentesEn(anio, mes) {
   return bd
     .prepare(
       `SELECT c.id AS concepto_id, c.nombre, c.tipo, c.es_objetivo,
-              p.dia_previsto, p.importe_previsto
+              p.dia_previsto, p.importe_previsto, p.criterio
        FROM conceptos c
        LEFT JOIN plantilla_fijos p ON p.id = (
          SELECT id FROM plantilla_fijos
@@ -67,6 +69,7 @@ export function vigentesEn(anio, mes) {
       esObjetivo: !!f.es_objetivo,
       diaPrevisto: f.dia_previsto,
       importePrevisto: f.importe_previsto ?? 0,
+      criterio: f.criterio || 'importe',
     }))
 }
 
@@ -74,17 +77,22 @@ export function vigentesEn(anio, mes) {
  * Guarda el previsto de un concepto a partir de un mes. Si ya habia una entrada
  * para ese mismo mes se sustituye, en vez de acumular versiones del mismo dia.
  */
-export function guardar(conceptoId, { diaPrevisto, importePrevisto, vigenteDesde }) {
+export function guardar(
+  conceptoId,
+  { diaPrevisto, importePrevisto, vigenteDesde, criterio = 'importe' },
+) {
   bd.prepare(
-    `INSERT INTO plantilla_fijos (concepto_id, dia_previsto, importe_previsto, vigente_desde)
-     VALUES (@conceptoId, @dia, @importe, @desde)
+    `INSERT INTO plantilla_fijos (concepto_id, dia_previsto, importe_previsto, criterio, vigente_desde)
+     VALUES (@conceptoId, @dia, @importe, @criterio, @desde)
      ON CONFLICT(concepto_id, vigente_desde) DO UPDATE SET
        dia_previsto = excluded.dia_previsto,
-       importe_previsto = excluded.importe_previsto`,
+       importe_previsto = excluded.importe_previsto,
+       criterio = excluded.criterio`,
   ).run({
     conceptoId,
     dia: diaPrevisto === null || diaPrevisto === undefined ? null : String(diaPrevisto).trim(),
     importe: redondear(Number(importePrevisto) || 0),
+    criterio: criterio ?? 'importe',
     desde: vigenteDesde,
   })
   return historico(conceptoId)

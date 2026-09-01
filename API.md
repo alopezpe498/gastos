@@ -100,11 +100,50 @@ los meses ya abiertos, crea una entrada nueva vigente desde el mes que se elija.
 | Método | Ruta | Notas |
 | --- | --- | --- |
 | `GET` | `/conceptos/:id/plantilla` | Del más reciente al más antiguo. |
-| `POST` | `/conceptos/:id/plantilla` | `{ diaPrevisto, importePrevisto, vigenteDesde }`. `vigenteDesde` es `"AAAA-MM"`. Si ya había una entrada para ese mes, se sustituye. |
+| `POST` | `/conceptos/:id/plantilla` | `{ diaPrevisto, importePrevisto, vigenteDesde, criterio? }`. `vigenteDesde` es `"AAAA-MM"`. Si ya había una entrada para ese mes, se sustituye. |
 | `DELETE` | `/conceptos/:id/plantilla/:entradaId` | `400` si es la única que queda. |
 
 `diaPrevisto` es **texto libre** a propósito: hay recibos que caen varios días
 (`"30,13,23"`). Para ordenar y para fechar se usa el primer número que aparezca.
+
+#### De dónde sale el importe: `criterio`
+
+Un importe escrito envejece: la luz de enero no es la de julio y el seguro sube
+todos los años. Por eso una entrada puede decir, en vez de un número, de qué mes
+copiarlo:
+
+| `criterio` | Qué usa al generar el mes M |
+| --- | --- |
+| `importe` (por defecto, y lo que valen las entradas antiguas) | El `importePrevisto` escrito. |
+| `mes-anterior` | Lo que costó ese concepto en el mes anterior a M. |
+| `ano-anterior` | Lo que costó ese concepto en el mismo mes del año anterior. |
+
+- «Lo que costó» es la **suma de los movimientos** de ese concepto en el mes de
+  referencia, cobrados o no. Un fijo que se cobró en dos veces costó las dos.
+- **Si no hay dato, se usa el `importePrevisto` escrito**, que por eso se sigue
+  pidiendo siempre: es el respaldo. Nunca se propone cero — proponer cero euros
+  de hipoteca porque ese mes no está en la base sería peor que proponer un
+  importe viejo.
+- Afecta a los **fijos**. El sobre de la comida y el objetivo de ahorro salen de
+  su importe escrito, como siempre.
+- Lo aplican por igual los tres caminos que generan movimientos: abrir un mes,
+  «Regenerar desde la plantilla» y «Reiniciar el mes». Los tres pasan por la
+  misma función, así que los tres proponen lo mismo.
+
+`GET /plantilla` y el resumen de `POST /meses/:id/regenerar` devuelven, en cada
+línea, el criterio y un `origenImporte` con lo que se usaría de verdad:
+
+```jsonc
+"criterio": "mes-anterior",
+"origenImporte": {
+  "importe": 700,               // lo que se usará
+  "criterio": "mes-anterior",
+  "origen": "mes-anterior",
+  "deMes": "2026-09",
+  "deMesLegible": "septiembre de 2026",
+  "hayDato": true               // false = ese mes no lo tiene; se usa el respaldo
+}
+```
 
 ### Alias
 

@@ -1426,6 +1426,46 @@ textarea.campo {
   color: var(--comida);
 }
 
+.menu button.elegida {
+  font-weight: 800;
+}
+
+/* Elegir entre pocas opciones: el nombre, y la lista solo al pulsarlo. */
+.opcion {
+  position: relative;
+  display: inline-flex;
+}
+
+.opcion-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border-radius: 8px;
+  color: var(--tinta-2);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background var(--rapido) var(--curva);
+}
+
+.opcion-boton:hover {
+  background: var(--fondo);
+  color: var(--tinta);
+}
+
+.opcion-nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opcion-linea {
+  display: grid;
+  gap: 1px;
+}
+
 /* ---------------------------------------------------------------------------
  * Rejillas que usan las pantallas
  * ------------------------------------------------------------------------- */
@@ -1459,6 +1499,14 @@ textarea.campo {
 
 .pila {
   display: grid;
+  /*
+   * minmax(0, 1fr) y no 1fr: una columna «auto» se estira hasta lo mas ancho que
+   * lleve dentro, asi que la tabla de la plantilla —que es mas ancha que un
+   * movil a proposito— empujaba la card y la pagina entera se desplazaba de
+   * lado. Con esto la card se queda en su sitio y la que se desplaza es la
+   * tabla, dentro de su marco.
+   */
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 

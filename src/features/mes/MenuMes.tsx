@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
-import type { MesCompleto, ResumenRegeneracion, ValorPlantilla } from '../../lib/tipos'
+import type { MesCompleto, OrigenImporte, ResumenRegeneracion, ValorPlantilla } from '../../lib/tipos'
 import { cuantos, euros } from '../../lib/formato'
 import { BotonTexto, Chip, Interruptor } from '../../components/ui/Basicos'
 import { CampoImporte } from '../../components/ui/Campos'
@@ -223,7 +223,7 @@ export function MenuMes({ mes, onCerrar, onCambiado, onCambiarEstado, onCambiarV
                 <Fila
                   key={`a-${a.conceptoId}`}
                   titulo={a.nombre}
-                  detalle={`${a.diaPrevisto ? `día ${a.diaPrevisto} · ` : ''}${euros(a.importePrevisto)}, pendiente`}
+                  detalle={`${a.diaPrevisto ? `día ${a.diaPrevisto} · ` : ''}${euros(a.importePrevisto)}, pendiente${deDonde(a.origenImporte)}`}
                 />
               ))}
             </Bloque>
@@ -235,7 +235,7 @@ export function MenuMes({ mes, onCerrar, onCambiado, onCambiarEstado, onCambiarV
                   titulo={a.nombre}
                   detalle={
                     a.cambiaImporte
-                      ? `${euros(a.importeAntes)} → ${euros(a.importeDespues)}`
+                      ? `${euros(a.importeAntes)} → ${euros(a.importeDespues)}${deDonde(a.origenImporte)}`
                       : `solo el previsto: ${euros(a.previstoAntes)} → ${euros(a.previstoDespues)}`
                   }
                 />
@@ -355,6 +355,18 @@ export function MenuMes({ mes, onCerrar, onCambiado, onCambiarEstado, onCambiarV
       />
     </Dialogo>
   )
+}
+
+/**
+ * « · copiado de septiembre», cuando el importe no sale de la plantilla.
+ *
+ * Un fijo que copia otro mes cambia de valor sin que nadie toque nada, así que
+ * al regenerar conviene decir de dónde ha salido el número nuevo.
+ */
+function deDonde(origen: OrigenImporte | undefined): string {
+  if (!origen || origen.criterio === 'importe') return ''
+  if (!origen.hayDato) return ' · sin dato, el respaldo'
+  return ` · copiado de ${origen.deMesLegible ?? origen.deMes}`
 }
 
 function Bloque({

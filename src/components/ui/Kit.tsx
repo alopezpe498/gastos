@@ -15,7 +15,15 @@ import {
   Tile,
   Vacio,
 } from './Basicos'
-import { CampoArea, CampoImporte, CampoTexto, SelectorConcepto, SelectorMes, ValorEditable } from './Campos'
+import {
+  CampoArea,
+  CampoImporte,
+  CampoTexto,
+  SelectorConcepto,
+  SelectorMes,
+  SelectorOpcion,
+  ValorEditable,
+} from './Campos'
 import { Anillos, BarraProgreso, BarrasPorDia, CifraQueCuenta, Leyenda, LeyendaItem, Puntos, SegmentBar, Sparkline } from './Graficos'
 import { AccionDialogo, ConfirmacionDialogo, Dialogo } from './Dialogo'
 import { Asa, Fila, GrupoFilas, Importe, TramoLista } from './Fila'
@@ -48,6 +56,7 @@ export function Kit() {
   const [tab, setTab] = useState('uno')
   const [check, setCheck] = useState(true)
   const [interruptor, setInterruptor] = useState(true)
+  const [criterio, setCriterio] = useState('mes-anterior')
   const [desglose, setDesglose] = useState([
     { nombre: 'Netflix', importe: 12.99 },
     { nombre: 'Spotify', importe: 10.99 },
@@ -355,6 +364,16 @@ export function Kit() {
               <CampoImporte valor={50} etiqueta="Porcentaje" visible estrecho onGuardar={() => undefined} />
             </span>
             <SelectorMes valor={mes} onCambiar={setMes} etiqueta="Vigente desde" />
+            <SelectorOpcion
+              valor={criterio}
+              etiqueta="De dónde sale el importe"
+              opciones={[
+                { id: 'importe', nombre: 'Este importe', ayuda: 'El número de al lado, tal cual' },
+                { id: 'mes-anterior', nombre: 'Mes anterior', ayuda: 'Lo que costó el mes de antes' },
+                { id: 'ano-anterior', nombre: 'Año anterior', ayuda: 'Lo que costó ese mes el año pasado' },
+              ]}
+              onElegir={setCriterio}
+            />
           </div>
           <div className="campo-grupo">
             <label className="campo-etiqueta">Texto en un formulario</label>

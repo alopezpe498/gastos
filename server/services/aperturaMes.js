@@ -2,6 +2,7 @@ import { bd } from '../db/index.js'
 import * as mesesBd from '../db/meses.js'
 import * as movimientosBd from '../db/movimientos.js'
 import * as plantillaBd from '../db/plantilla.js'
+import { lineasParaMes } from './plantilla.js'
 import * as conceptosBd from '../db/conceptos.js'
 import * as configBd from '../db/config.js'
 import { mesAnterior, mesSiguiente } from '../lib/fechas.js'
@@ -41,7 +42,7 @@ export const abrir = bd.transaction(({ anio, mes }) => {
   })
 
   let generados = 0
-  for (const fijo of plantillaBd.vigentesEn(anio, mes)) {
+  for (const fijo of lineasParaMes(anio, mes)) {
     // El sobre no genera movimiento: su importe es el presupuesto del mes.
     // El objetivo de ahorro tampoco: no es dinero que salga de la cuenta.
     if (fijo.tipo !== 'fijo' || fijo.esObjetivo) continue

@@ -72,6 +72,30 @@ export function obtener(id) {
   return m ? aMovimiento(m) : null
 }
 
+/**
+ * Lo que costo un concepto en un mes del calendario. `null` si no hay dato.
+ *
+ * `null` y `0` no son lo mismo, y aqui menos que en ningun sitio: quien
+ * pregunta esto es la plantilla, para copiar el importe del mes pasado. Si ese
+ * mes no existe o el concepto no aparece en el, hay que caerse al importe
+ * escrito, no proponer cero euros de hipoteca.
+ *
+ * Se suman todos los apuntes del concepto: un fijo que se cobra en dos veces
+ * costo la suma de las dos.
+ */
+export function importeEnMes(conceptoId, anio, mes) {
+  const fila = bd
+    .prepare(
+      `SELECT SUM(m.importe) AS total, COUNT(*) AS cuantos
+       FROM movimientos m
+       JOIN meses s ON s.id = m.mes_id
+       WHERE m.concepto_id = ? AND s.anio = ? AND s.mes = ?`,
+    )
+    .get(conceptoId, anio, mes)
+  if (!fila || fila.cuantos === 0) return null
+  return redondear(fila.total ?? 0)
+}
+
 /** Todos los del mes, fijos primero por dia previsto y variables por fecha. */
 export function delMes(mesId) {
   return bd.prepare(`${SELECCION} WHERE m.mes_id = ? ORDER BY m.id ASC`).all(mesId).map(aMovimiento)

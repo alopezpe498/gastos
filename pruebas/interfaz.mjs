@@ -544,6 +544,31 @@ try {
     await pagina.waitForTimeout(1500)
     const despuesTexto = await pagina.locator('.tabla .chip').first().textContent()
     comprobar(antesTexto !== despuesTexto, 'y el chip de clasificación cicla al pulsarlo')
+
+    /*
+     * De dónde sale el importe. El selector enseña la opción elegida y solo
+     * despliega la lista al pulsarlo, así que hay dos pasos: abrir y elegir.
+     */
+    const { datos: antesPlantilla } = await llamar('/plantilla')
+    const primero = antesPlantilla.fijos[0]
+    await pagina
+      .getByRole('button', { name: new RegExp(`De dónde sale el importe de ${primero.nombre}`) })
+      .click()
+    await pagina.waitForTimeout(300)
+    await pagina.getByRole('button', { name: 'Mes anterior' }).click()
+    await pagina.waitForTimeout(1500)
+
+    const { datos: despuesPlantilla } = await llamar('/plantilla')
+    const cambiado = despuesPlantilla.fijos.find((f) => f.conceptoId === primero.conceptoId)
+    comprobar(
+      cambiado.criterio === 'mes-anterior',
+      'el criterio del importe se guarda desde la tabla',
+      cambiado.criterio,
+    )
+    comprobar(
+      (await pagina.locator('.tabla').first().textContent()).includes('respaldo'),
+      'y la fila pasa a enseñar el importe escrito como respaldo',
+    )
   }
 
   comprobar(fallosDeConsola.length === 0, 'ninguna excepción en la consola del navegador',

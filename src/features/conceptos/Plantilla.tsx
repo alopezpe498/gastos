@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
-import type { Clasificacion, Concepto, EntradaPlantilla, LineaPlantilla, Plantilla } from '../../lib/tipos'
+import type {
+  Clasificacion,
+  Concepto,
+  CriterioImporte,
+  EntradaPlantilla,
+  LineaPlantilla,
+  Plantilla,
+} from '../../lib/tipos'
 import { BotonIcono, Card, Chip, ErrorLinea, Esqueleto, IconoConcepto, Tile } from '../../components/ui/Basicos'
-import { CampoImporte, CampoTexto, SelectorMes } from '../../components/ui/Campos'
+import { CampoImporte, CampoTexto, SelectorMes, SelectorOpcion } from '../../components/ui/Campos'
 import { ConfirmacionDialogo, Dialogo } from '../../components/ui/Dialogo'
 import { Asa, Fila } from '../../components/ui/Fila'
 import { Celda, Fila as FilaTabla, Tabla } from '../../components/ui/Tabla'
@@ -25,6 +32,32 @@ import { ETIQUETAS_CLASIFICACION } from './PantallaConceptos'
  * plantilla no lo mueve solo (para eso está «Regenerar desde la plantilla» en
  * el menú del mes).
  */
+/*
+ * De dónde sale el importe de cada fijo.
+ *
+ * Un importe escrito envejece: la luz de enero no es la de julio y el seguro
+ * sube todos los años. Con estas dos opciones la plantilla deja de ser una foto
+ * y copia lo que costó de verdad, y el número escrito se queda como respaldo
+ * para cuando ese mes todavía no existe.
+ */
+const CRITERIOS: { id: CriterioImporte; nombre: string; ayuda: string }[] = [
+  { id: 'importe', nombre: 'Este importe', ayuda: 'El número de al lado, tal cual' },
+  { id: 'mes-anterior', nombre: 'Mes anterior', ayuda: 'Lo que costó el mes de antes' },
+  { id: 'ano-anterior', nombre: 'Año anterior', ayuda: 'Lo que costó ese mes el año pasado' },
+]
+
+/**
+ * «septiembre», «octubre de 2025».
+ *
+ * El año solo cuando no es el del mes que se está mirando: para el criterio
+ * «mes anterior» sobra casi siempre, y para «año anterior» hace toda la falta.
+ */
+function mesCorto(origen: LineaPlantilla['origenImporte'], desde: string): string {
+  const texto = origen.deMesLegible ?? origen.deMes ?? ''
+  const anioDelMes = desde.slice(0, 4)
+  return texto.endsWith(` de ${anioDelMes}`) ? texto.slice(0, -` de ${anioDelMes}`.length) : texto
+}
+
 const COLOR_CLASIFICACION: Record<Clasificacion, { color: string; suave: string }> = {
   necesario: { color: 'var(--azul)', suave: 'var(--azul-suave)' },
   prescindible: { color: 'var(--ambar)', suave: 'var(--ambar-suave)' },
@@ -78,7 +111,11 @@ export function PantallaPlantilla({ onCambioGlobal }: { onCambioGlobal: () => vo
   /** Guarda el día y el importe de un fijo vigentes desde el mes elegido. */
   const guardarLinea = async (
     linea: LineaPlantilla,
-    cambios: { diaPrevisto?: string | null; importePrevisto?: number },
+    cambios: {
+      diaPrevisto?: string | null
+      importePrevisto?: number
+      criterio?: CriterioImporte
+    },
   ) => {
     try {
       await api(`/conceptos/${linea.conceptoId}/plantilla`, {
@@ -87,6 +124,7 @@ export function PantallaPlantilla({ onCambioGlobal }: { onCambioGlobal: () => vo
           vigenteDesde: desde,
           diaPrevisto: cambios.diaPrevisto ?? linea.diaPrevisto ?? '',
           importePrevisto: cambios.importePrevisto ?? linea.importePrevisto,
+          criterio: cambios.criterio ?? linea.criterio,
         },
       })
       await cargar(desde)
@@ -162,7 +200,7 @@ export function PantallaPlantilla({ onCambioGlobal }: { onCambioGlobal: () => vo
     <div className="pila">
       <Card
         titulo="Gastos fijos"
-        ayuda={`${cuantos(fijos.length, 'fijo activo', 'fijos activos')}. Al abrir un mes se generan todos, pendientes de cobro, con este importe.`}
+        ayuda={`${cuantos(fijos.length, 'fijo activo', 'fijos activos')}. Al abrir un mes se generan todos pendientes de cobro. El importe es el que pone aquí, salvo que la columna «de dónde sale» diga que se copie de otro mes.`}
         derecha={
           /*
             La vigencia manda sobre toda la tabla, así que vive en su cabecera y
@@ -182,6 +220,7 @@ export function PantallaPlantilla({ onCambioGlobal }: { onCambioGlobal: () => vo
             { clave: 'concepto', titulo: 'Concepto' },
             { clave: 'dia', titulo: 'Día', ancho: 76 },
             { clave: 'importe', titulo: 'Importe', num: true, ancho: 116 },
+            { clave: 'origen', titulo: 'De dónde sale', ancho: 196 },
             { clave: 'clase', titulo: 'Clasificación', ancho: 130 },
             { clave: 'hist', titulo: 'Historial', ancho: 40 },
           ]}
@@ -243,11 +282,52 @@ export function PantallaPlantilla({ onCambioGlobal }: { onCambioGlobal: () => vo
                   />
                 </Celda>
                 <Celda num>
-                  <CampoImporte
-                    valor={linea.importePrevisto}
-                    etiqueta={`Importe previsto de ${linea.nombre}`}
-                    onGuardar={(importe) => void guardarLinea(linea, { importePrevisto: importe ?? 0 })}
-                  />
+                  {/*
+                    Con criterio, el importe de este mes no se escribe: sale de
+                    otro mes. Se enseña el que se va a usar —que es la pregunta
+                    de la columna— y el escrito se edita al lado, como respaldo.
+                  */}
+                  {linea.criterio === 'importe' ? (
+                    <CampoImporte
+                      valor={linea.importePrevisto}
+                      etiqueta={`Importe previsto de ${linea.nombre}`}
+                      onGuardar={(importe) =>
+                        void guardarLinea(linea, { importePrevisto: importe ?? 0 })
+                      }
+                    />
+                  ) : (
+                    <span className="celda-concepto" style={{ textAlign: 'right' }}>
+                      <span className="tabular">{euros(linea.origenImporte.importe)}</span>
+                      <span className="d">
+                        {linea.origenImporte.hayDato
+                          ? `de ${mesCorto(linea.origenImporte, desde)}`
+                          : `sin ${mesCorto(linea.origenImporte, desde)}: el respaldo`}
+                      </span>
+                    </span>
+                  )}
+                </Celda>
+                <Celda>
+                  <span className="celda-concepto">
+                    <SelectorOpcion
+                      valor={linea.criterio}
+                      opciones={CRITERIOS}
+                      etiqueta={`De dónde sale el importe de ${linea.nombre}`}
+                      onElegir={(criterio) => void guardarLinea(linea, { criterio })}
+                    />
+                    {linea.criterio === 'importe' ? null : (
+                      <span className="fila-campos" style={{ gap: 6, flexWrap: 'nowrap' }}>
+                        <span className="d">respaldo</span>
+                        <CampoImporte
+                          valor={linea.importePrevisto}
+                          etiqueta={`Importe de respaldo de ${linea.nombre}`}
+                          estrecho
+                          onGuardar={(importe) =>
+                            void guardarLinea(linea, { importePrevisto: importe ?? 0 })
+                          }
+                        />
+                      </span>
+                    )}
+                  </span>
                 </Celda>
                 <Celda>
                   {/*
@@ -282,6 +362,7 @@ export function PantallaPlantilla({ onCambioGlobal }: { onCambioGlobal: () => vo
             <Celda>Total de fijos</Celda>
             <Celda />
             <Celda num>{euros(resumen.totalFijos)}</Celda>
+            <Celda />
             <Celda />
             <Celda />
           </FilaTabla>

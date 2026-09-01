@@ -594,6 +594,111 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nDe donde sale el importe de un fijo')
+  // -------------------------------------------------------------------------
+  //
+  // Un importe escrito envejece: la luz de enero no es la de julio. Una linea
+  // de la plantilla puede decir, en vez de un numero, de que mes copiarlo. El
+  // numero escrito se queda como respaldo, y esa es la regla que se comprueba
+  // aqui: si no hay dato, se usa el respaldo. Nunca cero.
+  {
+    const { datos: junio2027 } = await llamar('/meses/2027/6')
+    const fijoJunio = junio2027.fijos[1]
+    await llamar(`/movimientos/${fijoJunio.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { importe: 321.5 },
+    })
+
+    const conceptoId = fijoJunio.conceptoId
+    const ponerCriterio = (criterio, desde = '2027-07') =>
+      llamar(`/conceptos/${conceptoId}/plantilla`, {
+        metodo: 'POST',
+        cuerpo: { vigenteDesde: desde, importePrevisto: 999, diaPrevisto: '5', criterio },
+      })
+
+    const porDefecto = await llamar('/plantilla?desde=2027-07')
+    const antes = porDefecto.datos.fijos.find((f) => f.conceptoId === conceptoId)
+    comprobar(antes.criterio === 'importe', 'una linea de siempre usa su importe escrito')
+
+    await ponerCriterio('mes-anterior')
+    const conCriterio = await llamar('/plantilla?desde=2027-07')
+    const linea = conCriterio.datos.fijos.find((f) => f.conceptoId === conceptoId)
+    comprobar(linea.criterio === 'mes-anterior', 'el criterio se guarda')
+    comprobar(
+      igualEnCentimos(linea.importePrevisto, 999),
+      'el importe escrito sigue estando: es el respaldo',
+    )
+    comprobar(
+      igualEnCentimos(linea.origenImporte.importe, 321.5),
+      'pero lo que se usara es lo que costo el mes anterior',
+      `da ${linea.origenImporte.importe}`,
+    )
+    comprobar(linea.origenImporte.deMes === '2027-06', 'y dice de que mes lo copia')
+    comprobar(linea.origenImporte.hayDato === true, 'porque ese mes existe y lo tiene')
+
+    // El total de la tabla es el de lo que se usaria, no el de los escritos.
+    const suma = conCriterio.datos.fijos.reduce((t, f) => t + f.origenImporte.importe, 0)
+    comprobar(
+      igualEnCentimos(conCriterio.datos.resumen.totalFijos, suma),
+      'el total de fijos suma lo que se usaria de verdad',
+    )
+
+    // Abrir el mes lo aplica. Si otra prueba ya lo abrio, se borra: abrir es
+    // idempotente y devolveria el mes viejo sin volver a mirar la plantilla.
+    const yaEstaba = await llamar('/meses/2027/7')
+    if (yaEstaba.estado === 200) {
+      await llamar(`/meses/${yaEstaba.datos.id}`, { metodo: 'DELETE', cuerpo: { confirmar: true } })
+    }
+    const julio = await llamar('/meses/asegurar', { metodo: 'POST', cuerpo: { anio: 2027, mes: 7 } })
+    const enJulio = julio.datos.fijos.find((f) => f.conceptoId === conceptoId)
+    comprobar(
+      igualEnCentimos(enJulio.importe, 321.5),
+      'y el mes nace con el importe copiado, no con el escrito',
+      `da ${enJulio.importe}`,
+    )
+    comprobar(!enJulio.cobrado, 'pendiente, como cualquier fijo recien generado')
+
+    // El ano anterior de julio de 2027 es julio de 2026, que no existe.
+    await ponerCriterio('ano-anterior')
+    const sinDato = await llamar('/plantilla?desde=2027-07')
+    const caida = sinDato.datos.fijos.find((f) => f.conceptoId === conceptoId)
+    comprobar(caida.origenImporte.deMes === '2026-07', 'el ano anterior mira el mismo mes del ano pasado')
+    comprobar(caida.origenImporte.hayDato === false, 'ese mes no existe')
+    comprobar(
+      igualEnCentimos(caida.origenImporte.importe, 999),
+      'asi que se usa el respaldo, no cero',
+      `da ${caida.origenImporte.importe}`,
+    )
+
+    // Y reiniciar el mes propone lo mismo que abrirlo: misma funcion.
+    await ponerCriterio('mes-anterior')
+    const { datos: mesJulio } = await llamar('/meses/2027/7')
+    await llamar(`/movimientos/${mesJulio.fijos.find((f) => f.conceptoId === conceptoId).id}`, {
+      metodo: 'PATCH',
+      cuerpo: { importe: 1 },
+    })
+    const reiniciado = await llamar(`/meses/${mesJulio.id}/reiniciar`, {
+      metodo: 'POST',
+      cuerpo: { confirmar: true },
+    })
+    const trasReiniciar = reiniciado.datos.fijos.find((f) => f.conceptoId === conceptoId)
+    comprobar(
+      igualEnCentimos(trasReiniciar.importe, 321.5),
+      'reiniciar el mes vuelve a copiar el mes anterior',
+      `da ${trasReiniciar.importe}`,
+    )
+
+    const inventado = await llamar(`/conceptos/${conceptoId}/plantilla`, {
+      metodo: 'POST',
+      cuerpo: { vigenteDesde: '2027-07', importePrevisto: 10, criterio: 'lo-que-sea' },
+    })
+    comprobar(inventado.estado === 400, 'un criterio inventado se rechaza')
+
+    // Se deja como estaba: las pruebas de despues cuentan con la plantilla normal.
+    await ponerCriterio('importe')
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nAbrir el mes siguiente sale de la plantilla')
   // -------------------------------------------------------------------------
   {

@@ -82,6 +82,24 @@ export type PruebaRegla = {
  * Una linea de la plantilla: un concepto con el dia y el importe que le tocan
  * en el mes desde el que se este mirando.
  */
+/**
+ * De dónde sale el importe de un fijo al generar un mes: el número escrito, lo
+ * que costó el mes anterior, o lo que costó ese mismo mes el año pasado.
+ */
+export type CriterioImporte = 'importe' | 'mes-anterior' | 'ano-anterior'
+
+export type OrigenImporte = {
+  /** El importe que se usaría de verdad. */
+  importe: number
+  criterio: CriterioImporte
+  origen: CriterioImporte
+  /** El mes del que se copia, 'AAAA-MM'. Null con el criterio 'importe'. */
+  deMes: string | null
+  deMesLegible?: string
+  /** false = ese mes no tiene ese gasto, así que se usa el importe escrito. */
+  hayDato: boolean
+}
+
 export type LineaPlantilla = {
   conceptoId: number
   nombre: string
@@ -90,7 +108,12 @@ export type LineaPlantilla = {
   clasificacion: Clasificacion
   esObjetivo: boolean
   diaPrevisto: string | null
+  /** El importe escrito. Con criterio, es solo el respaldo. */
   importePrevisto: number
+  /** De dónde sale el importe al generar un mes. */
+  criterio: CriterioImporte
+  /** Lo que de verdad se usaría en el mes elegido, y de dónde sale. */
+  origenImporte: OrigenImporte
   /** El mes de la entrada que se esta viendo, no el mes elegido. */
   vigenteDesde: string | null
   /** true si el importe viene arrastrado de un mes anterior al elegido. */
@@ -780,7 +803,13 @@ export type ResumenRegeneracion = {
   anio: number
   mes: number
   estado: EstadoMes
-  anadir: { conceptoId: number; nombre: string; importePrevisto: number; diaPrevisto: string | null }[]
+  anadir: {
+    conceptoId: number
+    nombre: string
+    importePrevisto: number
+    diaPrevisto: string | null
+    origenImporte: OrigenImporte
+  }[]
   actualizar: {
     movimientoId: number
     conceptoId: number
@@ -790,6 +819,7 @@ export type ResumenRegeneracion = {
     previstoAntes: number | null
     previstoDespues: number
     cambiaImporte: boolean
+    origenImporte: OrigenImporte
   }[]
   ignorar: { conceptoId: number; nombre: string; motivo: string; importe: number }[]
   variables: number

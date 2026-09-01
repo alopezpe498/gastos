@@ -372,5 +372,16 @@ if (viejoNetflix) {
   }
 }
 
+/*
+ * De donde sale el importe de un fijo al generar un mes.
+ *
+ * Nulo o 'importe' es lo de siempre: el numero escrito en la plantilla. Los
+ * otros dos —'mes-anterior' y 'ano-anterior'— dicen que ese numero solo es el
+ * respaldo, y que lo que manda es lo que costo de verdad en el mes de
+ * referencia. La luz no vale lo mismo en enero que en julio, y copiar el julio
+ * pasado acierta mas que un importe fijo puesto hace dos anos.
+ */
+anadirColumnaSiFalta('plantilla_fijos', 'criterio', 'TEXT')
+
 anadirColumnaSiFalta('meses', 'fecha_inicio', 'TEXT')
 anadirColumnaSiFalta('meses', 'fecha_fin', 'TEXT')

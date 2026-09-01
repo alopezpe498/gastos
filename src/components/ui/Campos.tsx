@@ -451,3 +451,75 @@ export function SelectorMes({
     </span>
   )
 }
+
+/**
+ * Elegir entre unas pocas opciones con nombre.
+ *
+ * Un `<select>` nativo pinta una caja con flecha que ocupa lo mismo diga lo que
+ * diga, y en una tabla de veinte filas eso es una columna de cajas. Esto enseña
+ * la opción elegida como texto —que es lo único que hay que leer— y solo
+ * despliega la lista al pulsarla.
+ */
+export function SelectorOpcion<T extends string>({
+  valor,
+  opciones,
+  onElegir,
+  etiqueta,
+}: {
+  valor: T
+  opciones: { id: T; nombre: string; ayuda?: string }[]
+  onElegir: (id: T) => void
+  etiqueta: string
+}) {
+  const [abierto, setAbierto] = useState(false)
+  const caja = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    if (!abierto) return
+    const fuera = (e: MouseEvent) => {
+      if (!caja.current?.contains(e.target as Node)) setAbierto(false)
+    }
+    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && setAbierto(false)
+    document.addEventListener('mousedown', fuera)
+    document.addEventListener('keydown', tecla)
+    return () => {
+      document.removeEventListener('mousedown', fuera)
+      document.removeEventListener('keydown', tecla)
+    }
+  }, [abierto])
+
+  const elegida = opciones.find((o) => o.id === valor) ?? opciones[0]
+
+  return (
+    <span className="opcion" ref={caja}>
+      <button
+        className="opcion-boton"
+        aria-label={`${etiqueta}: ${elegida?.nombre ?? ''}`}
+        aria-expanded={abierto}
+        onClick={() => setAbierto((a) => !a)}
+      >
+        <span className="opcion-nombre">{elegida?.nombre}</span>
+        <Icono nombre="abajo" size={14} />
+      </button>
+      {abierto ? (
+        <span className="menu">
+          {opciones.map((o) => (
+            <button
+              key={o.id}
+              className={o.id === valor ? 'elegida' : undefined}
+              onClick={() => {
+                setAbierto(false)
+                if (o.id !== valor) onElegir(o.id)
+              }}
+            >
+              <span className="opcion-linea">
+                {o.nombre}
+                {o.ayuda ? <span className="d">{o.ayuda}</span> : null}
+              </span>
+            </button>
+          ))}
+        </span>
+      ) : null}
+    </span>
+  )
+}

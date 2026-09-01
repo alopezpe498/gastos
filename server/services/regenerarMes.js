@@ -2,6 +2,7 @@ import { bd } from '../db/index.js'
 import * as mesesBd from '../db/meses.js'
 import * as movimientosBd from '../db/movimientos.js'
 import * as plantillaBd from '../db/plantilla.js'
+import { lineasParaMes } from './plantilla.js'
 import * as conceptosBd from '../db/conceptos.js'
 import * as importacionesBd from '../db/importaciones.js'
 import * as configBd from '../db/config.js'
@@ -91,7 +92,7 @@ export function resumenRegeneracion(mesId) {
   const actualizar = []
   const ignorar = []
 
-  for (const linea of plantillaBd.vigentesEn(mes.anio, mes.mes)) {
+  for (const linea of lineasParaMes(mes.anio, mes.mes)) {
     // Ni el sobre ni el objetivo generan movimiento: van por el mes.
     if (linea.tipo !== 'fijo' || linea.esObjetivo) continue
 
@@ -103,6 +104,7 @@ export function resumenRegeneracion(mesId) {
         nombre: linea.nombre,
         importePrevisto: linea.importePrevisto,
         diaPrevisto: linea.diaPrevisto,
+        origenImporte: linea.origenImporte,
       })
       continue
     }
@@ -139,6 +141,7 @@ export function resumenRegeneracion(mesId) {
         diaAntes: existente.diaPrevisto,
         diaDespues: linea.diaPrevisto,
         cambiaImporte,
+        origenImporte: linea.origenImporte,
       })
     }
   }
@@ -269,7 +272,7 @@ export const reiniciar = bd.transaction((mesId) => {
   const importacionesDeshechas = importacionesBd.liberarHuellasDelMes(mesId)
 
   let generados = 0
-  for (const linea of plantillaBd.vigentesEn(mes.anio, mes.mes)) {
+  for (const linea of lineasParaMes(mes.anio, mes.mes)) {
     if (linea.tipo !== 'fijo' || linea.esObjetivo) continue
     movimientosBd.crear({
       mesId,
