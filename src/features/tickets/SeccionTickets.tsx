@@ -174,7 +174,7 @@ export function SeccionTickets({ meses, mesInicial = null, onCambioGlobal }: Pro
     <div className="pila">
       <Card
         titulo="Ticket de la compra"
-        ayuda="La foto del ticket del súper. Se guarda un solo apunte con el total, y debajo, en qué se ha ido."
+        ayuda="Con la foto, con el texto pegado o escribiéndolo a mano. Se guarda un solo apunte con el total, y debajo, en qué se ha ido."
         derecha={
           <span className="fila-campos">
             <span className="muted">Mes</span>
@@ -206,31 +206,34 @@ export function SeccionTickets({ meses, mesInicial = null, onCambioGlobal }: Pro
               correo, o el que se copia de la app de la cadena. Leer ese texto
               sale más exacto que fotografiar la pantalla y gasta mucho menos.
             */
-            <span className="fila-campos">
-              <BotonTexto
-                icono="nota"
-                disabled={cargando || cerrado}
-                onClick={() => setPegando((p) => !p)}
-              >
-                Pegar el ticket
-              </BotonTexto>
-              {/*
-                Sin papel y sin foto: se perdió el ticket y uno se acuerda de lo
-                que compró. Se escribe línea a línea, y el total es la suma.
-              */}
-              <BotonTexto
-                icono="lapiz"
-                disabled={cargando || cerrado}
-                onClick={() => {
-                  setFecha(fechaDentroDelMes(mes))
-                  setAMano((a) => !a)
-                }}
-              >
-                Apuntarlo a mano
-              </BotonTexto>
-            </span>
+            <BotonTexto
+              icono="nota"
+              disabled={cargando || cerrado}
+              onClick={() => setPegando((p) => !p)}
+            >
+              Pegar el ticket
+            </BotonTexto>
           }
         />
+
+        {/*
+          Esto vive FUERA del recuadro de arrastrar a propósito. Dentro está lo
+          que se hace cuando se TIENE el ticket; esto es para cuando no se tiene,
+          y metido ahí dentro no lo encontraba nadie.
+        */}
+        <p className="sin-ticket">
+          <span className="muted">¿Se perdió el ticket?</span>
+          <BotonTexto
+            icono="lapiz"
+            disabled={cargando || cerrado}
+            onClick={() => {
+              setFecha(fechaDentroDelMes(mes))
+              setAMano((a) => !a)
+            }}
+          >
+            Apunta la compra a mano
+          </BotonTexto>
+        </p>
 
         {aMano ? (
           <div style={{ marginTop: 12, display: 'grid', gap: 10, justifyItems: 'start' }}>

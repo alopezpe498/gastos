@@ -2572,3 +2572,20 @@ input.casilla {
 .aviso-arranque .btn-text {
   color: var(--ambar);
 }
+
+/*
+ * «¿Se perdio el ticket?». Va debajo del recuadro de arrastrar y no dentro:
+ * dentro esta lo que se hace CON el ticket, y esto es justo lo contrario. Con
+ * su propio fondo para que no parezca un pie de foto del recuadro de arriba.
+ */
+.sin-ticket {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: var(--r-tile);
+  background: var(--fondo);
+  font-size: 14px;
+}

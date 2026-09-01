@@ -746,7 +746,7 @@ try {
     await pagina.getByRole('tab', { name: 'Tickets', exact: true }).click()
     await pagina.waitForTimeout(600)
 
-    await pagina.getByRole('button', { name: 'Apuntarlo a mano' }).click()
+    await pagina.getByRole('button', { name: 'Apunta la compra a mano' }).click()
     await pagina.waitForTimeout(400)
     await pagina.getByLabel('Dónde se compró').fill('Frutería de la esquina')
     await pagina.getByLabel('Dónde se compró').blur()
