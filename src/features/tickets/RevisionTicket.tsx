@@ -6,7 +6,15 @@ import type {
   PropuestaTicket,
   Variante,
 } from '../../lib/tipos'
-import { BotonPrimario, BotonTexto, Cabecera, Card, MenuFila } from '../../components/ui/Basicos'
+import {
+  BotonPrimario,
+  BotonTexto,
+  Cabecera,
+  Card,
+  Casilla,
+  Chip,
+  MenuFila,
+} from '../../components/ui/Basicos'
 import { CampoImporte } from '../../components/ui/Campos'
 import { Acciones } from '../../components/ui/Navegacion'
 import { useAvisos } from '../../components/ui/Toast'
@@ -60,6 +68,12 @@ export function RevisionTicket({ propuesta, onCancelar, onGuardado }: Props) {
   const [categorias, setCategorias] = useState<CategoriaProducto[]>([])
   const [vincular, setVincular] = useState(!!propuesta.coincidencia)
   const [guardando, setGuardando] = useState(false)
+  /*
+   * Lo seleccionado, por `orden`. Un ticket son cuarenta y cinco líneas y la
+   * mitad son la misma decisión repetida: sin poder actuar sobre varias a la
+   * vez, revisarlo es teclear, no revisar.
+   */
+  const [seleccion, setSeleccion] = useState<Set<number>>(new Set())
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -143,6 +157,61 @@ export function RevisionTicket({ propuesta, onCancelar, onGuardado }: Props) {
     }
   }
 
+  const marcar = (ordenes: number[], marcada: boolean) =>
+    setSeleccion((actual) => {
+      const nueva = new Set(actual)
+      for (const orden of ordenes) {
+        if (marcada) nueva.add(orden)
+        else nueva.delete(orden)
+      }
+      return nueva
+    })
+
+  const seleccionadas = lineas.filter((l) => seleccion.has(l.orden))
+  const conPropuesta = seleccionadas.filter((l) => l.propuesta?.variante && l.propuesta?.producto)
+
+  /**
+   * Cada línea se queda con SU propuesta, no con una común.
+   *
+   * Es la acción que hace llevadero un ticket: la IA acierta en casi todas y
+   * lo que se quiere es mirarlas de un vistazo y darlas por buenas en bloque,
+   * no confirmar cuarenta y cinco veces lo mismo. Las que se hayan colado se
+   * corrigen después, que siguen estando ahí.
+   */
+  const aceptarPropuestas = () => {
+    setLineas((actuales) =>
+      actuales.map((l) =>
+        seleccion.has(l.orden) && l.propuesta?.variante && l.propuesta?.producto
+          ? {
+              ...l,
+              varianteId: null,
+              varianteNueva: l.propuesta.variante,
+              productoNuevo: l.propuesta.producto,
+              categoriaId: l.propuesta.categoriaId ?? null,
+              marca: l.propuesta.marca ?? null,
+              origenAsignacion: 'manual',
+              dudosa: false,
+            }
+          : l,
+      ),
+    )
+    avisar(`${cuantos(conPropuesta.length, 'línea')} con lo que proponía la IA.`)
+    setSeleccion(new Set())
+  }
+
+  /** Una misma variante para todo lo seleccionado. */
+  const asignarSeleccion = (varianteId: number) => {
+    setLineas((actuales) =>
+      actuales.map((l) =>
+        seleccion.has(l.orden)
+          ? { ...l, varianteId, varianteNueva: undefined, productoNuevo: undefined, origenAsignacion: 'manual', dudosa: false }
+          : l,
+      ),
+    )
+    avisar(`${cuantos(seleccion.size, 'línea')} asignadas.`)
+    setSeleccion(new Set())
+  }
+
   /** El botón que desbloquea un ticket largo: lo que quede, a «Otros». */
   const resolverElResto = () => {
     const otros = variantes.find(esOtros)
@@ -184,6 +253,14 @@ export function RevisionTicket({ propuesta, onCancelar, onGuardado }: Props) {
     }
   }
 
+  const opcionesDeVariante = variantes.map((v) => ({
+    id: v.id,
+    nombre: v.nombre,
+    marca: v.marca,
+    producto: v.producto,
+    categoria: v.categoria,
+  }))
+
   const pendientes = lineas.filter((l) => !l.varianteId && !l.varianteNueva)
   const dudosas = lineas.filter((l) => (l.varianteId || l.varianteNueva) && l.dudosa)
   const hechas = lineas.filter((l) => (l.varianteId || l.varianteNueva) && !l.dudosa)
@@ -193,11 +270,30 @@ export function RevisionTicket({ propuesta, onCancelar, onGuardado }: Props) {
       key={linea.orden}
       linea={linea}
       variantes={variantes}
+      seleccionada={seleccion.has(linea.orden)}
+      onSeleccionar={(marcada) => marcar([linea.orden], marcada)}
       onAsignar={(cambios) => asignar(linea, cambios)}
       onCambiar={(cambios) => cambiar(linea.orden, cambios)}
       onBorrar={() => setLineas((a) => a.filter((l) => l.orden !== linea.orden))}
     />
   )
+
+  /*
+   * Los atajos de selección, como en el extracto: «todas», y un grupo por
+   * cada categoría que la IA propone. Revisar un ticket es mirar seis carnes
+   * de golpe y decir que sí, no confirmar una a una.
+   */
+  const gruposDePendientes = () => {
+    const porCategoria = new Map<string, number[]>()
+    for (const linea of pendientes) {
+      const nombre = linea.propuesta?.categoria
+      if (!nombre) continue
+      porCategoria.set(nombre, [...(porCategoria.get(nombre) ?? []), linea.orden])
+    }
+    return [...porCategoria.entries()]
+      .filter(([, ordenes]) => ordenes.length > 1)
+      .sort((a, b) => b[1].length - a[1].length)
+  }
 
   return (
     <>
@@ -255,6 +351,35 @@ export function RevisionTicket({ propuesta, onCancelar, onGuardado }: Props) {
         {error ? <p className="pista" style={{ color: 'var(--comida)' }}>{error}</p> : null}
       </Card>
 
+      {/*
+        La barra de lo seleccionado. Se queda pegada arriba: una pulsación
+        puede marcar cuarenta y cinco líneas, y tener que subir hasta el
+        principio para decidir qué se hace con ellas convertiría el atajo en
+        un viaje.
+      */}
+      {seleccion.size > 0 ? (
+        <div className="barra-seleccion">
+          <span>{cuantos(seleccion.size, 'seleccionada', 'seleccionadas')}</span>
+
+          {conPropuesta.length > 0 ? (
+            <BotonPrimario onClick={aceptarPropuestas}>
+              Aceptar {cuantos(conPropuesta.length, 'propuesta')}
+            </BotonPrimario>
+          ) : null}
+
+          <span style={{ minWidth: 220, flex: 1 }}>
+            <SelectorVariante
+              variantes={opcionesDeVariante}
+              valor={null}
+              etiqueta="Asignar lo seleccionado a"
+              onElegir={asignarSeleccion}
+            />
+          </span>
+
+          <BotonTexto onClick={() => setSeleccion(new Set())}>Quitar selección</BotonTexto>
+        </div>
+      ) : null}
+
       <div className="ticket-dos">
         <div className="pila">
           <Card
@@ -269,7 +394,27 @@ export function RevisionTicket({ propuesta, onCancelar, onGuardado }: Props) {
             {pendientes.length === 0 ? (
               <p className="muted-3">Ninguna: todo tiene su sitio.</p>
             ) : (
-              pendientes.map(filaDe)
+              <>
+                <div className="atajos">
+                  <span className="muted">Seleccionar</span>
+                  <Chip
+                    etiqueta={`Seleccionar las ${pendientes.length} líneas que faltan`}
+                    onClick={() => marcar(pendientes.map((l) => l.orden), true)}
+                  >
+                    Todas ({pendientes.length})
+                  </Chip>
+                  {gruposDePendientes().map(([categoria, ordenes]) => (
+                    <Chip
+                      key={categoria}
+                      etiqueta={`Seleccionar las ${ordenes.length} de ${categoria}`}
+                      onClick={() => marcar(ordenes, true)}
+                    >
+                      {categoria} ({ordenes.length})
+                    </Chip>
+                  ))}
+                </div>
+                {pendientes.map(filaDe)}
+              </>
             )}
           </Card>
 
@@ -315,12 +460,16 @@ export function RevisionTicket({ propuesta, onCancelar, onGuardado }: Props) {
 function FilaTicket({
   linea,
   variantes,
+  seleccionada,
+  onSeleccionar,
   onAsignar,
   onCambiar,
   onBorrar,
 }: {
   linea: LineaTicket
   variantes: Variante[]
+  seleccionada: boolean
+  onSeleccionar: (marcada: boolean) => void
   onAsignar: (cambios: Partial<LineaTicket>) => void
   onCambiar: (cambios: Partial<LineaTicket>) => void
   onBorrar: () => void
@@ -336,7 +485,12 @@ function FilaTicket({
   }))
 
   return (
-    <div className={`linea-ticket${asignada ? '' : ' pendiente'}`}>
+    <div className={`linea-ticket${asignada ? '' : ' pendiente'}${seleccionada ? ' seleccionada' : ''}`}>
+      <Casilla
+        marcada={seleccionada}
+        etiqueta={`Seleccionar ${linea.textoTicket}`}
+        onCambiar={onSeleccionar}
+      />
       <span className="celda-concepto">
         <span className="row-titulo">{linea.textoTicket}</span>
         <span className="d">

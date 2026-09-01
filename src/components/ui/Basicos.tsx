@@ -297,6 +297,33 @@ export function Check({
   )
 }
 
+/**
+ * La casilla de seleccionar de una lista.
+ *
+ * Distinta del Check redondo de los fijos a proposito: aquel dice «esto ya ha
+ * pasado» y este dice «esto es sobre lo que voy a actuar». Confundirlos haria
+ * que marcar tres lineas para asignarlas pareciera darlas por cobradas.
+ */
+export function Casilla({
+  marcada,
+  etiqueta,
+  onCambiar,
+}: {
+  marcada: boolean
+  etiqueta: string
+  onCambiar: (marcada: boolean) => void
+}) {
+  return (
+    <input
+      type="checkbox"
+      className="casilla"
+      aria-label={etiqueta}
+      checked={marcada}
+      onChange={(e) => onCambiar(e.target.checked)}
+    />
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Interruptor
 // ---------------------------------------------------------------------------

@@ -570,12 +570,23 @@ mirar y lo ya asignado. Al lado, la foto del ticket con zoom, que es la única
 forma de comprobar una línea: el texto que sacó la IA puede estar mal, el papel
 no.
 
-Dos cosas hacen llevadero un ticket de cuarenta y cinco líneas:
+Cuatro cosas hacen llevadero un ticket de cuarenta y cinco líneas, y todas
+existen porque ir una a una es teclear, no revisar:
 
-- **Asignar una asigna las que ponen lo mismo.** «LLET SENCERA» sale tres veces y
-  es la misma leche las tres.
+- **Selección en bloque**, como en el extracto: casillas en cada línea, «Todas
+  (45)» y un atajo por cada categoría que propone la IA —«Carne y charcutería
+  (6)», «Verdura (8)»— para poder revisar por bloques.
+- **«Aceptar N propuestas»**, en la barra de lo seleccionado. Cada línea se queda
+  con **su** propuesta, no con una común: la IA acierta en casi todas y lo que se
+  quiere es mirarlas de un vistazo y darlas por buenas de golpe. Lo que se haya
+  colado se corrige después, que sigue estando ahí.
+- **Asignar una misma variante** a todo lo seleccionado, para las seis líneas que
+  son la misma cosa.
 - **«Lo que quede, a Otros»** resuelve el resto de una vez. Se guarda el ticket
   hoy y se afina cuando se quiera, en vez de abandonarlo a medias.
+
+Y asignar una línea asigna también las que ponen exactamente lo mismo: «LLET
+SENCERA» sale tres veces y es la misma leche las tres.
 
 ### Qué es cada cosa
 

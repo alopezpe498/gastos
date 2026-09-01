@@ -660,12 +660,51 @@ try {
       'con líneas sin asignar, Aceptar está bloqueado',
     )
 
-    // El botón que desbloquea un ticket largo.
-    await pagina.getByRole('button', { name: 'Lo que quede, a «Otros»' }).click()
+    /*
+     * La selección en bloque, que es lo que hace llevadero un ticket. Sin ella,
+     * revisar cuarenta y cinco líneas son cuarenta y cinco clics: la IA acierta
+     * en casi todas y lo que se quiere es mirarlas y darlas por buenas de golpe.
+     */
+    const atajos = await pagina.locator('.atajos').first().innerText()
+    comprobar(
+      atajos.includes(`Todas (${TICKET.lineas})`),
+      'hay un atajo para seleccionarlas todas',
+      atajos.replace(/\n/g, ' '),
+    )
+    comprobar(
+      /Carne y charcutería \(\d+\)/.test(atajos),
+      'y uno por cada categoría que propone la IA',
+    )
+
+    // Primero una categoría suelta: se revisa por bloques.
+    await pagina.locator('.atajos .chip', { hasText: /^Carne/ }).click()
+    await pagina.waitForTimeout(400)
+    const barra = await pagina.locator('.barra-seleccion').innerText()
+    comprobar(barra.includes('seleccionadas'), 'seleccionarla marca sus líneas', barra)
+
+    await pagina.getByRole('button', { name: /^Aceptar \d+ propuestas?$/ }).click()
+    await pagina.waitForTimeout(700)
+    const trasCarne = Number(
+      (await pagina.locator('.cuadre').innerText()).match(/falta: (\d+) líneas/)?.[1] ?? 0,
+    )
+    comprobar(
+      trasCarne > 0 && trasCarne < TICKET.lineas,
+      'y aceptar sus propuestas resuelve ese bloque de una vez',
+      `quedan ${trasCarne}`,
+    )
+
+    // Y el resto, todas de golpe.
+    await pagina.locator('.atajos .chip', { hasText: /^Todas/ }).click()
+    await pagina.waitForTimeout(400)
+    await pagina.getByRole('button', { name: /^Aceptar \d+ propuestas?$/ }).click()
     await pagina.waitForTimeout(900)
     comprobar(
       await aceptar.isEnabled(),
-      'y «lo que quede, a Otros» lo desbloquea',
+      'con todas aceptadas, el ticket ya se puede guardar',
+    )
+    comprobar(
+      (await pagina.locator('.cuadre').innerText()).includes('cuadra con el ticket'),
+      'y sigue cuadrando',
     )
 
     const antes = (await leerMes()).variables.length

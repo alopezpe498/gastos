@@ -214,6 +214,13 @@ try {
     await pagina.waitForSelector('.linea-ticket', { timeout: 25000 })
     await seLee('Revisión de un ticket')
 
+    // La barra de selección: negra, con un botón y un desplegable dentro.
+    await pagina.locator('.atajos .chip').first().click()
+    await pagina.waitForSelector('.barra-seleccion', { timeout: 5000 })
+    await seLee('Revisión con líneas seleccionadas')
+    await pagina.getByRole('button', { name: 'Quitar selección' }).click()
+    await pagina.waitForTimeout(300)
+
     // El selector de variante abierto: una lista blanca sobre una fila ámbar.
     await pagina.locator('.linea-ticket .selector-variante').first().click()
     await pagina.waitForSelector('.buscador-lista', { timeout: 5000 })

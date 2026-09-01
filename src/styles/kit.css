@@ -2063,6 +2063,15 @@ input.casilla {
   color: #fff;
 }
 
+/*
+ * Y el principal se da la vuelta: su fondo es la tinta, que aqui es tambien el
+ * fondo de la barra. Negro sobre negro es un boton que no parece un boton.
+ */
+.barra-seleccion .btn-primary {
+  background: #fff;
+  color: var(--tinta);
+}
+
 @media (max-width: 760px) {
   /* La línea se parte en dos alturas: texto arriba, lo demás debajo. */
   .linea-extracto {
@@ -2475,7 +2484,8 @@ input.casilla {
 /* Una linea del ticket mientras se revisa. */
 .linea-ticket {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px 92px 30px;
+  /* La casilla delante: es lo primero que se toca al revisar en bloque. */
+  grid-template-columns: 16px minmax(0, 1fr) 240px 92px 30px;
   align-items: center;
   gap: 10px;
   padding: 8px 0;
@@ -2484,6 +2494,18 @@ input.casilla {
 
 .linea-ticket:first-of-type {
   border-top: 0;
+}
+
+/*
+ * Lo que esta marcado para actuar sobre ello. Con las dos clases juntas para
+ * ganarle al ambar de «pendiente»: si no, marcar una linea que falta por
+ * clasificar no se notaria.
+ */
+.linea-ticket.seleccionada,
+.linea-ticket.pendiente.seleccionada {
+  background: var(--acento-fondo);
+  border-radius: var(--r-tile);
+  border-top-color: transparent;
 }
 
 .linea-ticket.pendiente {
@@ -2496,7 +2518,7 @@ input.casilla {
 
 @media (max-width: 760px) {
   .linea-ticket {
-    grid-template-columns: minmax(0, 1fr) 92px;
+    grid-template-columns: 16px minmax(0, 1fr) 92px;
     row-gap: 6px;
   }
 
