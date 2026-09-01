@@ -173,6 +173,44 @@ export function CampoTexto({
   )
 }
 
+/**
+ * Una fecha.
+ *
+ * `input type="date"` a proposito, y no un campo de texto: da el calendario
+ * del sistema y la escribe como se escribe aqui —01/10/2026—, mientras que por
+ * dentro sigue siendo AAAA-MM-DD, que es lo que entiende la API. Un campo de
+ * texto pidiendo «AAAA-MM-DD» es pedirle al que lo usa que haga de traductor.
+ */
+export function CampoFecha({
+  valor,
+  onGuardar,
+  etiqueta,
+  minimo,
+  maximo,
+  disabled = false,
+}: {
+  valor: string
+  onGuardar: (valor: string) => void
+  etiqueta: string
+  /** Para no poder salirse del mes al que va lo que se esta apuntando. */
+  minimo?: string
+  maximo?: string
+  disabled?: boolean
+}) {
+  return (
+    <input
+      className="campo visible"
+      type="date"
+      aria-label={etiqueta}
+      value={valor}
+      min={minimo}
+      max={maximo}
+      disabled={disabled}
+      onChange={(e) => onGuardar(e.target.value)}
+    />
+  )
+}
+
 export function CampoArea({
   valor,
   onGuardar,

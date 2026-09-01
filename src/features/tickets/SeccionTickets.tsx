@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Mes, PropuestaTicket, Ticket } from '../../lib/tipos'
 import { BotonPrimario, BotonTexto, Card, ErrorLinea, Vacio } from '../../components/ui/Basicos'
-import { CampoArea, CampoTexto } from '../../components/ui/Campos'
+import { CampoArea, CampoFecha, CampoTexto } from '../../components/ui/Campos'
 import { Dropzone } from '../../components/ui/Dropzone'
 import { Fila } from '../../components/ui/Fila'
 import { SelectorDeMes } from '../../components/ui/SelectorDeMes'
@@ -56,6 +56,19 @@ export function SeccionTickets({ meses, mesInicial = null, onCambioGlobal }: Pro
    * de ese mes. Poner «1 de septiembre» en un ticket de octubre confunde al que
    * lo escribe y descoloca la comparación con el apunte del banco.
    */
+  /*
+   * El calendario no deja salirse del mes al que va el ticket: apuntarlo en
+   * octubre con fecha de marzo descoloca la comparación con el apunte del
+   * banco y no hay forma de darse cuenta después.
+   */
+  const primerDiaDelMes = (elegido: Mes) =>
+    `${elegido.anio}-${String(elegido.mes).padStart(2, '0')}-01`
+
+  const ultimoDiaDelMes = (elegido: Mes) => {
+    const dias = new Date(elegido.anio, elegido.mes, 0).getDate()
+    return `${elegido.anio}-${String(elegido.mes).padStart(2, '0')}-${dias}`
+  }
+
   const fechaDentroDelMes = (elegido: Mes | null) => {
     if (!elegido) return hoyIso()
     const hoy = hoyIso()
@@ -247,12 +260,17 @@ export function SeccionTickets({ meses, mesInicial = null, onCambioGlobal }: Pro
                   onGuardar={setTienda}
                 />
               </span>
-              <span style={{ width: 160 }}>
-                <CampoTexto
+              <span style={{ width: 170 }}>
+                {/*
+                  Con calendario y escrita como se escribe aquí. Antes era un
+                  campo de texto pidiendo «AAAA-MM-DD», que es hacer de
+                  traductor para algo que el navegador ya sabe hacer.
+                */}
+                <CampoFecha
                   valor={fecha}
                   etiqueta="Fecha de la compra"
-                  placeholder="AAAA-MM-DD"
-                  visible
+                  minimo={mes ? primerDiaDelMes(mes) : undefined}
+                  maximo={mes ? ultimoDiaDelMes(mes) : undefined}
                   onGuardar={setFecha}
                 />
               </span>

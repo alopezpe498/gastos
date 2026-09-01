@@ -11,7 +11,13 @@ import type {
 import { cuantos, euros, hoyIso, NOMBRES_MESES, redondo } from '../../lib/formato'
 import { iconoDe, paletaDeId, registrarConceptos } from '../../lib/conceptos'
 import { BotonIcono, BotonPrimario, BotonTexto, Card, Check, IconoConcepto, MenuFila, Tile, Vacio } from '../../components/ui/Basicos'
-import { CampoImporte, CampoTexto, SelectorConcepto, ValorEditable } from '../../components/ui/Campos'
+import {
+  CampoFecha,
+  CampoImporte,
+  CampoTexto,
+  SelectorConcepto,
+  ValorEditable,
+} from '../../components/ui/Campos'
 import { Dialogo } from '../../components/ui/Dialogo'
 import {
   Anillos,
@@ -812,12 +818,10 @@ function FichaMovimiento({
           <label className="campo-etiqueta" style={{ marginTop: 0 }}>
             Fecha
           </label>
-          <input
-            className="campo visible"
-            type="date"
-            aria-label="Fecha del apunte"
-            value={movimiento.fechaCobro ?? ''}
-            onChange={(e) => void onCambiar(movimiento.id, { fechaCobro: e.target.value })}
+          <CampoFecha
+            valor={movimiento.fechaCobro ?? ''}
+            etiqueta="Fecha del apunte"
+            onGuardar={(fechaCobro) => void onCambiar(movimiento.id, { fechaCobro })}
           />
         </span>
         <span style={{ width: 140 }}>
