@@ -8,13 +8,15 @@ import { Comparativa } from './Comparativa'
 import { Reparto } from './Reparto'
 import { Ahorro } from './Ahorro'
 import { Estacionalidad } from './Estacionalidad'
+import { Compra } from './Compra'
 
-type Pestana = 'evolucion' | 'comparativa' | 'reparto' | 'ahorro' | 'estacionalidad'
+type Pestana = 'evolucion' | 'comparativa' | 'reparto' | 'compra' | 'ahorro' | 'estacionalidad'
 
 const PESTANAS: { id: Pestana; nombre: string; pista: string }[] = [
   { id: 'evolucion', nombre: 'Evolución', pista: 'Cómo va un concepto mes a mes' },
   { id: 'comparativa', nombre: 'Años', pista: 'Este año frente al anterior' },
   { id: 'reparto', nombre: 'Reparto', pista: 'En qué se va el dinero' },
+  { id: 'compra', nombre: 'Compra', pista: 'En qué se va la comida, por dentro' },
   { id: 'ahorro', nombre: 'Ahorro', pista: 'Sobrante y 50/30/20' },
   { id: 'estacionalidad', nombre: 'Meses', pista: 'Qué se dispara y cuándo' },
 ]
@@ -106,6 +108,7 @@ export function PantallaAnalitica({
           <Comparativa disponible={disponible} onAbrirAnio={onAbrirAnio} />
         ) : null}
         {pestana === 'reparto' ? <Reparto consulta={consulta} /> : null}
+        {pestana === 'compra' ? <Compra consulta={consulta} /> : null}
         {pestana === 'ahorro' ? <Ahorro consulta={consulta} onAbrirMes={onAbrirMes} /> : null}
         {pestana === 'estacionalidad' ? <Estacionalidad consulta={consulta} /> : null}
       </div>

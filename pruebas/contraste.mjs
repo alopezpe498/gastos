@@ -22,6 +22,11 @@ import path from 'node:path'
 import { chromium } from 'playwright'
 import { levantar, crearLlamar, crearComprobador, RAIZ } from './entorno.mjs'
 import { comoTexto } from './fixtures/extractoEjemplo.mjs'
+import {
+  comoRespuestaDeIa,
+  comoTexto as ticketComoTexto,
+} from './fixtures/ticketEjemplo.mjs'
+import { levantarIaFalsa } from './mock-ia.mjs'
 
 if (!fs.existsSync(path.join(RAIZ, 'dist', 'index.html'))) {
   console.log('\n  No hay dist/. Ejecuta "npm run build" antes de esta suite.\n')
@@ -30,7 +35,8 @@ if (!fs.existsSync(path.join(RAIZ, 'dist', 'index.html'))) {
 
 const MINIMO = 2
 
-const entorno = await levantar('contraste')
+const ia = await levantarIaFalsa({ responder: () => comoRespuestaDeIa() })
+const entorno = await levantar('contraste', { OPENAI_BASE_URL: ia.base })
 const llamar = crearLlamar(entorno)
 const { comprobar, estado } = crearComprobador()
 
@@ -186,9 +192,40 @@ try {
     await pagina.waitForSelector('.buscador-lista', { timeout: 5000 })
     await seLee('Extracto con el desplegable de conceptos abierto')
   }
+  // -------------------------------------------------------------------------
+  console.log('\nLas pantallas de la compra')
+  // -------------------------------------------------------------------------
+  {
+    await llamar('/config/ia', {
+      metodo: 'PUT',
+      cuerpo: { proveedor: 'openai', clave: 'sk-de-mentira', modelo: 'gpt-4o-mini' },
+    })
+
+    await pagina.getByRole('tab', { name: 'Tickets', exact: true }).click()
+    await pagina.waitForTimeout(600)
+    await seLee('Importar los tickets')
+
+    await pagina.getByRole('button', { name: 'Pegar el ticket' }).click()
+    await pagina.waitForTimeout(300)
+    await pagina.getByLabel('Ticket pegado').fill(ticketComoTexto())
+    await pagina.getByLabel('Ticket pegado').blur()
+    await pagina.waitForTimeout(300)
+    await pagina.getByRole('button', { name: 'Leer lo pegado' }).click()
+    await pagina.waitForSelector('.linea-ticket', { timeout: 25000 })
+    await seLee('Revisión de un ticket')
+
+    // El selector de variante abierto: una lista blanca sobre una fila ámbar.
+    await pagina.locator('.linea-ticket .selector-variante').first().click()
+    await pagina.waitForSelector('.buscador-lista', { timeout: 5000 })
+    await seLee('Revisión con el selector abierto')
+    await pagina.keyboard.press('Escape')
+    await pagina.waitForTimeout(300)
+  }
+
 } finally {
   await navegador.close()
   await entorno.cerrar()
+  await ia.cerrar()
 }
 
 console.log(

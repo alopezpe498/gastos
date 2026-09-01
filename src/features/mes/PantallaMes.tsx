@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ErrorApi, mensajeDeError } from '../../lib/api'
-import type { Concepto, MesCompleto, MesPorAbrir, Movimiento, PanelMes } from '../../lib/tipos'
+import type {
+  Concepto,
+  MesCompleto,
+  MesPorAbrir,
+  Movimiento,
+  PanelMes,
+  ResumenCompraMes,
+} from '../../lib/tipos'
 import { cuantos, euros, hoyIso, NOMBRES_MESES, redondo } from '../../lib/formato'
 import { iconoDe, paletaDeId, registrarConceptos } from '../../lib/conceptos'
 import { BotonIcono, BotonPrimario, BotonTexto, Card, Check, IconoConcepto, MenuFila, Tile, Vacio } from '../../components/ui/Basicos'
@@ -36,14 +43,36 @@ import { Analisis } from './Analisis'
  * El análisis vive aquí dentro, plegado: se mira de vez en cuando, no cada día.
  */
 
+/**
+ * Lo que dicen los tickets de un mes. `null` si no hay ninguno.
+ *
+ * El endpoint contesta 204 cuando el mes no tiene tickets, y eso aqui es null,
+ * no un cero: la linea del tile no se pinta en vez de decir «0 tickets».
+ */
+async function resumenDeCompra(mesId: number): Promise<ResumenCompraMes | null> {
+  try {
+    return await api<ResumenCompraMes | null>(`/analitica/compra/mes/${mesId}`)
+  } catch {
+    return null
+  }
+}
+
 type Props = {
   mesElegido: { anio: number; mes: number } | null
   onCambioDeMes: (mes: { anio: number; mes: number } | null) => void
   onImportarExtracto: (mesId: number) => void
+  /** La foto de un ticket de la compra, con el mes ya puesto. */
+  onFotoDeTicket: (mesId: number) => void
   onBloquear: () => void
 }
 
-export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onBloquear }: Props) {
+export function PantallaMes({
+  mesElegido,
+  onCambioDeMes,
+  onImportarExtracto,
+  onFotoDeTicket,
+  onBloquear,
+}: Props) {
   const { avisar, avisarError } = useAvisos()
   const [mes, setMes] = useState<MesCompleto | null>(null)
   const [panel, setPanel] = useState<PanelMes | null>(null)
@@ -53,6 +82,8 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onB
   const [abriendo, setAbriendo] = useState(false)
   const [menuAbierto, setMenuAbierto] = useState(false)
   const [pedirApunte, setPedirApunte] = useState(0)
+  /** Lo que dicen los tickets de este mes. Null si no hay ninguno. */
+  const [compra, setCompra] = useState<ResumenCompraMes | null>(null)
   /** El fijo cuyo desglose está abierto. Solo uno: si no, la lista se dispara. */
   const [fijoAbierto, setFijoAbierto] = useState<number | null>(null)
 
@@ -79,6 +110,7 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onB
       if (datos) {
         setPorAbrir(null)
         setPanel(await api<PanelMes>(`/meses/${datos.id}/panel`))
+        setCompra(await resumenDeCompra(datos.id))
       }
     } catch (causa) {
       setError(mensajeDeError(causa))
@@ -94,6 +126,7 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onB
     const datos = await api<MesCompleto>(`/meses/${mes.anio}/${mes.mes}`)
     setMes(datos)
     setPanel(await api<PanelMes>(`/meses/${datos.id}/panel`))
+    setCompra(await resumenDeCompra(datos.id))
   }, [mes])
 
   const cambiarMes = async (cambios: Record<string, unknown>) => {
@@ -439,6 +472,20 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onB
             parte={panel.comida.presupuesto > 0 ? panel.comida.gastado / panel.comida.presupuesto : 0}
             titulo="Sobre de comida"
           />
+
+          {/*
+            Lo que dicen los tickets del mes. Solo sale si hay alguno: «0
+            tickets» ocupa lo mismo y no dice nada. Es la puerta a Analítica ›
+            Compra, que es donde se puede bajar hasta el precio del aceite.
+          */}
+          {compra ? (
+            <p className="d" style={{ marginTop: 8 }}>
+              {cuantos(compra.tickets, 'ticket')} ·{' '}
+              {compra.principales
+                .map((c) => `${c.categoria} ${c.parte === null ? '—' : `${Math.round(c.parte * 100)} %`}`)
+                .join(', ')}
+            </p>
+          ) : null}
         </Tile>
 
         <Tile
@@ -474,6 +521,7 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onB
             onCrear={apuntar}
             pedirApunte={pedirApunte}
             onImportar={() => onImportarExtracto(mes.id)}
+            onFotoDeTicket={() => onFotoDeTicket(mes.id)}
           />
 
           {mes.variables.length === 0 ? (

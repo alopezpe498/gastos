@@ -444,6 +444,139 @@ lista en lugar de pegarlos en la descripción:
 
 ---
 
+## El detalle de la compra
+
+Un ticket del súper es **un** movimiento del sobre Comida con su total, como
+siempre. Lo que añaden estas tablas es lo que hay dentro, para poder preguntar
+en qué se va la comida, cuánto se gasta en pollo o cuánto ha subido el aceite.
+Las líneas **no crean movimientos**: si los crearan, la compra contaría dos
+veces.
+
+Tres niveles, porque son tres preguntas distintas:
+
+| Nivel | Ejemplo | Responde |
+| --- | --- | --- |
+| categoría | Carne y charcutería | En qué se va la compra |
+| producto | Pollo | Cuánto gasto en pollo |
+| variante | Pechuga de pollo | Qué compro exactamente, y a cómo |
+
+La **marca no es un nivel**: va en un campo de la variante. «Petit suisse» es lo
+mismo sea de Nesquik o no, y solo separándola se puede comparar el precio.
+
+### Leer y guardar un ticket
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| `POST` | `/tickets` | `{ mesId, imagen? \| pdf? \| texto?, tipoImagen?, pista? }`. Lee y **devuelve la propuesta sin escribir nada**. Hasta 20 MB. |
+| `POST` | `/tickets/aceptar` | `{ mesId, cabecera, lineas, movimientoId?, archivoRuta?, origen? }`. Escribe todo en una transacción. |
+| `GET` | `/tickets` | Los guardados, del más reciente. `?mes=<id>` para los de un mes. |
+| `GET` | `/tickets/:id` | El ticket con sus líneas y su reparto por categoría. |
+| `DELETE` | `/tickets/:id` | Deshacer. `{ borrarMovimiento: true }` se lleva también el apunte. |
+| `GET` | `/tickets/:id/lineas` | **Solo lectura, para las otras apps.** Producto, variante, cantidad y unidad. |
+| `GET` | `/tickets/:id/archivo` | La foto o el PDF originales. |
+| `GET` | `/tickets/archivo/:nombre` | El archivo recién subido, durante la revisión. |
+
+Reglas que se comprueban al aceptar, y que devuelven `400` con `detalle[]`:
+
+- **Las líneas tienen que cuadrar con el total**, con 0,05 € de tolerancia por
+  redondeos. Un detalle que no suma lo que pone abajo no responde ninguna de las
+  preguntas que se le van a hacer después.
+- **Ninguna línea puede quedar sin asignar.** Una línea está asignada tanto si
+  apunta a una variante que ya existe (`varianteId`) como si trae nombres nuevos
+  (`varianteNueva` + `productoNuevo`), que se crean al guardar.
+
+Cada línea de la propuesta llega con `origenAsignacion` y `dudosa`:
+
+| `origenAsignacion` | De dónde sale | ¿Pide revisión? |
+| --- | --- | --- |
+| `alias` | Un alias guardado. Si está **confirmado**, se da por buena. | Solo si el alias no está confirmado |
+| `ia` | Lo propone el modelo ahora, en `propuesta`. | Sí, siempre |
+| `ninguno` | Nadie sabe qué es. | Sí |
+| `manual` | Lo ha dicho una persona en la revisión. | No |
+
+**La IA nunca confirma nada.** Su propuesta llega escrita pero sin `varianteId`,
+y el alias solo se crea confirmado cuando una línea llega con `recordar: true`,
+que es lo que pone el botón «Recordar» de la pantalla.
+
+### Vincular con un apunte que ya existe
+
+`POST /tickets` devuelve `coincidencia` cuando encuentra en el mes un movimiento
+del sobre Comida **con el mismo importe al céntimo** y con fecha a un día o menos
+del ticket. Es el caso normal: el extracto del banco creó el apunte de MERCADONA
+días antes y ahora llega la foto. Al aceptar con `movimientoId`, el ticket se
+adjunta a ese apunte y **no se crea otro**.
+
+Deshacer un ticket adjuntado se lleva el ticket y sus líneas, pero **no** ese
+apunte: lo trajo el banco y no es nuestro para borrarlo.
+
+### El catálogo
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| `GET` | `/categorias-producto` | `?activas=1`. Catorce de semilla. |
+| `POST` \| `PATCH` | `/categorias-producto[/:id]` | Nombre, orden y activa. |
+| `GET` | `/productos` | `?activos=1`, `?categoria=<id>`, `?variantes=1` (el árbol entero). |
+| `POST` \| `PATCH` | `/productos[/:id]` | Nombre, categoría, activo, `idExternoDespensa`. |
+| `POST` | `/productos/fusionar` | `{ seVa, seQueda }`. Une dos duplicados. |
+| `GET` \| `POST` | `/productos/variantes` | `?producto=<id>`. |
+| `PATCH` | `/productos/variantes/:id` | Nombre, marca, unidad, producto al que cuelga. |
+| `GET` \| `DELETE` | `/productos/alias[/:id]` | La memoria de cómo se llama cada cosa en el ticket. |
+
+- **Mover un producto de categoría no toca ninguna línea.** La categoría se saca
+  por relación cada vez que se pregunta, así que reordenar el catálogo hoy
+  recalcula también el gasto del año pasado. Eso es lo que se quiere.
+- **Fusionar tampoco reescribe historial.** Las líneas apuntan a la variante, y es
+  la variante la que cambia de padre.
+- Un alias lleva `tienda` porque el mismo texto significa cosas distintas en
+  cadenas distintas: «PIT» no es lo mismo en Mercadona que en una carnicería.
+
+### En qué se va la compra
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| `GET` | `/analitica/compra/reparto` | Por categoría, con su parte del total. La puerta de entrada. |
+| `GET` | `/analitica/compra/productos` | `?categoria=<id>`. Con importe, compras, kg y unidades. |
+| `GET` | `/analitica/compra/producto/:id` | Variantes, cada compra con su precio, y la comparativa entre tiendas. |
+| `GET` | `/analitica/compra/buscar` | `?q=pollo`. |
+| `GET` | `/analitica/compra/tiendas` | Gasto y ticket medio por tienda. |
+| `GET` | `/analitica/compra/habitos` | Día de la semana, ticket medio, líneas por ticket. |
+| `GET` | `/analitica/compra/mes/:mesId` | El resumen del mes. **`204` si ese mes no tiene tickets.** |
+
+Todas aceptan el mismo rango que el resto de Analítica (`desde`, `hasta`, `anio`,
+`ultimos`). Y todas siguen la regla de la casa: un rango sin tickets devuelve
+`null` o una lista vacía, **nunca cero**. Cero diría «he mirado y no has gastado
+nada en pollo»; lo que pasa es que no hay tickets.
+
+### Para las otras apps
+
+`GET /tickets/:id/lineas` está pensado para que `listacompra` pueda marcar como
+comprados los artículos de un ticket y `menusemanal` cruce ingredientes con
+productos. Devuelve nombres y unidades, no ids internos de líneas:
+
+```jsonc
+{
+  "ticket": { "id": 1, "tienda": "Mercadona", "fechaHora": "2026-10-15T19:12", "total": 105 },
+  "lineas": [
+    {
+      "producto": "Pollo",
+      "productoId": 7,
+      "variante": "Pechuga de pollo",
+      "marca": null,
+      "categoria": "Carne y charcutería",
+      "cantidad": 2,
+      "unidad": "ud",
+      "importe": 6.9,
+      "textoTicket": "PIT 2 U."
+    }
+  ]
+}
+```
+
+`productos.id_externo_despensa` queda reservado para emparejar con la despensa de
+esas apps. Aquí no se usa.
+
+---
+
 ## Visión anual
 
 | Método | Ruta | Notas |

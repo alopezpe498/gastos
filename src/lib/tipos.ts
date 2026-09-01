@@ -857,3 +857,227 @@ export type ContextoMes = {
   } | null
   posiciones: { conceptoId: number; nombre: string; puesto: number; deCuantos: number; importe: number }[]
 }
+
+// ---------------------------------------------------------------------------
+// El detalle de la compra
+// ---------------------------------------------------------------------------
+
+/** Lo que se compra, en tres niveles: categoría → producto → variante. */
+export type CategoriaProducto = {
+  id: number
+  nombre: string
+  orden: number
+  activa: boolean
+}
+
+export type Producto = {
+  id: number
+  nombre: string
+  categoriaId: number
+  categoria: string | null
+  activo: boolean
+  idExternoDespensa: string | null
+  /** Solo con ?variantes=1: el árbol entero para el catálogo. */
+  variantes?: Variante[]
+}
+
+export type Variante = {
+  id: number
+  productoId: number
+  producto: string | null
+  categoriaId: number | null
+  categoria: string | null
+  nombre: string
+  /** Aparte del nombre: «Petit suisse» es lo mismo sea de Nesquik o no. */
+  marca: string | null
+  unidadHabitual: 'ud' | 'kg' | 'l'
+  activa: boolean
+}
+
+export type AliasTicket = {
+  id: number
+  textoTicket: string
+  tienda: string | null
+  varianteId: number
+  variante: string | null
+  producto: string | null
+  vecesVisto: number
+  /** true = lo dije yo. false = lo propuso la IA y sigue pidiendo un vistazo. */
+  confirmado: boolean
+}
+
+export type Unidad = 'ud' | 'kg' | 'l'
+export type OrigenAsignacion = 'alias' | 'ia' | 'manual' | 'ninguno'
+
+/** Lo que la IA propone para una línea. No se guarda hasta revisarlo. */
+export type PropuestaLinea = {
+  variante: string | null
+  producto: string | null
+  marca: string | null
+  categoriaId: number | null
+  categoria: string | null
+  confianza: 'alta' | 'media' | 'baja'
+}
+
+export type LineaTicket = {
+  id?: number
+  orden: number
+  textoTicket: string
+  cantidad: number
+  unidad: Unidad
+  precioUnitario: number | null
+  importe: number
+  varianteId: number | null
+  variante?: Variante | string | null
+  producto?: string | null
+  categoria?: string | null
+  marca?: string | null
+  origenAsignacion: OrigenAsignacion
+  dudosa: boolean
+  nota?: string | null
+  propuesta?: PropuestaLinea | null
+  /** Nombres escritos en la revisión: se crean al aceptar. */
+  varianteNueva?: string
+  productoNuevo?: string
+  categoriaId?: number | null
+  /** Marcada para «Recordar»: crea el alias confirmado. */
+  recordar?: boolean
+}
+
+export type CabeceraTicket = {
+  tienda: string | null
+  direccion: string | null
+  fechaHora: string | null
+  total: number
+  formaPago: string | null
+  ultimos4: string | null
+}
+
+export type CuadreTicket = {
+  suma: number
+  diferencia: number
+  cuadra: boolean
+  sinAsignar: number
+  problemas: string[]
+  sePuedeAceptar: boolean
+}
+
+/** Lo que devuelve leer un ticket: una propuesta, sin escribir nada. */
+export type PropuestaTicket = {
+  mes: { id: number; anio: number; mes: number; nombreMes: string }
+  cabecera: CabeceraTicket
+  lineas: LineaTicket[]
+  archivoRuta: string | null
+  origen: 'foto' | 'pdf' | 'portapapeles'
+  /** El apunte de comida que ya estaba en el mes y es este mismo ticket. */
+  coincidencia: {
+    movimiento: Movimiento
+    porQue: string
+    tienda: string | null
+  } | null
+  cuadre: CuadreTicket
+  avisos: string[]
+}
+
+export type Ticket = {
+  id: number
+  movimientoId: number
+  tienda: string | null
+  direccion: string | null
+  fechaHora: string | null
+  total: number
+  formaPago: string | null
+  ultimos4: string | null
+  nLineas: number
+  archivoRuta: string | null
+  origen: 'foto' | 'pdf' | 'portapapeles'
+  estado: 'revisado' | 'pendiente'
+  fechaCreacion: string
+  lineas?: LineaTicket[]
+  reparto?: { categoria: string; importe: number; parte: number | null }[]
+}
+
+// ---- la analítica de la compra ----
+
+export type RepartoCompra = {
+  rango: { desde: string; hasta: string }
+  /** null = no hay ni un ticket en el rango. Cero sería mentir. */
+  total: number | null
+  tickets: number
+  categorias: {
+    id: number | null
+    nombre: string
+    total: number
+    lineas: number
+    parte: number | null
+  }[]
+}
+
+export type ProductoDelRango = {
+  id: number
+  nombre: string
+  categoria: string
+  total: number
+  compras: number
+  kg?: number | null
+  unidades?: number | null
+}
+
+export type FichaProducto = {
+  id: number
+  nombre: string
+  categoria: string
+  total: number | null
+  compras: number
+  variantes: {
+    id: number
+    nombre: string
+    marca: string | null
+    unidad: Unidad
+    total: number
+    compras: number
+    cantidad: number
+    precioMedio: number | null
+  }[]
+  detalle: {
+    id: number
+    fecha: string | null
+    tienda: string | null
+    variante: string
+    marca: string | null
+    texto: string
+    cantidad: number
+    unidad: Unidad
+    precio: number | null
+    importe: number
+  }[]
+  tiendas: {
+    tienda: string
+    compras: number
+    precioMedio: number
+    minimo: number
+    maximo: number
+  }[]
+}
+
+export type TiendaDelRango = {
+  tienda: string
+  tickets: number
+  total: number
+  ticketMedio: number | null
+  lineasPorTicket: number | null
+}
+
+export type HabitosCompra = {
+  tickets: number
+  ticketMedio: number | null
+  lineasMedias: number | null
+  porDia: { dia: string; tickets: number; total: number | null }[]
+}
+
+/** El resumen del mes, para la línea de dentro del tile de Comida. */
+export type ResumenCompraMes = {
+  tickets: number
+  total: number
+  principales: { categoria: string; total: number; parte: number | null }[]
+}

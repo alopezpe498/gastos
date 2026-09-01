@@ -4,6 +4,7 @@ import type { Mes } from '../../lib/tipos'
 import { Cabecera, ErrorLinea, Esqueleto, Tabs } from '../../components/ui/Basicos'
 import { PantallaExtracto } from '../extracto/PantallaExtracto'
 import { SeccionImportar } from './SeccionImportar'
+import { SeccionTickets } from '../tickets/SeccionTickets'
 import { SeccionCopia } from './SeccionCopia'
 
 /**
@@ -15,10 +16,11 @@ import { SeccionCopia } from './SeccionCopia'
  * una vez al año.
  */
 
-export type PestanaImportar = 'extracto' | 'excel' | 'copia'
+export type PestanaImportar = 'extracto' | 'tickets' | 'excel' | 'copia'
 
 const PESTANAS: { id: PestanaImportar; nombre: string }[] = [
   { id: 'extracto', nombre: 'Extracto del banco' },
+  { id: 'tickets', nombre: 'Tickets' },
   { id: 'excel', nombre: 'Excel histórico' },
   { id: 'copia', nombre: 'Copia de seguridad' },
 ]
@@ -31,6 +33,13 @@ type Props = {
   /** Si se entra desde el botón del mes, el archivo se pide sin más rodeos. */
   pedirArchivo?: boolean
   onCambioGlobal: () => void
+  /*
+   * La pestaña la sabe quien está arriba. Guardar un ticket refresca la
+   * aplicación entera y esto se vuelve a montar: sin decirlo fuera, se
+   * volvería al extracto justo después de guardar, con el aviso de deshacer
+   * hablando de algo que ya no se ve.
+   */
+  onCambiarPestana?: (pestana: PestanaImportar) => void
   onVerReglas: () => void
 }
 
@@ -39,6 +48,7 @@ export function PantallaImportar({
   mesInicial = null,
   pedirArchivo = false,
   onCambioGlobal,
+  onCambiarPestana,
   onVerReglas,
 }: Props) {
   const [pestana, setPestana] = useState<PestanaImportar>(pestanaInicial)
@@ -65,7 +75,16 @@ export function PantallaImportar({
     <>
       <Cabecera
         titulo="Importar"
-        debajo={<Tabs pestanas={PESTANAS} activa={pestana} onCambiar={setPestana} />}
+        debajo={
+          <Tabs
+            pestanas={PESTANAS}
+            activa={pestana}
+            onCambiar={(p) => {
+              setPestana(p)
+              onCambiarPestana?.(p)
+            }}
+          />
+        }
       />
 
       <div className="pila">
@@ -86,6 +105,14 @@ export function PantallaImportar({
               }}
             />
           )
+        ) : null}
+
+        {pestana === 'tickets' ? (
+          <SeccionTickets
+            meses={meses ?? []}
+            mesInicial={mesInicial}
+            onCambioGlobal={onCambioGlobal}
+          />
         ) : null}
 
         {pestana === 'excel' ? (

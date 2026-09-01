@@ -119,6 +119,11 @@ export default function App() {
               setDestinoImportar({ pestana: 'extracto', mesId, pedirArchivo: true })
               setPestana('importar')
             }}
+
+            onFotoDeTicket={(mesId) => {
+              setDestinoImportar({ pestana: 'tickets', mesId, pedirArchivo: false })
+              setPestana('importar')
+            }}
           />
         ) : null}
         {pestana === 'anual' ? (
@@ -146,6 +151,7 @@ export default function App() {
           <PantallaImportar
             key={version}
             pestanaInicial={destinoImportar.pestana}
+            onCambiarPestana={(p) => setDestinoImportar((d) => ({ ...d, pestana: p }))}
             mesInicial={destinoImportar.mesId}
             pedirArchivo={destinoImportar.pedirArchivo}
             onCambioGlobal={refrescarTodo}

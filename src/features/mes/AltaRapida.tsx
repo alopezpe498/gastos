@@ -17,12 +17,15 @@ export function AltaRapida({
   onCrear,
   pedirApunte,
   onImportar,
+  onFotoDeTicket,
 }: {
   conceptos: Concepto[]
   onCrear: (datos: { conceptoId: number; importe: number; descripcion: string }) => Promise<void>
   /** Sube cuando se pulsa «+ Apuntar» arriba: trae el cursor aquí. */
   pedirApunte?: number
   onImportar: () => void
+  /** La foto de un ticket: lleva a Importar > Tickets con el mes puesto. */
+  onFotoDeTicket?: () => void
 }) {
   const linea = useRef<HTMLInputElement>(null)
   const [texto, setTexto] = useState('')
@@ -83,6 +86,20 @@ export function AltaRapida({
             if (e.key === 'Escape') setAbierta(false)
           }}
         />
+        {/*
+          Dos puertas, y las dos aqui porque es donde se apunta: el extracto del
+          banco una vez al mes, y la foto del ticket cada vez que se vuelve de la
+          compra. La camara va primero: es la que se usa mas veces.
+        */}
+        {onFotoDeTicket ? (
+          <button
+            className="btn-icono"
+            aria-label="Foto de un ticket de la compra"
+            onClick={onFotoDeTicket}
+          >
+            <Icono nombre="camara" size={16} />
+          </button>
+        ) : null}
         <button className="btn-icono" aria-label="Importar el extracto del banco" onClick={onImportar}>
           <Icono nombre="nota" size={16} />
         </button>

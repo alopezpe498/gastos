@@ -14,13 +14,24 @@ import path from 'node:path'
 import { chromium } from 'playwright'
 import { levantar, crearLlamar, crearComprobador, PIN, RAIZ } from './entorno.mjs'
 import { comoTexto } from './fixtures/extractoEjemplo.mjs'
+import { levantarIaFalsa } from './mock-ia.mjs'
+import {
+  comoRespuestaDeIa,
+  comoTexto as ticketComoTexto,
+  ESPERADO as TICKET,
+} from './fixtures/ticketEjemplo.mjs'
 
 if (!fs.existsSync(path.join(RAIZ, 'dist', 'index.html'))) {
   console.log('\n  No hay dist/. Ejecuta "npm run build" antes de esta suite.\n')
   process.exit(1)
 }
 
-const entorno = await levantar('interfaz')
+/*
+ * Una IA simulada para poder leer un ticket. Contesta siempre lo mismo, que
+ * es justo lo que hace falta: lo que se prueba es la pantalla, no el modelo.
+ */
+const ia = await levantarIaFalsa({ responder: () => comoRespuestaDeIa() })
+const entorno = await levantar('interfaz', { OPENAI_BASE_URL: ia.base })
 const llamar = crearLlamar(entorno)
 const { comprobar, estado } = crearComprobador()
 
@@ -600,6 +611,89 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nRevisar un ticket de la compra')
+  // -------------------------------------------------------------------------
+  //
+  // Lo que se comprueba aquí son las dos garantías de la pantalla, que no se
+  // ven desde la API: que Aceptar está bloqueado hasta que el ticket está listo,
+  // y que el botón que resuelve el resto lo desbloquea. Un ticket de cuarenta y
+  // cinco líneas que no se puede guardar es un ticket que se abandona.
+  {
+    await prepararMes()
+    await llamar('/config/ia', {
+      metodo: 'PUT',
+      cuerpo: { proveedor: 'openai', clave: 'sk-de-mentira', modelo: 'gpt-4o-mini' },
+    })
+    await abrirApp()
+
+    await pagina.getByRole('button', { name: 'Importar', exact: true }).first().click()
+    await pagina.waitForTimeout(700)
+    await pagina.getByRole('tab', { name: 'Tickets', exact: true }).click()
+    await pagina.waitForTimeout(600)
+    await pagina.getByRole('button', { name: 'Pegar el ticket' }).click()
+    await pagina.waitForTimeout(300)
+    await pagina.getByLabel('Ticket pegado').fill(ticketComoTexto())
+    await pagina.getByLabel('Ticket pegado').blur()
+    await pagina.waitForTimeout(300)
+    await pagina.getByRole('button', { name: 'Leer lo pegado' }).click()
+    await pagina.waitForSelector('.linea-ticket', { timeout: 25000 })
+    await pagina.waitForTimeout(800)
+
+    const lineas = await pagina.locator('.linea-ticket').count()
+    comprobar(lineas === TICKET.lineas, `salen las ${TICKET.lineas} líneas`, String(lineas))
+
+    const cuadre = await pagina.locator('.cuadre').innerText()
+    comprobar(
+      cuadre.includes('cuadra con el ticket'),
+      'y la cabecera dice que cuadran con el total',
+      cuadre,
+    )
+    comprobar(
+      cuadre.includes('sin asignar'),
+      'pero avisa de que falta clasificarlas',
+      cuadre,
+    )
+
+    const aceptar = pagina.getByRole('button', { name: 'Aceptar', exact: true })
+    comprobar(
+      !(await aceptar.isEnabled()),
+      'con líneas sin asignar, Aceptar está bloqueado',
+    )
+
+    // El botón que desbloquea un ticket largo.
+    await pagina.getByRole('button', { name: 'Lo que quede, a «Otros»' }).click()
+    await pagina.waitForTimeout(900)
+    comprobar(
+      await aceptar.isEnabled(),
+      'y «lo que quede, a Otros» lo desbloquea',
+    )
+
+    const antes = (await leerMes()).variables.length
+    await aceptar.click()
+    await pagina.waitForTimeout(2500)
+
+    const despues = await leerMes()
+    comprobar(
+      despues.variables.length === antes + 1,
+      'al aceptar se crea UN apunte, no cuarenta y cinco',
+      `${antes} → ${despues.variables.length}`,
+    )
+
+    const { datos: tickets } = await llamar('/tickets')
+    comprobar(tickets.length === 1, 'y queda el ticket guardado')
+    comprobar(
+      tickets[0].nLineas === TICKET.lineas,
+      'con todas sus líneas',
+      String(tickets[0].nLineas),
+    )
+
+    comprobar(
+      (await pagina.locator('.toast').innerText()).includes('Deshacer'),
+      'y el aviso ofrece deshacerlo',
+    )
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nConceptos: activar, colorear y ordenar')
   // -------------------------------------------------------------------------
   {
@@ -703,6 +797,7 @@ try {
 } finally {
   await navegador.close()
   await entorno.cerrar()
+  await ia.cerrar()
 }
 
 console.log(

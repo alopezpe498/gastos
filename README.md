@@ -546,6 +546,86 @@ siempre se sabe de dónde salieron.
 
 ---
 
+## Los tickets de la compra
+
+La foto del ticket del súper, desde el botón de la cámara del mes o desde
+**Importar › Tickets**. También vale un PDF o el texto pegado.
+
+Un ticket es **un** apunte del sobre Comida con su total, como siempre. Lo que
+se añade es lo que hay dentro, y eso es lo que permite preguntar después en qué
+se va la comida, cuánto se gasta en pollo o cuánto ha subido el aceite. Las
+líneas no suman: si sumaran, la compra contaría dos veces.
+
+### La revisión
+
+Misma forma que la del extracto, porque es el mismo trabajo: algo llega leído
+por una máquina, se mira, se corrige y se acepta. Nada se guarda hasta entonces.
+
+Arriba, el **cuadre**: «45 líneas suman 105,00 € · cuadra con el ticket». Es
+media razón para fiarse del detalle, y **Aceptar está bloqueado mientras no
+cuadre** o quede algo sin clasificar, diciendo cuál de las dos cosas falta.
+
+Debajo, tres bloques: lo que falta por decidir (en ámbar, arriba), lo que conviene
+mirar y lo ya asignado. Al lado, la foto del ticket con zoom, que es la única
+forma de comprobar una línea: el texto que sacó la IA puede estar mal, el papel
+no.
+
+Dos cosas hacen llevadero un ticket de cuarenta y cinco líneas:
+
+- **Asignar una asigna las que ponen lo mismo.** «LLET SENCERA» sale tres veces y
+  es la misma leche las tres.
+- **«Lo que quede, a Otros»** resuelve el resto de una vez. Se guarda el ticket
+  hoy y se afina cuando se quiera, en vez de abandonarlo a medias.
+
+### Qué es cada cosa
+
+Tres niveles, porque son tres preguntas distintas: **categoría** (Carne y
+charcutería) dice en qué se va la compra, **producto** (Pollo) cuánto se gasta en
+pollo, y **variante** (Pechuga de pollo) qué se compra exactamente y a cómo. La
+marca va aparte, en su campo: «Petit suisse» es lo mismo sea de Nesquik o no, y
+solo separándola se puede comparar el precio entre tiendas.
+
+El catálogo se llena solo, guardando tickets, y se ordena en **Conceptos ›
+Productos**: renombrar, mover de categoría, fusionar duplicados y quitar alias.
+Nada de eso pierde historial —las líneas apuntan a la variante, y es la variante
+la que se mueve—, así que **cambiar hoy la categoría de «Pollo» recalcula también
+lo del año pasado**.
+
+### La memoria
+
+La segunda vez que aparece «PIT 2 U.» no se pregunta: ya se dijo qué era. Eso lo
+guardan los **alias**, con la tienda, porque el mismo texto significa cosas
+distintas en cadenas distintas.
+
+**La IA propone; la memoria la escribe una persona.** Lo que sugiere el modelo
+llega escrito y en lila, pero sin confirmar: hay que mirarlo. El alias se crea
+solo al pulsar «Recordar» en esa línea. Un acierto que nadie ha revisado no debe
+volverse permanente por su cuenta, porque a partir de ahí ya no vuelve a
+preguntarse.
+
+### Se adjunta a lo que ya está
+
+Lo normal es que el extracto del banco haya creado ya el apunte de MERCADONA días
+antes. Al leer el ticket, si hay un apunte de comida **del mismo importe al
+céntimo** y con un día de diferencia como mucho, se ofrece adjuntarlo a ese en vez
+de crear otro. Deshacerlo se lleva el ticket, no ese apunte: lo trajo el banco.
+
+### En qué se va
+
+**Analítica › Compra**, con el mismo rango que el resto. Se entra por el reparto
+de categorías y se baja: categoría → producto → cada compra con su fecha, su
+tienda y el precio de ese día. Ahí están el buscador («pollo»), la evolución del
+precio por variante, la comparativa entre tiendas, el ticket medio y el día de la
+semana en que se compra.
+
+En **Mes**, dentro del tile de Comida, una línea corta: «1 ticket · Carne y
+charcutería 24 %, Lácteos 17 %, Despensa 16 %». Solo sale si hay tickets: «0
+tickets» ocupa lo mismo y no dice nada.
+
+Los archivos originales viven en `server/data/tickets/`, fuera del repositorio.
+
+---
+
 ## Copias de seguridad
 
 **Desde la aplicación**, en Ajustes: JSON (la copia completa) y Excel (una hoja
@@ -725,6 +805,7 @@ Cada suite, en su propio proceso:
 | `pruebas/extracto.mjs` | El parser con un extracto de ejemplo calcado del real, el periodo que define el mes, la nómina al ingreso, los abonos en negativo, el orden de las reglas, conciliar y actualizar fijos, la propuesta de plantilla, las reglas por expresión regular, duplicados, dividir, la validación de cuentas y deshacer. |
 | `pruebas/analitica.mjs` | Las agregaciones, y sobre todo los huecos: que un mes sin datos valga `null` y que las medias no dividan entre meses que no existen. |
 | `pruebas/interfaz.mjs` | Pulsa la aplicación de verdad en un navegador: que cada botón esté conectado a algo y que la pantalla cambie después. Necesita `npm run build`. |
+| `pruebas/tickets.mjs` | El detalle de la compra, contra la IA simulada: leer un ticket en catalán con líneas por peso, el cuadre, que la IA proponga sin decidir, la memoria, la vinculación con el apunte del banco, deshacer, fusionar y las agregaciones. |
 | `pruebas/contraste.mjs` | Que no haya texto invisible. Mide cada texto de la pantalla contra el fondo que de verdad tiene detrás y falla por debajo de 2:1. Nació de dos botones que estaban, respondían y hacían lo suyo; solo no se leían. |
 
 **Nunca tocan la base de datos de desarrollo.** Cada suite levanta su propio
@@ -784,6 +865,7 @@ pruebas/
   ejecutar.mjs          lanza las suites y comprueba que gastos.db no cambia
   reparto.mjs           pagado, comprometido y libre, con el caso que falló
   interfaz.mjs          pulsa la aplicación de verdad en un navegador
+  tickets.mjs           el detalle de la compra, de punta a punta
   contraste.mjs         que no haya letra del color del fondo
   copia-bd.mjs          copia con fecha, con rotación
   fixtures/             el libro de ejemplo con el formato real

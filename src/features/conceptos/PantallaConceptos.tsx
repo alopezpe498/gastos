@@ -17,6 +17,7 @@ import {
 } from '../../lib/conceptos'
 import { FichaConcepto } from './FichaConcepto'
 import { SheetNuevoConcepto } from './SheetNuevoConcepto'
+import { Productos } from './Productos'
 import { PantallaPlantilla } from './Plantilla'
 
 type Props = {
@@ -65,7 +66,7 @@ export function PantallaConceptos({ onCambioGlobal, onIrAMes }: Props) {
    * clasifica y ordena. "Plantilla" es la hoja de la que sale cada mes, y
    * ensena solo los fijos activos con lo que van a costar.
    */
-  const [vista, setVista] = useState<'conceptos' | 'plantilla'>('conceptos')
+  const [vista, setVista] = useState<'conceptos' | 'plantilla' | 'productos'>('conceptos')
 
   const cargar = useCallback(async () => {
     setError('')
@@ -150,11 +151,30 @@ export function PantallaConceptos({ onCambioGlobal, onIrAMes }: Props) {
       pestanas={[
         { id: 'conceptos' as const, nombre: 'Conceptos' },
         { id: 'plantilla' as const, nombre: 'Plantilla' },
+        { id: 'productos' as const, nombre: 'Productos' },
       ]}
       activa={vista}
       onCambiar={setVista}
     />
   )
+
+  /*
+   * El catálogo de la compra vive aquí y no en Analítica porque es un catálogo,
+   * como los conceptos: se edita de vez en cuando y manda sobre lo que se ve en
+   * todas las demás pantallas.
+   */
+  if (vista === 'productos') {
+    return (
+      <>
+        <Cabecera
+          titulo="Conceptos"
+          subtitulo="Lo que se compra: categorías, productos y variantes"
+          debajo={pestanas}
+        />
+        <Productos />
+      </>
+    )
+  }
 
   if (vista === 'plantilla') {
     return (

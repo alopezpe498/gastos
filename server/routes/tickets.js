@@ -12,6 +12,7 @@ import { textoDePdf } from '../services/lecturaPdf.js'
 import { ErrorIa } from '../services/ia.js'
 import { fallo, ruta, enteroDe, textoDe, importeDe } from '../lib/http.js'
 import { CARPETA_TICKETS } from '../db/index.js'
+import { NOMBRES_MESES } from '../lib/fechas.js'
 
 export const rutasTickets = express.Router()
 
@@ -122,7 +123,13 @@ rutasTickets.post(
     }))
 
     return res.json({
-      mes: { id: mes.id, anio: mes.anio, mes: mes.mes, nombreMes: mes.nombreMes },
+      mes: {
+        id: mes.id,
+        anio: mes.anio,
+        mes: mes.mes,
+        // El nombre lo pone la ruta, como en /meses: la base guarda numeros.
+        nombreMes: NOMBRES_MESES[mes.mes - 1],
+      },
       cabecera: {
         tienda: lectura.tienda,
         direccion: lectura.direccion,
@@ -205,6 +212,25 @@ rutasTickets.post(
  * OJO CON EL ORDEN: /aceptar va antes que /:id, y las de abajo tambien. Con
  * /:id delante, Express haria casar /tickets/aceptar con id = "aceptar".
  */
+
+/**
+ * El archivo recien subido, todavia sin ticket que lo sostenga.
+ *
+ * Hace falta durante la revision: el papel se mira ANTES de guardar nada, que
+ * es justo cuando hay que comprobar una linea. Solo se sirve por su nombre de
+ * archivo, y se corta a `basename` para que nadie pueda pedir una ruta que se
+ * salga de la carpeta de tickets.
+ */
+rutasTickets.get(
+  '/archivo/:nombre',
+  ruta((req, res) => {
+    const nombre = path.basename(String(req.params.nombre ?? ''))
+    if (!nombre) return fallo(res, 404, 'Ese archivo no existe.')
+    const completa = path.join(CARPETA_TICKETS, nombre)
+    if (!fs.existsSync(completa)) return fallo(res, 404, 'Ese archivo ya no está.')
+    return res.sendFile(completa)
+  }),
+)
 
 rutasTickets.get(
   '/',

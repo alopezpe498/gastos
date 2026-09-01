@@ -1504,9 +1504,13 @@ textarea.campo {
   color: var(--tinta);
 }
 
+/*
+ * Sin recorte a proposito. `overflow: hidden` pone el min-width de un hijo de
+ * flex a cero, y dentro de una celda de tabla eso encogia el boton hasta dejar
+ * «F…» donde ponia «Fruta». Los nombres son cortos: mas vale que la columna sea
+ * lo ancha que haga falta.
+ */
 .opcion-nombre {
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -2266,5 +2270,238 @@ input.casilla {
 @media (max-width: 760px) {
   .pin-teclado {
     grid-template-columns: repeat(3, 70px);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * El detalle de la compra
+ * ------------------------------------------------------------------------- */
+
+/* Ranking: barras horizontales, escaladas contra la mayor y no contra el total. */
+.barras {
+  display: grid;
+  gap: 2px;
+}
+
+.barras-fila {
+  display: grid;
+  gap: 5px;
+  padding: 9px 8px;
+  border-radius: var(--r-tile);
+  text-align: left;
+  width: 100%;
+}
+
+.barras-fila.pulsable {
+  transition: background var(--rapido) var(--curva);
+}
+
+.barras-fila.pulsable:hover {
+  background: var(--fondo);
+}
+
+.barras-cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.barras-nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barras-cifra {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  flex: none;
+}
+
+.barras-linea {
+  display: block;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--linea);
+  overflow: hidden;
+}
+
+.barras-relleno {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  transition: width var(--rapido) var(--curva);
+}
+
+/* Migas: donde estas dentro de categoria -> producto -> variante. */
+.migas {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+  color: var(--tinta-2);
+  font-size: 13px;
+}
+
+.migas-paso {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.migas-actual {
+  font-weight: 700;
+  color: var(--tinta);
+}
+
+/* El visor del ticket: la foto o el PDF, con zoom. */
+.visor {
+  display: grid;
+  gap: 8px;
+}
+
+.visor-barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.visor-marco {
+  max-height: 460px;
+  overflow: auto;
+  border-radius: var(--r-tile);
+  background: var(--fondo);
+}
+
+.visor-imagen {
+  display: block;
+  min-width: 100%;
+}
+
+.visor-pdf {
+  width: 100%;
+  height: 460px;
+  border: 0;
+}
+
+/* El selector de variante y su lista. */
+.selector-variante {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: auto;
+  min-height: 38px;
+  padding: 6px 12px;
+  text-align: left;
+}
+
+/* Lo que propone la IA, escrito en gris: un clic lo confirma. */
+.propuesta-ia {
+  color: var(--extras);
+  font-weight: 600;
+}
+
+.opcion-crear {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  text-align: left;
+  color: var(--tinta);
+  font-size: 14px;
+}
+
+.opcion-crear:hover {
+  background: var(--acento-fondo);
+}
+
+/* El cuadre del ticket: lo primero que se mira al revisarlo. */
+.cuadre {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 0;
+  color: var(--ambar);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cuadre.bien {
+  color: var(--ok);
+}
+
+.resumen-categorias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.dato {
+  display: grid;
+  gap: 1px;
+}
+
+.dato-valor {
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* La revision de un ticket: las lineas a la izquierda, el papel a la derecha. */
+.ticket-dos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 12px;
+  align-items: start;
+}
+
+@media (max-width: 1000px) {
+  .ticket-dos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Una linea del ticket mientras se revisa. */
+.linea-ticket {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px 92px 30px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--linea);
+}
+
+.linea-ticket:first-of-type {
+  border-top: 0;
+}
+
+.linea-ticket.pendiente {
+  background: var(--ambar-suave);
+  border-radius: var(--r-tile);
+  border-top-color: transparent;
+  padding: 8px;
+  margin: 2px 0;
+}
+
+@media (max-width: 760px) {
+  .linea-ticket {
+    grid-template-columns: minmax(0, 1fr) 92px;
+    row-gap: 6px;
+  }
+
+  /* En el movil el selector ocupa la fila entera: es lo que se toca. */
+  .linea-ticket .buscador {
+    grid-column: 1 / -1;
   }
 }
