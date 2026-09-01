@@ -282,8 +282,17 @@ a {
   opacity: 0.85;
 }
 
+/*
+ * Fondo coral y letra BLANCA, dicha aqui a proposito.
+ *
+ * `.peligro` es tambien una utilidad de color de texto en alias.css, y como se
+ * carga despues le ganaba el color al `.btn-primary`: el boton de «Si, borrar»
+ * salia coral sobre coral y no se leia. Con las dos clases juntas, la
+ * especificidad es mayor y esto manda.
+ */
 .btn-primary.peligro {
   background: var(--comida);
+  color: #fff;
 }
 
 .btn-text {
@@ -894,11 +903,19 @@ a {
   letter-spacing: -0.02em;
 }
 
+/*
+ * El campo «visible» se pinta su propio fondo blanco, asi que tiene que
+ * pintarse tambien su tinta: heredarla solo funciona mientras este sobre una
+ * superficie clara, y dentro de la barra de seleccion —que es negra— salia
+ * texto blanco sobre blanco. El campo de linea no lleva color a proposito: ese
+ * si es transparente y tiene que parecerse a lo que hay debajo.
+ */
 .campo.visible {
   height: 38px;
   padding: 0 12px;
   border-color: var(--linea);
   background: var(--superficie);
+  color: var(--tinta);
   border-radius: var(--r-tile);
   font-weight: 600;
 }
@@ -996,6 +1013,8 @@ textarea.campo {
   max-height: 260px;
   overflow: auto;
   background: var(--superficie);
+  /* Su fondo es blanco vaya donde vaya, asi que su tinta tambien es suya. */
+  color: var(--tinta);
   border-radius: var(--r-tile);
   box-shadow: var(--sombra);
   padding: 5px;
@@ -1414,6 +1433,8 @@ textarea.campo {
   padding: 5px;
   border-radius: var(--r-tile);
   background: var(--superficie);
+  /* Igual que la lista del buscador: fondo propio, tinta propia. */
+  color: var(--tinta);
   box-shadow: var(--sombra);
 }
 
@@ -2014,7 +2035,9 @@ input.casilla {
   font-weight: 600;
 }
 
-.barra-seleccion .btn-text {
+/* Los que no tienen fondo propio: la barra es negra, la letra va en blanco. */
+.barra-seleccion .btn-text,
+.barra-seleccion .boton-texto {
   color: #fff;
 }
 

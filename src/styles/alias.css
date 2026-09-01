@@ -105,6 +105,9 @@
   padding: 0 14px;
   border-radius: var(--r-pill);
   background: var(--fondo);
+  /* Fondo claro propio: la tinta se dice aqui y no se hereda. Sin esto,
+     «Descartar» salia blanco sobre blanco dentro de la barra de seleccion. */
+  color: var(--tinta);
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;

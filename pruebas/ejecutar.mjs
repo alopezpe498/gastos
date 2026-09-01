@@ -21,8 +21,9 @@ const SUITES = [
   { nombre: 'Inteligencia artificial', archivo: 'ia.mjs' },
   { nombre: 'Analitica', archivo: 'analitica.mjs' },
   { nombre: 'Extracto del banco', archivo: 'extracto.mjs' },
-  // La última: es la más lenta y la única que necesita dist/ construido.
+  // Las dos últimas: las más lentas, y las únicas que necesitan dist/.
   { nombre: 'Interfaz', archivo: 'interfaz.mjs' },
+  { nombre: 'Contraste', archivo: 'contraste.mjs' },
 ]
 
 /** Huella de la base de datos de desarrollo, para probar que no se ha tocado. */

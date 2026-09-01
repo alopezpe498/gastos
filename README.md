@@ -78,7 +78,7 @@ sin protección y lo avisa por consola.
 | `npm run dev` | Backend y frontend, con recarga. |
 | `npm run build` | Comprueba tipos y construye el frontend en `dist/`. |
 | `npm start` | Solo el servidor. En producción sirve también `dist/`. |
-| `npm test` | Las tres suites de pruebas. |
+| `npm test` | Todas las suites de pruebas. |
 | `npm run copia-bd` | Copia de seguridad con fecha de la base de datos. |
 | `npm run iconos` | Regenera los iconos PNG de la PWA. |
 | `npm run typecheck` | Solo los tipos. |
@@ -714,7 +714,7 @@ límite de tamaño de subida en el panel si el `.xlsx` es grande.
 npm test
 ```
 
-Tres suites, cada una en su proceso:
+Cada suite, en su propio proceso:
 
 | Suite | Qué cubre |
 | --- | --- |
@@ -724,6 +724,8 @@ Tres suites, cada una en su proceso:
 | `pruebas/ia.mjs` | Todo lo que usa IA, contra un proveedor **simulado**: sugerencias, hoja libre, ticket, texto, factura en PDF y los fallos del proveedor. |
 | `pruebas/extracto.mjs` | El parser con un extracto de ejemplo calcado del real, el periodo que define el mes, la nómina al ingreso, los abonos en negativo, el orden de las reglas, conciliar y actualizar fijos, la propuesta de plantilla, las reglas por expresión regular, duplicados, dividir, la validación de cuentas y deshacer. |
 | `pruebas/analitica.mjs` | Las agregaciones, y sobre todo los huecos: que un mes sin datos valga `null` y que las medias no dividan entre meses que no existen. |
+| `pruebas/interfaz.mjs` | Pulsa la aplicación de verdad en un navegador: que cada botón esté conectado a algo y que la pantalla cambie después. Necesita `npm run build`. |
+| `pruebas/contraste.mjs` | Que no haya texto invisible. Mide cada texto de la pantalla contra el fondo que de verdad tiene detrás y falla por debajo de 2:1. Nació de dos botones que estaban, respondían y hacían lo suyo; solo no se leían. |
 
 **Nunca tocan la base de datos de desarrollo.** Cada suite levanta su propio
 servidor en el puerto 3098 con `GASTOS_DB=server/data/test-<suite>.db`, que crea
@@ -782,6 +784,7 @@ pruebas/
   ejecutar.mjs          lanza las suites y comprueba que gastos.db no cambia
   reparto.mjs           pagado, comprometido y libre, con el caso que falló
   interfaz.mjs          pulsa la aplicación de verdad en un navegador
+  contraste.mjs         que no haya letra del color del fondo
   copia-bd.mjs          copia con fecha, con rotación
   fixtures/             el libro de ejemplo con el formato real
 src/
