@@ -10,6 +10,7 @@ import { PantallaAjustes, type PestanaAjustes } from './features/ajustes/Pantall
 import { PantallaImportar, type PestanaImportar } from './features/importar/PantallaImportar'
 import { Kit } from './components/ui/Kit'
 import { Navegacion } from './components/ui/Navegacion'
+import { AvisoArranque } from './components/ui/AvisoArranque'
 import { Cargando } from './components/ui/Basicos'
 
 type Pestana = 'mes' | 'anual' | 'analitica' | 'conceptos' | 'importar' | 'ajustes'
@@ -107,6 +108,8 @@ export default function App() {
   return (
     <ProveedorAvisos>
       <div className="pagina">
+        {/* Si el servidor arrancó con algo a medias, se dice aquí arriba. */}
+        <AvisoArranque />
         <Navegacion secciones={PESTANAS} activa={pestana} onIr={setPestana} />
 
         {pestana === 'mes' ? (

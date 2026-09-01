@@ -585,6 +585,35 @@ esas apps. Aquí no se usa.
 
 ---
 
+## Estado del arranque
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| `GET` | `/estado` | Qué se ha quedado a medias al arrancar, y en qué estado están las migraciones. |
+
+```jsonc
+{
+  "avisos": [{ "nombre": "tickets-origen-manual", "error": "table tickets_nueva already exists" }],
+  "migraciones": [
+    {
+      "nombre": "tickets-origen-manual",
+      "descripcion": "tickets.origen admite «manual»",
+      "tocaDatos": true,
+      "aplicada": true,
+      "fecha": "2026-09-01T13:52:52.000Z",
+      "pendiente": false   // mirando el esquema, no la anotación
+    }
+  ]
+}
+```
+
+La aplicación **siempre arranca**, aunque una migración falle: lo que se haya
+quedado sin hacer sale aquí y la pantalla lo pinta como una banda de aviso.
+`pendiente` se calcula mirando el esquema real, así que una base restaurada de
+una copia vieja vuelve a marcarse como pendiente aunque figure aplicada.
+
+---
+
 ## Visión anual
 
 | Método | Ruta | Notas |

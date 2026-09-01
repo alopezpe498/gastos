@@ -4,7 +4,12 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-import { RUTA_BD } from './db/index.js'
+import {
+  RUTA_BD,
+  avisosDeArranque,
+  resultadoMigraciones,
+  sinTumbarElArranque,
+} from './db/index.js'
 import { sembrar } from './db/semilla.js'
 import { sembrarReglas } from './db/semillaReglas.js'
 import { sembrarFormatos } from './db/formatosBanco.js'
@@ -14,6 +19,7 @@ import { fallo } from './lib/http.js'
 import { ErrorLectura } from './services/lecturaExcel.js'
 import { ErrorIa } from './services/ia.js'
 import { rutasAuth } from './routes/auth.js'
+import { rutasEstado } from './routes/estado.js'
 import { rutasConceptos } from './routes/conceptos.js'
 import { rutasPlantilla } from './routes/plantilla.js'
 import { rutasReglas } from './routes/reglas.js'
@@ -33,14 +39,38 @@ const RAIZ = path.resolve(aqui, '..')
 const DIST = path.join(RAIZ, 'dist')
 const PUERTO = Number(process.env.PORT) || 3003
 
+/*
+ * Las semillas, dentro de la red de seguridad.
+ *
+ * Sembrar es escribir en la base, y escribir puede fallar por mil motivos que
+ * no son culpa de quien esta usando la aplicacion. Que un catalogo no se pueda
+ * crear no puede dejar la aplicacion entera fuera de juego: se anota, se dice y
+ * se sigue.
+ */
 // Catalogo inicial la primera vez que arranca. Si ya hay conceptos, no toca nada.
-const sembrado = sembrar()
+const sembrado = sinTumbarElArranque('catalogo inicial', () => sembrar()) ?? 0
 // Las reglas del extracto se cargan aparte: el catalogo puede llevar meses
 // creado y aun asi no tener reglas, porque son de la fase 3.
-const reglasSembradas = sembrarReglas()
-sembrarFormatos()
+const reglasSembradas = sinTumbarElArranque('reglas del extracto', () => sembrarReglas()) ?? 0
+sinTumbarElArranque('formatos de banco', () => sembrarFormatos())
 // El catalogo de la compra: catorce categorias y el cajon de «Otros».
-sembrarCategorias()
+sinTumbarElArranque('catalogo de la compra', () => sembrarCategorias())
+
+/*
+ * Lo que haya pasado con el esquema se dice AQUI, al arrancar, con nombre y
+ * error. Antes esto tumbaba el proceso; ahora es una linea en el log y una
+ * banda en la pantalla, y la aplicacion funciona mientras tanto.
+ */
+for (const nombre of resultadoMigraciones.aplicadas) {
+  console.log(`[gastos] migracion aplicada: ${nombre}`)
+}
+if (avisosDeArranque.length > 0) {
+  console.error(`[gastos] ARRANCA CON AVISOS (${avisosDeArranque.length}):`)
+  for (const aviso of avisosDeArranque) {
+    console.error(`         · ${aviso.nombre}: ${aviso.error}`)
+  }
+  console.error('         La aplicacion funciona; revisa esto cuando puedas.')
+}
 
 const app = express()
 // Detras de nginx: req.ip debe ser la IP real para que el limitador de intentos
@@ -55,6 +85,7 @@ app.use('/api/auth', rutasAuth)
 
 // Todo lo que va por debajo exige el PIN (si hay APP_PIN definida).
 app.use('/api', exigirAuth)
+app.use('/api/estado', rutasEstado)
 app.use('/api/conceptos', rutasConceptos)
 app.use('/api/plantilla', rutasPlantilla)
 app.use('/api/reglas', rutasReglas)

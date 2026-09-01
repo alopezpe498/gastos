@@ -73,10 +73,16 @@ async function esperarRespuesta(base, intentos = 60) {
  * @param {string} nombre   sufijo del archivo: test-<nombre>.db
  * @param {object} entorno  variables extra
  */
-export async function levantar(nombre, entorno = {}) {
+/**
+ * Levanta el servidor con su propia base.
+ *
+ * `conservarBd` sirve para arrancar sobre una base que la prueba ha preparado a
+ * mano —por ejemplo, con el esquema antiguo— en vez de sobre una en blanco.
+ */
+export async function levantar(nombre, entorno = {}, { conservarBd = false } = {}) {
   const rutaBd = protegerRuta(path.join(CARPETA_DATOS, `test-${nombre}.db`))
   // Restos de una ejecucion anterior que se cortara a medias.
-  await borrarBd(rutaBd)
+  if (!conservarBd) await borrarBd(rutaBd)
 
   const proceso = spawn(process.execPath, [path.join(RAIZ, 'server', 'index.js')], {
     cwd: RAIZ,
@@ -106,10 +112,11 @@ export async function levantar(nombre, entorno = {}) {
     rutaBd,
     token,
     salida: () => salida.join(''),
-    async cerrar() {
+    /** `conservarBd` deja el archivo donde esta: la prueba lo sigue usando. */
+    async cerrar({ conservarBd: dejarla = false } = {}) {
       proceso.kill()
       await new Promise((r) => proceso.once('exit', r))
-      await borrarBd(rutaBd)
+      if (!dejarla) await borrarBd(rutaBd)
     },
   }
 }

@@ -2527,3 +2527,48 @@ input.casilla {
     grid-column: 1 / -1;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * El aviso de arranque
+ * ------------------------------------------------------------------------- */
+
+/*
+ * La banda de «he arrancado, pero algo se quedo a medias». Ambar y no coral: no
+ * es un error que impida usar la aplicacion, es un recado.
+ */
+.aviso-arranque {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-tile);
+  background: var(--ambar-suave);
+  color: var(--ambar);
+}
+
+.aviso-arranque-cuerpo {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.aviso-arranque-titulo {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.aviso-arranque .d {
+  color: var(--ambar);
+}
+
+.aviso-arranque code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.aviso-arranque .btn-text {
+  color: var(--ambar);
+}

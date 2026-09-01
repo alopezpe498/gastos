@@ -14,6 +14,8 @@ import { BD_DESARROLLO } from './entorno.mjs'
 const aqui = path.dirname(fileURLToPath(import.meta.url))
 
 const SUITES = [
+  // La primera: si el arranque no aguanta, lo demas da igual.
+  { nombre: 'Migraciones', archivo: 'migraciones.mjs' },
   { nombre: 'Cálculos', archivo: 'calculos.mjs' },
   { nombre: 'Pagado, comprometido y libre', archivo: 'reparto.mjs' },
   { nombre: 'API', archivo: 'api.mjs' },

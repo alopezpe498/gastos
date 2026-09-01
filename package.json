@@ -16,6 +16,7 @@
     "start": "node server/index.js",
     "typecheck": "tsc -b --noEmit",
     "test": "node pruebas/ejecutar.mjs",
+    "migrar": "node scripts/migrar.mjs",
     "copia-bd": "node pruebas/copia-bd.mjs",
     "iconos": "node scripts/generar-iconos.mjs"
   },

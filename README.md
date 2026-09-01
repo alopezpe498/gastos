@@ -79,6 +79,8 @@ sin protección y lo avisa por consola.
 | `npm run build` | Comprueba tipos y construye el frontend en `dist/`. |
 | `npm start` | Solo el servidor. En producción sirve también `dist/`. |
 | `npm test` | Todas las suites de pruebas. |
+| `npm run migrar` | Aplica las migraciones de esquema pendientes. |
+| `npm run migrar -- --estado` | Dice cuáles hay, cuáles están hechas y desde cuándo. |
 | `npm run copia-bd` | Copia de seguridad con fecha de la base de datos. |
 | `npm run iconos` | Regenera los iconos PNG de la PWA. |
 | `npm run typecheck` | Solo los tipos. |
@@ -641,6 +643,49 @@ Los archivos originales viven en `server/data/tickets/`, fuera del repositorio.
 
 ---
 
+## Migraciones de esquema
+
+**Una migración nunca impide arrancar.** Esta regla está escrita con sangre: una
+comprobación de esquema lanzaba un error al importar el módulo de la base, el
+proceso moría antes de escuchar en el puerto y nginx contestaba **Bad Gateway**.
+La aplicación entera fuera de juego por una tabla, y sin más salida que entrar
+por SSH a borrarla a mano.
+
+Ahora el arranque funciona así:
+
+- Cada migración vive en `server/db/migraciones.js` con un **nombre que no
+  cambia**, corre en su **transacción** y queda anotada en la tabla
+  `migraciones` con su fecha.
+- Son **idempotentes**, y deciden si hay algo que hacer mirando el **esquema de
+  verdad**, no la anotación: una base restaurada de una copia vieja se arregla
+  sola aunque figure como hecha.
+- Antes de una que pueda tocar datos, **copia de la base** en
+  `server/data/backups/` con la fecha en el nombre. Se hace con `VACUUM INTO`,
+  no copiando el archivo: con WAL, copiar el `.db` a pelo puede dejarse fuera lo
+  último escrito.
+- Si una **falla**, se anota, se dice en el log con su nombre y su error, y **se
+  sigue con las demás**. No se da por hecha: se reintenta en el siguiente
+  arranque.
+- Lo que **no encaje** en el esquema nuevo no bloquea: se guarda tal cual, con
+  sus líneas, en una tabla `_legacy`. Perder el arranque por una fila rara es
+  mucho peor que quedarse esa fila aparte.
+- Las semillas y los ajustes sueltos de esquema van dentro de la misma red: si
+  algo falla, se anota y el servidor levanta igual.
+
+Cuando algo se queda a medias, la aplicación **arranca en modo aviso**: una
+banda ámbar arriba dice qué migración ha fallado y con qué error, y el log lo
+repite al arrancar. Funciona todo lo demás mientras tanto.
+
+```bash
+npm run migrar             # aplica lo que falte
+npm run migrar -- --estado # qué hay, qué está hecho y desde cuándo
+```
+
+Ninguno de los dos devuelve error si una migración falla: esto no debe tumbar un
+despliegue.
+
+---
+
 ## Copias de seguridad
 
 **Desde la aplicación**, en Ajustes: JSON (la copia completa) y Excel (una hoja
@@ -820,6 +865,7 @@ Cada suite, en su propio proceso:
 | `pruebas/extracto.mjs` | El parser con un extracto de ejemplo calcado del real, el periodo que define el mes, la nómina al ingreso, los abonos en negativo, el orden de las reglas, conciliar y actualizar fijos, la propuesta de plantilla, las reglas por expresión regular, duplicados, dividir, la validación de cuentas y deshacer. |
 | `pruebas/analitica.mjs` | Las agregaciones, y sobre todo los huecos: que un mes sin datos valga `null` y que las medias no dividan entre meses que no existen. |
 | `pruebas/interfaz.mjs` | Pulsa la aplicación de verdad en un navegador: que cada botón esté conectado a algo y que la pantalla cambie después. Necesita `npm run build`. |
+| `pruebas/migraciones.mjs` | Que una migración **nunca** impida arrancar: base con esquema antiguo y datos → arranca, migra y conserva; migración que revienta → arranca con aviso; y el servidor levantado de verdad encima de una base vieja. |
 | `pruebas/tickets.mjs` | El detalle de la compra, contra la IA simulada: leer un ticket en catalán con líneas por peso, el cuadre, que la IA proponga sin decidir, la memoria, la vinculación con el apunte del banco, deshacer, fusionar y las agregaciones. |
 | `pruebas/contraste.mjs` | Que no haya texto invisible. Mide cada texto de la pantalla contra el fondo que de verdad tiene detrás y falla por debajo de 2:1. Nació de dos botones que estaban, respondían y hacían lo suyo; solo no se leían. |
 

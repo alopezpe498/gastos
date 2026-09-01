@@ -2,6 +2,7 @@ import Database from 'better-sqlite3'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { aplicarMigraciones } from './migraciones.js'
 
 const aqui = path.dirname(fileURLToPath(import.meta.url))
 export const CARPETA_DATOS = path.resolve(aqui, '..', 'data')
@@ -348,6 +349,29 @@ CREATE INDEX IF NOT EXISTS idx_lineas_ticket ON lineas_ticket(ticket_id);
 CREATE INDEX IF NOT EXISTS idx_lineas_variante ON lineas_ticket(variante_id);
 `
 
+/**
+ * Lo que no ha ido bien al preparar la base.
+ *
+ * NUNCA se lanza desde aqui. El servidor arranca igual, lo escribe en el log
+ * y la pantalla ensena un aviso: una aplicacion caida no se puede arreglar
+ * desde la aplicacion, y quedarse sin Bad Gateway por una tabla es peor que
+ * cualquier tabla mal.
+ */
+export const avisosDeArranque = []
+
+/** Corre algo del arranque sin que un fallo mate el proceso. */
+export function sinTumbarElArranque(nombre, hacer) {
+  try {
+    return hacer()
+  } catch (causa) {
+    avisosDeArranque.push({ nombre, error: causa.message })
+    console.error(`[gastos] FALLO AL ARRANCAR (${nombre}): ${causa.message}`)
+    return null
+  }
+}
+
+const avisos = avisosDeArranque
+
 /*
  * La tabla de reglas de la fase 1 era un hueco reservado (patron, concepto_id,
  * activa, veces_aplicada) que nunca llego a usarse. Si la base de datos la
@@ -361,41 +385,24 @@ CREATE INDEX IF NOT EXISTS idx_lineas_variante ON lineas_ticket(variante_id);
 const reglasViejas = bd.prepare('PRAGMA table_info(reglas_clasificacion)').all()
 if (reglasViejas.length > 0 && !reglasViejas.some((c) => c.name === 'texto')) {
   const cuantas = bd.prepare('SELECT COUNT(*) AS n FROM reglas_clasificacion').get().n
-  if (cuantas > 0) {
-    throw new Error(
-      'reglas_clasificacion tiene el esquema antiguo y datos dentro. ' +
-        'Haz una copia de la base antes de seguir y migrala a mano.',
-    )
-  }
-  bd.exec('DROP TABLE reglas_clasificacion')
-}
-
-/*
- * La tabla de tickets nacio sin 'manual' entre los origenes, y un ticket se
- * puede escribir a mano: se pierde el papel y uno se acuerda de lo que compro.
- *
- * El CHECK de SQLite no se puede alterar, asi que la tabla se tira y el esquema
- * de abajo la crea bien. Solo si esta VACIA: con datos dentro, se para y se
- * dice, que perder tickets por una comprobacion seria absurdo.
- */
-const ticketsViejos = bd.prepare('PRAGMA table_info(tickets)').all()
-if (ticketsViejos.length > 0) {
-  const definicion = bd
-    .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'tickets'")
-    .get()
-  if (definicion && !definicion.sql.includes("'manual'")) {
-    const cuantos = bd.prepare('SELECT COUNT(*) AS n FROM tickets').get().n
-    if (cuantos > 0) {
-      throw new Error(
-        'La tabla tickets tiene el esquema antiguo y datos dentro. ' +
-          'Haz una copia de la base antes de seguir y migrala a mano.',
-      )
-    }
-    bd.exec('DROP TABLE IF EXISTS lineas_ticket; DROP TABLE tickets;')
+  if (cuantas === 0) {
+    bd.exec('DROP TABLE reglas_clasificacion')
+  } else {
+    /*
+     * Con datos dentro se deja como esta y se apunta el aviso. Antes esto
+     * lanzaba, el proceso moria y la aplicacion entera se quedaba fuera de
+     * juego por una tabla; ahora arranca y lo dice.
+     */
+    avisos.push({
+      nombre: 'reglas_clasificacion-esquema-antiguo',
+      error:
+        'La tabla reglas_clasificacion tiene el esquema antiguo y datos dentro: ' +
+        'las reglas del extracto no funcionaran hasta migrarla a mano.',
+    })
   }
 }
 
-bd.exec(ESQUEMA)
+sinTumbarElArranque('crear el esquema', () => bd.exec(ESQUEMA))
 
 /**
  * Migraciones: columnas que se anaden sobre bases de datos que ya existian.
@@ -409,113 +416,135 @@ export function anadirColumnaSiFalta(tabla, columna, definicion) {
 }
 
 /*
- * De donde sale cada movimiento del extracto. Se guarda en el propio movimiento
- * para poder deshacer una importacion entera, y para saber cual era la
- * descripcion del banco cuando en pantalla se ve otra mas corta.
- */
-anadirColumnaSiFalta('movimientos', 'importacion_id', 'INTEGER')
-anadirColumnaSiFalta('movimientos', 'descripcion_original', 'TEXT')
-anadirColumnaSiFalta(
-  'reglas_clasificacion',
-  'coincidencia',
-  "TEXT NOT NULL DEFAULT 'empieza'",
-)
-anadirColumnaSiFalta('formatos_banco', 'texto_nomina', "TEXT NOT NULL DEFAULT 'NOMINA'")
-
-/*
- * El CHECK de `coincidencia` no admitia 'regex' en las bases creadas antes.
- * SQLite no sabe cambiar un CHECK con ALTER, asi que hay que rehacer la tabla:
- * se crea al lado, se copian las reglas (que ya son datos de verdad, con las
- * que el usuario ha tocado), y se cambia el nombre.
- */
-const defRegla = bd
-  .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'reglas_clasificacion'")
-  .get()
-if (defRegla && !defRegla.sql.includes('regex')) {
-  bd.exec(`
-    CREATE TABLE reglas_nuevas (
-      id                INTEGER PRIMARY KEY AUTOINCREMENT,
-      texto             TEXT NOT NULL,
-      texto_normalizado TEXT NOT NULL,
-      concepto_id       INTEGER REFERENCES conceptos(id) ON DELETE CASCADE,
-      tipo              TEXT NOT NULL CHECK (tipo IN ('fijo','sobre','variable','manual')),
-      coincidencia      TEXT NOT NULL DEFAULT 'empieza'
-                        CHECK (coincidencia IN ('empieza','exacta','regex')),
-      prioridad         INTEGER NOT NULL DEFAULT 0,
-      estado            TEXT NOT NULL DEFAULT 'confirmada'
-                        CHECK (estado IN ('confirmada','propuesta')),
-      activa            INTEGER NOT NULL DEFAULT 1,
-      veces_aplicada    INTEGER NOT NULL DEFAULT 0,
-      ultima_aplicacion TEXT,
-      origen            TEXT NOT NULL DEFAULT 'usuario'
-                        CHECK (origen IN ('seed','usuario','aprendida')),
-      fecha_creacion    TEXT NOT NULL
-    );
-    INSERT INTO reglas_nuevas
-      (id, texto, texto_normalizado, concepto_id, tipo, coincidencia, prioridad,
-       estado, activa, veces_aplicada, ultima_aplicacion, origen, fecha_creacion)
-      SELECT id, texto, texto_normalizado, concepto_id, tipo, coincidencia, prioridad,
-             estado, activa, veces_aplicada, ultima_aplicacion, origen, fecha_creacion
-      FROM reglas_clasificacion;
-    DROP TABLE reglas_clasificacion;
-    ALTER TABLE reglas_nuevas RENAME TO reglas_clasificacion;
-    CREATE INDEX IF NOT EXISTS idx_reglas_orden ON reglas_clasificacion(prioridad);
-  `)
-}
-/*
- * El color de un concepto. Nulo quiere decir «el que le toque»: la aplicacion
- * reparte una paleta por id, y esto solo guarda las veces que se cambia a mano.
- */
-anadirColumnaSiFalta('conceptos', 'color', 'TEXT')
-
-/*
- * El icono de un concepto. Nulo quiere decir «el que le toque»: la aplicacion
- * lo adivina por el nombre, y esto solo guarda las veces que se cambia a mano.
- */
-anadirColumnaSiFalta('conceptos', 'icono', 'TEXT')
-
-/*
- * El desglose de un movimiento, en JSON: [{ nombre, importe }].
+ * Ajustes de esquema sobre bases que ya existian.
  *
- * Un fijo puede ser en realidad muchas cosas —Suscripciones son Netflix, Spotify
- * y seis mas— y el extracto ya las trae separadas. Antes se pegaban en la
- * descripcion como un texto y el importe era solo la suma: se veia el total pero
- * no se podia mirar dentro ni anadir una a mano.
- *
- * El total sigue en `importe`, asi que ningun calculo cambia por esto.
+ * Van todos dentro de la red: antes estaban sueltos a nivel de modulo y
+ * cualquiera de ellos podia matar el proceso al importar este archivo, que es
+ * exactamente lo que dejo la aplicacion en Bad Gateway. Si uno falla ahora, se
+ * anota, se dice en el log y el servidor arranca igual.
  */
-anadirColumnaSiFalta('movimientos', 'detalle', 'TEXT')
+sinTumbarElArranque('ajustes de esquema', () => {
+  /*
+   * De donde sale cada movimiento del extracto. Se guarda en el propio movimiento
+   * para poder deshacer una importacion entera, y para saber cual era la
+   * descripcion del banco cuando en pantalla se ve otra mas corta.
+   */
+  anadirColumnaSiFalta('movimientos', 'importacion_id', 'INTEGER')
+  anadirColumnaSiFalta('movimientos', 'descripcion_original', 'TEXT')
+  anadirColumnaSiFalta(
+    'reglas_clasificacion',
+    'coincidencia',
+    "TEXT NOT NULL DEFAULT 'empieza'",
+  )
+  anadirColumnaSiFalta('formatos_banco', 'texto_nomina', "TEXT NOT NULL DEFAULT 'NOMINA'")
 
-/*
- * «Netflix etc» pasa a llamarse Suscripciones.
- *
- * El nombre venia del Excel, de cuando el recibo era Netflix y poco mas; ahora
- * son seis cosas y ninguna se llama Netflix. Se cambia solo si el concepto
- * existe con ese nombre exacto y todavia no hay un Suscripciones: renombrar es
- * seguro —el id no se mueve, asi que los movimientos, las reglas y el historico
- * siguen colgando de el— pero pisar un concepto que ya existiera no lo seria.
- */
-const viejoNetflix = bd
-  .prepare("SELECT id FROM conceptos WHERE nombre = 'Netflix etc'")
-  .get()
-if (viejoNetflix) {
-  const yaHay = bd.prepare("SELECT id FROM conceptos WHERE nombre = 'Suscripciones'").get()
-  if (!yaHay) {
-    bd.prepare("UPDATE conceptos SET nombre = 'Suscripciones' WHERE id = ?").run(viejoNetflix.id)
-    console.log('[gastos] «Netflix etc» ahora se llama Suscripciones')
+  /*
+   * El CHECK de `coincidencia` no admitia 'regex' en las bases creadas antes.
+   * SQLite no sabe cambiar un CHECK con ALTER, asi que hay que rehacer la tabla:
+   * se crea al lado, se copian las reglas (que ya son datos de verdad, con las
+   * que el usuario ha tocado), y se cambia el nombre.
+   */
+  const defRegla = bd
+    .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'reglas_clasificacion'")
+    .get()
+  if (defRegla && !defRegla.sql.includes('regex')) {
+    bd.exec(`
+      CREATE TABLE reglas_nuevas (
+        id                INTEGER PRIMARY KEY AUTOINCREMENT,
+        texto             TEXT NOT NULL,
+        texto_normalizado TEXT NOT NULL,
+        concepto_id       INTEGER REFERENCES conceptos(id) ON DELETE CASCADE,
+        tipo              TEXT NOT NULL CHECK (tipo IN ('fijo','sobre','variable','manual')),
+        coincidencia      TEXT NOT NULL DEFAULT 'empieza'
+                          CHECK (coincidencia IN ('empieza','exacta','regex')),
+        prioridad         INTEGER NOT NULL DEFAULT 0,
+        estado            TEXT NOT NULL DEFAULT 'confirmada'
+                          CHECK (estado IN ('confirmada','propuesta')),
+        activa            INTEGER NOT NULL DEFAULT 1,
+        veces_aplicada    INTEGER NOT NULL DEFAULT 0,
+        ultima_aplicacion TEXT,
+        origen            TEXT NOT NULL DEFAULT 'usuario'
+                          CHECK (origen IN ('seed','usuario','aprendida')),
+        fecha_creacion    TEXT NOT NULL
+      );
+      INSERT INTO reglas_nuevas
+        (id, texto, texto_normalizado, concepto_id, tipo, coincidencia, prioridad,
+         estado, activa, veces_aplicada, ultima_aplicacion, origen, fecha_creacion)
+        SELECT id, texto, texto_normalizado, concepto_id, tipo, coincidencia, prioridad,
+               estado, activa, veces_aplicada, ultima_aplicacion, origen, fecha_creacion
+        FROM reglas_clasificacion;
+      DROP TABLE reglas_clasificacion;
+      ALTER TABLE reglas_nuevas RENAME TO reglas_clasificacion;
+      CREATE INDEX IF NOT EXISTS idx_reglas_orden ON reglas_clasificacion(prioridad);
+    `)
   }
-}
+  /*
+   * El color de un concepto. Nulo quiere decir «el que le toque»: la aplicacion
+   * reparte una paleta por id, y esto solo guarda las veces que se cambia a mano.
+   */
+  anadirColumnaSiFalta('conceptos', 'color', 'TEXT')
+
+  /*
+   * El icono de un concepto. Nulo quiere decir «el que le toque»: la aplicacion
+   * lo adivina por el nombre, y esto solo guarda las veces que se cambia a mano.
+   */
+  anadirColumnaSiFalta('conceptos', 'icono', 'TEXT')
+
+  /*
+   * El desglose de un movimiento, en JSON: [{ nombre, importe }].
+   *
+   * Un fijo puede ser en realidad muchas cosas —Suscripciones son Netflix, Spotify
+   * y seis mas— y el extracto ya las trae separadas. Antes se pegaban en la
+   * descripcion como un texto y el importe era solo la suma: se veia el total pero
+   * no se podia mirar dentro ni anadir una a mano.
+   *
+   * El total sigue en `importe`, asi que ningun calculo cambia por esto.
+   */
+  anadirColumnaSiFalta('movimientos', 'detalle', 'TEXT')
+
+  /*
+   * «Netflix etc» pasa a llamarse Suscripciones.
+   *
+   * El nombre venia del Excel, de cuando el recibo era Netflix y poco mas; ahora
+   * son seis cosas y ninguna se llama Netflix. Se cambia solo si el concepto
+   * existe con ese nombre exacto y todavia no hay un Suscripciones: renombrar es
+   * seguro —el id no se mueve, asi que los movimientos, las reglas y el historico
+   * siguen colgando de el— pero pisar un concepto que ya existiera no lo seria.
+   */
+  const viejoNetflix = bd
+    .prepare("SELECT id FROM conceptos WHERE nombre = 'Netflix etc'")
+    .get()
+  if (viejoNetflix) {
+    const yaHay = bd.prepare("SELECT id FROM conceptos WHERE nombre = 'Suscripciones'").get()
+    if (!yaHay) {
+      bd.prepare("UPDATE conceptos SET nombre = 'Suscripciones' WHERE id = ?").run(viejoNetflix.id)
+      console.log('[gastos] «Netflix etc» ahora se llama Suscripciones')
+    }
+  }
+
+  /*
+   * De donde sale el importe de un fijo al generar un mes.
+   *
+   * Nulo o 'importe' es lo de siempre: el numero escrito en la plantilla. Los
+   * otros dos —'mes-anterior' y 'ano-anterior'— dicen que ese numero solo es el
+   * respaldo, y que lo que manda es lo que costo de verdad en el mes de
+   * referencia. La luz no vale lo mismo en enero que en julio, y copiar el julio
+   * pasado acierta mas que un importe fijo puesto hace dos anos.
+   */
+  anadirColumnaSiFalta('plantilla_fijos', 'criterio', 'TEXT')
+
+  anadirColumnaSiFalta('meses', 'fecha_inicio', 'TEXT')
+  anadirColumnaSiFalta('meses', 'fecha_fin', 'TEXT')
+})
 
 /*
- * De donde sale el importe de un fijo al generar un mes.
- *
- * Nulo o 'importe' es lo de siempre: el numero escrito en la plantilla. Los
- * otros dos —'mes-anterior' y 'ano-anterior'— dicen que ese numero solo es el
- * respaldo, y que lo que manda es lo que costo de verdad en el mes de
- * referencia. La luz no vale lo mismo en enero que en julio, y copiar el julio
- * pasado acierta mas que un importe fijo puesto hace dos anos.
+ * Y las migraciones con nombre, que se anotan en la tabla `migraciones` y se
+ * pueden mirar con `npm run migrar -- --estado`. Tampoco lanzan: devuelven lo
+ * que ha pasado, y lo que haya fallado se ensena como aviso en la pantalla.
  */
-anadirColumnaSiFalta('plantilla_fijos', 'criterio', 'TEXT')
-
-anadirColumnaSiFalta('meses', 'fecha_inicio', 'TEXT')
-anadirColumnaSiFalta('meses', 'fecha_fin', 'TEXT')
+export const resultadoMigraciones = aplicarMigraciones(bd, {
+  rutaBd: RUTA_BD,
+  carpetaDatos: CARPETA_DATOS,
+  registrar: (linea) => console.log(linea),
+})
+for (const fallo of resultadoMigraciones.fallidas) avisosDeArranque.push(fallo)
