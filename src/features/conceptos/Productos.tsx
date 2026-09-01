@@ -9,7 +9,6 @@ import {
   Chip,
   ErrorLinea,
   Esqueleto,
-  Vacio,
 } from '../../components/ui/Basicos'
 import { CampoTexto, SelectorOpcion } from '../../components/ui/Campos'
 import { ConfirmacionDialogo, Dialogo } from '../../components/ui/Dialogo'
@@ -66,6 +65,26 @@ export function Productos() {
     }
   }
 
+  const crearProducto = async (nombre: string, categoriaId: number) => {
+    try {
+      await api('/productos', { metodo: 'POST', cuerpo: { nombre, categoriaId } })
+      await cargar()
+      avisar(`«${nombre}» añadido.`)
+    } catch (causa) {
+      avisarError(mensajeDeError(causa))
+    }
+  }
+
+  const crearVariante = async (nombre: string, productoId: number) => {
+    try {
+      await api('/productos/variantes', { metodo: 'POST', cuerpo: { nombre, productoId } })
+      await cargar()
+      avisar(`«${nombre}» añadida.`)
+    } catch (causa) {
+      avisarError(mensajeDeError(causa))
+    }
+  }
+
   const cambiarVariante = async (id: number, cambios: Record<string, unknown>) => {
     try {
       await api(`/productos/variantes/${id}`, { metodo: 'PATCH', cuerpo: cambios })
@@ -78,9 +97,18 @@ export function Productos() {
   if (error) return <ErrorLinea mensaje={error} onReintentar={() => void cargar()} />
   if (!productos) return <Esqueleto />
 
-  const porCategoria = categorias
-    .map((c) => ({ categoria: c, suyos: productos.filter((p) => p.categoriaId === c.id) }))
-    .filter((g) => g.suyos.length > 0)
+  /*
+   * TODAS las categorías, tengan productos o no.
+   *
+   * Antes se escondían las vacías, y eso hacía que crear una categoría
+   * pareciera no funcionar: se creaba, salía en los chips de arriba con un
+   * cero al lado, y abajo no aparecía por ningún sitio. Una categoría vacía es
+   * justo la que necesita que se le pueda meter algo.
+   */
+  const porCategoria = categorias.map((c) => ({
+    categoria: c,
+    suyos: productos.filter((p) => p.categoriaId === c.id),
+  }))
 
   const opcionesCategoria = categorias.map((c) => ({ id: String(c.id), nombre: c.nombre }))
 
@@ -130,16 +158,27 @@ export function Productos() {
         </div>
       </Card>
 
-      {porCategoria.length === 0 ? (
-        <Vacio frase="El catálogo se llena solo al guardar tickets: cada cosa que se compra entra aquí." />
-      ) : null}
-
       {porCategoria.map(({ categoria, suyos }) => (
         <Card
           key={categoria.id}
           titulo={categoria.nombre}
-          derecha={<span className="muted">{cuantos(suyos.length, 'producto')}</span>}
+          derecha={
+            <span className="fila-campos">
+              <span className="muted">{cuantos(suyos.length, 'producto')}</span>
+              <AltaEnLinea
+                textoBoton="Añadir producto"
+                etiqueta={`Producto nuevo en ${categoria.nombre}`}
+                marcador="Pollo, Leche, Lejía…"
+                onCrear={(nombre) => void crearProducto(nombre, categoria.id)}
+              />
+            </span>
+          }
         >
+          {suyos.length === 0 ? (
+            <p className="muted-3">
+              Nada todavía. Se llena solo al guardar tickets, o se añade aquí a mano.
+            </p>
+          ) : (
           <Tabla
             etiqueta={`Productos de ${categoria.nombre}`}
             columnas={[
@@ -158,10 +197,12 @@ export function Productos() {
                 onAbrir={() => setAbierto((a) => (a === producto.id ? null : producto.id))}
                 onCambiar={(cambios) => void cambiarProducto(producto.id, cambios)}
                 onCambiarVariante={cambiarVariante}
+                onCrearVariante={crearVariante}
                 onFusionar={() => setFusionando(producto)}
               />
             ))}
           </Tabla>
+          )}
         </Card>
       ))}
 
@@ -192,6 +233,7 @@ function FilaProducto({
   onAbrir,
   onCambiar,
   onCambiarVariante,
+  onCrearVariante,
   onFusionar,
 }: {
   producto: Producto
@@ -200,6 +242,7 @@ function FilaProducto({
   onAbrir: () => void
   onCambiar: (cambios: Record<string, unknown>) => void
   onCambiarVariante: (id: number, cambios: Record<string, unknown>) => Promise<void>
+  onCrearVariante: (nombre: string, productoId: number) => Promise<void>
   onFusionar: () => void
 }) {
   const variantes = producto.variantes ?? []
@@ -209,16 +252,18 @@ function FilaProducto({
       <FilaTabla>
         <Celda>
           <span className="fila-campos" style={{ gap: 6, flexWrap: 'nowrap', maxWidth: 320 }}>
+            {/*
+              El chevron sale siempre, también sin variantes: si no, un producto
+              recién creado no se puede abrir para meterle la primera.
+            */}
             <span className="celda-abrir">
-              {variantes.length > 0 ? (
-                <BotonIcono
-                  icono={abierto ? 'abajo' : 'chevron'}
-                  etiqueta={`${abierto ? 'Cerrar' : 'Ver'} las variantes de ${producto.nombre}`}
-                  size={14}
-                  expandido={abierto}
-                  onClick={onAbrir}
-                />
-              ) : null}
+              <BotonIcono
+                icono={abierto ? 'abajo' : 'chevron'}
+                etiqueta={`${abierto ? 'Cerrar' : 'Ver'} las variantes de ${producto.nombre}`}
+                size={14}
+                expandido={abierto}
+                onClick={onAbrir}
+              />
             </span>
             <CampoTexto
               valor={producto.nombre}
@@ -272,7 +317,73 @@ function FilaProducto({
             </FilaTabla>
           ))
         : null}
+
+      {abierto ? (
+        <FilaTabla>
+          <Celda colSpan={4}>
+            <span className="fila-campos" style={{ gap: 6, flexWrap: 'nowrap' }}>
+              <span className="celda-abrir" />
+              <AltaEnLinea
+                textoBoton="Añadir variante"
+                etiqueta={`Variante nueva de ${producto.nombre}`}
+                marcador="Pechuga de pollo, Leche entera…"
+                onCrear={(nombre) => void onCrearVariante(nombre, producto.id)}
+              />
+            </span>
+          </Celda>
+        </FilaTabla>
+      ) : null}
     </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Añadir algo, sin salir de la lista
+// ---------------------------------------------------------------------------
+
+/**
+ * Un botón que se convierte en campo, escribe y desaparece.
+ *
+ * El catálogo se llena solo guardando tickets, pero eso no basta: hace falta
+ * poder preparar una categoría antes de tener el primer ticket, y corregir un
+ * producto que falta sin esperar a comprarlo otra vez.
+ */
+function AltaEnLinea({
+  textoBoton,
+  etiqueta,
+  marcador,
+  onCrear,
+}: {
+  textoBoton: string
+  etiqueta: string
+  marcador: string
+  onCrear: (nombre: string) => void
+}) {
+  const [abierto, setAbierto] = useState(false)
+
+  if (!abierto) {
+    return (
+      <BotonTexto icono="mas" onClick={() => setAbierto(true)}>
+        {textoBoton}
+      </BotonTexto>
+    )
+  }
+
+  return (
+    <span style={{ width: 240, display: 'block' }}>
+      <CampoTexto
+        valor=""
+        etiqueta={etiqueta}
+        placeholder={marcador}
+        maxLength={80}
+        visible
+        autoFoco
+        onGuardar={(nombre) => {
+          setAbierto(false)
+          if (nombre.trim()) onCrear(nombre.trim())
+        }}
+      />
+    </span>
   )
 }
 

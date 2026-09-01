@@ -994,6 +994,78 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nEl catálogo de la compra se puede llenar a mano')
+  // -------------------------------------------------------------------------
+  //
+  // El catálogo se llena solo guardando tickets, pero eso no basta: hay que
+  // poder preparar una categoría antes del primer ticket y añadir lo que falte
+  // sin esperar a comprarlo otra vez. Antes las categorías vacías ni siquiera
+  // se pintaban, así que crear una parecía no hacer nada.
+  {
+    await abrirApp()
+    await pagina.getByRole('button', { name: 'Conceptos', exact: true }).first().click()
+    await pagina.waitForTimeout(700)
+    await pagina.getByRole('tab', { name: 'Productos', exact: true }).click()
+    await pagina.waitForTimeout(1000)
+
+    const tarjetas = async () =>
+      (await pagina.locator('.card .card-titulo').allTextContents()).filter((t) => t)
+
+    const { datos: categorias } = await llamar('/categorias-producto')
+    comprobar(
+      (await tarjetas()).length === categorias.length + 1,
+      'se ven todas las categorías, tengan productos o no',
+      `${(await tarjetas()).length} tarjetas para ${categorias.length} categorías`,
+    )
+
+    // Una categoría nueva.
+    await pagina.getByLabel('Categoría nueva').fill('Vinos y licores')
+    await pagina.getByLabel('Categoría nueva').blur()
+    await pagina.waitForTimeout(300)
+    await pagina.getByRole('button', { name: 'Añadir', exact: true }).click()
+    await pagina.waitForTimeout(1200)
+
+    comprobar(
+      (await tarjetas()).includes('Vinos y licores'),
+      'la categoría recién creada sale en la lista',
+    )
+
+    // Un producto dentro.
+    const tarjeta = pagina.locator('.card', { hasText: 'Vinos y licores' }).last()
+    await tarjeta.getByRole('button', { name: 'Añadir producto' }).click()
+    await pagina.waitForTimeout(400)
+    await pagina.getByLabel('Producto nuevo en Vinos y licores').fill('Vino tinto')
+    await pagina.getByLabel('Producto nuevo en Vinos y licores').press('Enter')
+    await pagina.waitForTimeout(1400)
+
+    const { datos: conProducto } = await llamar('/productos?variantes=1')
+    const creado = conProducto.find((p) => p.nombre === 'Vino tinto')
+    comprobar(!!creado, 'se le puede añadir un producto')
+    comprobar(
+      creado?.categoria === 'Vinos y licores',
+      'y queda en la categoría desde la que se creó',
+      String(creado?.categoria),
+    )
+
+    // Y una variante dentro del producto.
+    await pagina.locator('.card', { hasText: 'Vinos y licores' }).last().locator('.tabla .btn-icono').first().click()
+    await pagina.waitForTimeout(600)
+    await pagina.getByRole('button', { name: 'Añadir variante' }).click()
+    await pagina.waitForTimeout(400)
+    await pagina.getByLabel('Variante nueva de Vino tinto').fill('Rioja crianza')
+    await pagina.getByLabel('Variante nueva de Vino tinto').press('Enter')
+    await pagina.waitForTimeout(1400)
+
+    const { datos: conVariante } = await llamar('/productos?variantes=1')
+    const conSuVariante = conVariante.find((p) => p.nombre === 'Vino tinto')
+    comprobar(
+      (conSuVariante?.variantes ?? []).some((v) => v.nombre === 'Rioja crianza'),
+      'y una variante dentro de ese producto',
+      JSON.stringify((conSuVariante?.variantes ?? []).map((v) => v.nombre)),
+    )
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nLa plantilla se edita en su tabla')
   // -------------------------------------------------------------------------
   {

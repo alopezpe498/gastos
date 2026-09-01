@@ -608,6 +608,9 @@ solo separándola se puede comparar el precio entre tiendas.
 
 El catálogo se llena solo, guardando tickets, y se ordena en **Conceptos ›
 Productos**: renombrar, mover de categoría, fusionar duplicados y quitar alias.
+También se puede llenar a mano —categoría, producto y variante—, que hace falta
+para preparar una categoría antes del primer ticket o añadir lo que falte sin
+esperar a comprarlo otra vez.
 Nada de eso pierde historial —las líneas apuntan a la variante, y es la variante
 la que se mueve—, así que **cambiar hoy la categoría de «Pollo» recalcula también
 lo del año pasado**.
