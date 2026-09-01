@@ -38,7 +38,14 @@ export function PantallaAnalitica({
   const [disponible, setDisponible] = useState<RangoDisponible | null>(null)
   const [error, setError] = useState('')
   const [pestana, setPestana] = useState<Pestana>('evolucion')
-  const [ambito, setAmbito] = useState<Ambito>({ tipo: 'ultimos', meses: 12 })
+  /*
+   * Se entra por el mes en curso: es lo que se viene a mirar. Los últimos doce
+   * meses son para comparar, y comparar es la segunda pregunta, no la primera.
+   */
+  const [ambito, setAmbito] = useState<Ambito>(() => {
+    const hoy = new Date()
+    return { tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() + 1 }
+  })
 
   useEffect(() => {
     api<RangoDisponible>('/analitica/rango')

@@ -321,7 +321,8 @@ CREATE TABLE IF NOT EXISTS tickets (
   n_lineas        INTEGER NOT NULL DEFAULT 0,
   archivo_ruta    TEXT,
   texto_extraido  TEXT,
-  origen          TEXT NOT NULL DEFAULT 'foto' CHECK (origen IN ('foto','pdf','portapapeles')),
+  origen          TEXT NOT NULL DEFAULT 'foto'
+                  CHECK (origen IN ('foto','pdf','portapapeles','manual')),
   estado          TEXT NOT NULL DEFAULT 'revisado' CHECK (estado IN ('revisado','pendiente')),
   fecha_creacion  TEXT NOT NULL
 );
@@ -367,6 +368,31 @@ if (reglasViejas.length > 0 && !reglasViejas.some((c) => c.name === 'texto')) {
     )
   }
   bd.exec('DROP TABLE reglas_clasificacion')
+}
+
+/*
+ * La tabla de tickets nacio sin 'manual' entre los origenes, y un ticket se
+ * puede escribir a mano: se pierde el papel y uno se acuerda de lo que compro.
+ *
+ * El CHECK de SQLite no se puede alterar, asi que la tabla se tira y el esquema
+ * de abajo la crea bien. Solo si esta VACIA: con datos dentro, se para y se
+ * dice, que perder tickets por una comprobacion seria absurdo.
+ */
+const ticketsViejos = bd.prepare('PRAGMA table_info(tickets)').all()
+if (ticketsViejos.length > 0) {
+  const definicion = bd
+    .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'tickets'")
+    .get()
+  if (definicion && !definicion.sql.includes("'manual'")) {
+    const cuantos = bd.prepare('SELECT COUNT(*) AS n FROM tickets').get().n
+    if (cuantos > 0) {
+      throw new Error(
+        'La tabla tickets tiene el esquema antiguo y datos dentro. ' +
+          'Haz una copia de la base antes de seguir y migrala a mano.',
+      )
+    }
+    bd.exec('DROP TABLE IF EXISTS lineas_ticket; DROP TABLE tickets;')
+  }
 }
 
 bd.exec(ESQUEMA)

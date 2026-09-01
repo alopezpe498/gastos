@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { api, mensajeDeError } from '../../lib/api'
 import type { Mes, PropuestaTicket, Ticket } from '../../lib/tipos'
 import { BotonPrimario, BotonTexto, Card, ErrorLinea, Vacio } from '../../components/ui/Basicos'
-import { CampoArea } from '../../components/ui/Campos'
+import { CampoArea, CampoTexto } from '../../components/ui/Campos'
 import { Dropzone } from '../../components/ui/Dropzone'
 import { Fila } from '../../components/ui/Fila'
 import { SelectorDeMes } from '../../components/ui/SelectorDeMes'
 import { useAvisos } from '../../components/ui/Toast'
-import { euros, fechaCorta } from '../../lib/formato'
+import { euros, fechaCorta, hoyIso } from '../../lib/formato'
 import { RevisionTicket } from './RevisionTicket'
 
 /**
@@ -47,6 +47,21 @@ export function SeccionTickets({ meses, mesInicial = null, onCambioGlobal }: Pro
   const [propuesta, setPropuesta] = useState<PropuestaTicket | null>(null)
   const [historial, setHistorial] = useState<Ticket[] | null>(null)
   const [pegando, setPegando] = useState(false)
+  const [aMano, setAMano] = useState(false)
+  const [tienda, setTienda] = useState('')
+  const [fecha, setFecha] = useState(hoyIso())
+
+  /*
+   * La fecha que se propone: hoy si hoy cae en el mes elegido, y si no el día 1
+   * de ese mes. Poner «1 de septiembre» en un ticket de octubre confunde al que
+   * lo escribe y descoloca la comparación con el apunte del banco.
+   */
+  const fechaDentroDelMes = (elegido: Mes | null) => {
+    if (!elegido) return hoyIso()
+    const hoy = hoyIso()
+    const clave = `${elegido.anio}-${String(elegido.mes).padStart(2, '0')}`
+    return hoy.startsWith(clave) ? hoy : `${clave}-01`
+  }
   const [texto, setTexto] = useState('')
 
   const mes = meses.find((m) => m.id === mesId) ?? null
@@ -84,6 +99,37 @@ export function SeccionTickets({ meses, mesInicial = null, onCambioGlobal }: Pro
     } finally {
       setCargando(false)
     }
+  }
+
+  /**
+   * Arranca la revisión con un ticket en blanco.
+   *
+   * No pasa por el servidor porque no hay nada que leer: es la misma pantalla
+   * de siempre, con cero líneas y el total a cero. Se escriben las cosas y el
+   * total sale de sumarlas, que es justo lo que se sabe cuando se ha perdido
+   * el papel: lo que compraste, no el número de abajo.
+   */
+  const empezarAMano = () => {
+    if (!mes) return
+    setPropuesta({
+      mes: { id: mes.id, anio: mes.anio, mes: mes.mes, nombreMes: mes.nombreMes ?? '' },
+      cabecera: {
+        tienda: tienda.trim(),
+        direccion: null,
+        fechaHora: fecha,
+        total: 0,
+        formaPago: null,
+        ultimos4: null,
+      },
+      lineas: [],
+      archivoRuta: null,
+      origen: 'manual',
+      coincidencia: null,
+      cuadre: { suma: 0, diferencia: 0, cuadra: true, sinAsignar: 0, problemas: [], sePuedeAceptar: false },
+      avisos: [],
+    })
+    setAMano(false)
+    setTienda('')
   }
 
   const conArchivo = async (archivo: File) => {
@@ -160,15 +206,62 @@ export function SeccionTickets({ meses, mesInicial = null, onCambioGlobal }: Pro
               correo, o el que se copia de la app de la cadena. Leer ese texto
               sale más exacto que fotografiar la pantalla y gasta mucho menos.
             */
-            <BotonTexto
-              icono="nota"
-              disabled={cargando || cerrado}
-              onClick={() => setPegando((p) => !p)}
-            >
-              Pegar el ticket
-            </BotonTexto>
+            <span className="fila-campos">
+              <BotonTexto
+                icono="nota"
+                disabled={cargando || cerrado}
+                onClick={() => setPegando((p) => !p)}
+              >
+                Pegar el ticket
+              </BotonTexto>
+              {/*
+                Sin papel y sin foto: se perdió el ticket y uno se acuerda de lo
+                que compró. Se escribe línea a línea, y el total es la suma.
+              */}
+              <BotonTexto
+                icono="lapiz"
+                disabled={cargando || cerrado}
+                onClick={() => {
+                  setFecha(fechaDentroDelMes(mes))
+                  setAMano((a) => !a)
+                }}
+              >
+                Apuntarlo a mano
+              </BotonTexto>
+            </span>
           }
         />
+
+        {aMano ? (
+          <div style={{ marginTop: 12, display: 'grid', gap: 10, justifyItems: 'start' }}>
+            <div className="fila-campos">
+              <span style={{ width: 220 }}>
+                <CampoTexto
+                  valor={tienda}
+                  etiqueta="Dónde se compró"
+                  placeholder="Dónde: Mercadona, la frutería…"
+                  visible
+                  onGuardar={setTienda}
+                />
+              </span>
+              <span style={{ width: 160 }}>
+                <CampoTexto
+                  valor={fecha}
+                  etiqueta="Fecha de la compra"
+                  placeholder="AAAA-MM-DD"
+                  visible
+                  onGuardar={setFecha}
+                />
+              </span>
+            </div>
+            <BotonPrimario disabled={!tienda.trim() || !mes} onClick={empezarAMano}>
+              Escribir la compra
+            </BotonPrimario>
+            <p className="muted-3">
+              Se apuntan las cosas una a una y el total sale de sumarlas.
+            </p>
+          </div>
+        ) : null}
 
         {pegando ? (
           <div style={{ marginTop: 12, display: 'grid', gap: 10, justifyItems: 'start' }}>

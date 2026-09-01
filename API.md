@@ -468,13 +468,18 @@ mismo sea de Nesquik o no, y solo separándola se puede comparar el precio.
 | Método | Ruta | Notas |
 | --- | --- | --- |
 | `POST` | `/tickets` | `{ mesId, imagen? \| pdf? \| texto?, tipoImagen?, pista? }`. Lee y **devuelve la propuesta sin escribir nada**. Hasta 20 MB. |
-| `POST` | `/tickets/aceptar` | `{ mesId, cabecera, lineas, movimientoId?, archivoRuta?, origen? }`. Escribe todo en una transacción. |
+| `POST` | `/tickets/aceptar` | `{ mesId, cabecera, lineas, movimientoId?, archivoRuta?, origen? }`. Escribe todo en una transacción. `origen` es `foto`, `pdf`, `portapapeles` o `manual`. |
 | `GET` | `/tickets` | Los guardados, del más reciente. `?mes=<id>` para los de un mes. |
 | `GET` | `/tickets/:id` | El ticket con sus líneas y su reparto por categoría. |
 | `DELETE` | `/tickets/:id` | Deshacer. `{ borrarMovimiento: true }` se lleva también el apunte. |
 | `GET` | `/tickets/:id/lineas` | **Solo lectura, para las otras apps.** Producto, variante, cantidad y unidad. |
 | `GET` | `/tickets/:id/archivo` | La foto o el PDF originales. |
 | `GET` | `/tickets/archivo/:nombre` | El archivo recién subido, durante la revisión. |
+
+Un ticket **escrito a mano** (`origen: 'manual'`) no pasa por `POST /tickets`:
+no hay nada que leer. La pantalla monta la propuesta en blanco y llama
+directamente a `/tickets/aceptar`, con `archivoRuta: null` y el total que suman
+las líneas escritas. Se le exige exactamente lo mismo que a cualquier otro.
 
 Reglas que se comprueban al aceptar, y que devuelven `400` con `detalle[]`:
 
@@ -541,6 +546,9 @@ apunte: lo trajo el banco y no es nuestro para borrarlo.
 | `GET` | `/analitica/compra/tiendas` | Gasto y ticket medio por tienda. |
 | `GET` | `/analitica/compra/habitos` | Día de la semana, ticket medio, líneas por ticket. |
 | `GET` | `/analitica/compra/mes/:mesId` | El resumen del mes. **`204` si ese mes no tiene tickets.** |
+
+El rango «este mes» que trae la pantalla es `desde` y `hasta` con la misma clave:
+un mes es un rango de un mes.
 
 Todas aceptan el mismo rango que el resto de Analítica (`desde`, `hasta`, `anio`,
 `ultimos`). Y todas siguen la regla de la casa: un rango sin tickets devuelve

@@ -968,7 +968,8 @@ export type PropuestaTicket = {
   cabecera: CabeceraTicket
   lineas: LineaTicket[]
   archivoRuta: string | null
-  origen: 'foto' | 'pdf' | 'portapapeles'
+  /** «manual» = escrito a mano, sin foto ni papel. */
+  origen: 'foto' | 'pdf' | 'portapapeles' | 'manual'
   /** El apunte de comida que ya estaba en el mes y es este mismo ticket. */
   coincidencia: {
     movimiento: Movimiento
@@ -990,7 +991,7 @@ export type Ticket = {
   ultimos4: string | null
   nLineas: number
   archivoRuta: string | null
-  origen: 'foto' | 'pdf' | 'portapapeles'
+  origen: 'foto' | 'pdf' | 'portapapeles' | 'manual'
   estado: 'revisado' | 'pendiente'
   fechaCreacion: string
   lineas?: LineaTicket[]

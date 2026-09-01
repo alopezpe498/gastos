@@ -199,7 +199,7 @@ rutasTickets.post(
       lineas: limpias,
       movimientoId: enteroDe(req.body?.movimientoId) || null,
       archivoRuta: textoDe(req.body?.archivoRuta ?? '', { max: 200 }) || null,
-      origen: ['foto', 'pdf', 'portapapeles'].includes(req.body?.origen)
+      origen: ['foto', 'pdf', 'portapapeles', 'manual'].includes(req.body?.origen)
         ? req.body.origen
         : 'foto',
     })

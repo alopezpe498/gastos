@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import type { RangoDisponible } from '../../lib/tipos'
+import { NOMBRES_MESES } from '../../lib/formato'
 import { SelectorMes } from '../../components/ui/Campos'
 
 export type Ambito =
+  | { tipo: 'mes'; anio: number; mes: number }
   | { tipo: 'anio'; anio: number }
   | { tipo: 'ultimos'; meses: number }
   | { tipo: 'todo' }
@@ -11,6 +13,11 @@ export type Ambito =
 /** El ámbito, traducido a los parámetros que espera la API. */
 export function comoConsulta(ambito: Ambito): string {
   switch (ambito.tipo) {
+    case 'mes': {
+      // Un solo mes es un rango de un mes: la API ya sabe hacer eso.
+      const clave = `${ambito.anio}-${String(ambito.mes).padStart(2, '0')}`
+      return `desde=${clave}&hasta=${clave}`
+    }
     case 'anio':
       return `anio=${ambito.anio}`
     case 'ultimos':
@@ -25,6 +32,8 @@ export function comoConsulta(ambito: Ambito): string {
 
 export function nombreDelAmbito(ambito: Ambito): string {
   switch (ambito.tipo) {
+    case 'mes':
+      return `${NOMBRES_MESES[ambito.mes - 1]} ${ambito.anio}`
     case 'anio':
       return String(ambito.anio)
     case 'ultimos':
@@ -55,7 +64,14 @@ export function SelectorRango({
 }) {
   const [libreAbierto, setLibreAbierto] = useState(ambito.tipo === 'libre')
 
+  /*
+   * El mes en curso va primero porque es la pregunta de casi todos los días
+   * —«¿cómo voy este mes?»— y era justo la que no se podía hacer sin abrir el
+   * rango libre y elegir el mismo mes dos veces.
+   */
+  const hoy = new Date()
   const opciones: { etiqueta: string; ambito: Ambito }[] = [
+    { etiqueta: 'Este mes', ambito: { tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() + 1 } },
     { etiqueta: '12 meses', ambito: { tipo: 'ultimos', meses: 12 } },
     { etiqueta: '24 meses', ambito: { tipo: 'ultimos', meses: 24 } },
     ...disponible.anios.map((anio) => ({ etiqueta: String(anio), ambito: { tipo: 'anio' as const, anio } })),

@@ -316,6 +316,64 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nUn ticket escrito a mano')
+  // -------------------------------------------------------------------------
+  //
+  // Se pierde el papel y uno se acuerda de lo que compro. No hay foto, no hay
+  // IA y no hay total impreso: el total es lo que suman las cosas que se
+  // apuntan, y aun asi tiene que cuadrar igual que cualquier otro.
+  {
+    const { datos: variantes } = await llamar('/productos/variantes')
+    const alguna = variantes[0]
+
+    const r = await llamar('/tickets/aceptar', {
+      metodo: 'POST',
+      cuerpo: {
+        mesId: mes.id,
+        cabecera: {
+          tienda: 'Fruteria de la esquina',
+          fechaHora: `${ANIO}-${MES}-20`,
+          total: 9.4,
+        },
+        lineas: [
+          { orden: 0, textoTicket: 'Manzanas', cantidad: 1, unidad: 'ud', importe: 3.2, varianteId: alguna.id },
+          { orden: 1, textoTicket: 'Platanos', cantidad: 1, unidad: 'ud', importe: 2.15, varianteId: alguna.id },
+          { orden: 2, textoTicket: 'Naranjas', cantidad: 1, unidad: 'ud', importe: 4.05, varianteId: alguna.id },
+        ],
+        origen: 'manual',
+      },
+    })
+    comprobar(r.estado === 201, 'se guarda sin foto y sin IA', JSON.stringify(r.datos?.detalle ?? ''))
+    comprobar(r.datos.lineas === 3, 'con las tres lineas escritas')
+
+    const { datos: ticket } = await llamar(`/tickets/${r.datos.ticketId}`)
+    comprobar(ticket.origen === 'manual', 'y queda marcado como escrito a mano')
+    comprobar(ticket.archivoRuta === null, 'sin archivo, porque no hay papel')
+    comprobar(
+      igualEnCentimos(ticket.total, 9.4),
+      'con el total que suman sus lineas',
+      String(ticket.total),
+    )
+
+    // Y cuadra igual de estricto que uno leido de una foto.
+    const torcido = await llamar('/tickets/aceptar', {
+      metodo: 'POST',
+      cuerpo: {
+        mesId: mes.id,
+        cabecera: { tienda: 'Fruteria', total: 20 },
+        lineas: [{ orden: 0, textoTicket: 'Manzanas', importe: 3.2, varianteId: alguna.id }],
+        origen: 'manual',
+      },
+    })
+    comprobar(torcido.estado === 400, 'y si no cuadra, tampoco se guarda a mano')
+
+    await llamar(`/tickets/${r.datos.ticketId}`, {
+      metodo: 'DELETE',
+      cuerpo: { borrarMovimiento: true },
+    })
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nEn que se va la compra')
   // -------------------------------------------------------------------------
   {

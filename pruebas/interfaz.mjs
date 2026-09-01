@@ -733,6 +733,100 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nApuntar un ticket a mano')
+  // -------------------------------------------------------------------------
+  //
+  // Se pierde el papel y uno se acuerda de lo que compró. No hay foto que leer,
+  // así que el total no está impreso en ningún sitio: sale de sumar lo que se
+  // apunta, y eso es lo que se comprueba aquí.
+  {
+    await abrirApp()
+    await pagina.getByRole('button', { name: 'Importar', exact: true }).first().click()
+    await pagina.waitForTimeout(700)
+    await pagina.getByRole('tab', { name: 'Tickets', exact: true }).click()
+    await pagina.waitForTimeout(600)
+
+    await pagina.getByRole('button', { name: 'Apuntarlo a mano' }).click()
+    await pagina.waitForTimeout(400)
+    await pagina.getByLabel('Dónde se compró').fill('Frutería de la esquina')
+    await pagina.getByLabel('Dónde se compró').blur()
+    await pagina.waitForTimeout(300)
+    await pagina.getByRole('button', { name: 'Escribir la compra' }).click()
+    await pagina.waitForTimeout(700)
+
+    comprobar(
+      (await pagina.locator('.linea-ticket').count()) === 0,
+      'la revisión arranca en blanco: no hay nada que leer',
+    )
+
+    for (const [texto, importe] of [['Manzanas', '3,20'], ['Plátanos', '2,15']]) {
+      await pagina.getByRole('button', { name: 'Añadir una línea' }).click()
+      await pagina.waitForTimeout(300)
+      const fila = pagina.locator('.linea-ticket').last()
+      await fila.getByLabel('Qué pone en el ticket').fill(texto)
+      await fila.getByLabel('Qué pone en el ticket').blur()
+      await pagina.waitForTimeout(200)
+      const campo = fila.locator('.campo.dinero')
+      await campo.click()
+      await campo.fill(importe)
+      await campo.press('Enter')
+      await pagina.waitForTimeout(400)
+    }
+
+    comprobar(
+      (await pagina.locator('.linea-ticket').count()) === 2,
+      'se escriben las líneas una a una',
+    )
+    const cuadreMano = await pagina.locator('.cuadre').innerText()
+    comprobar(
+      cuadreMano.includes('5,35'),
+      'y el total sale de sumarlas: no hay ninguno impreso que respetar',
+      cuadreMano,
+    )
+
+    await pagina.getByRole('button', { name: 'Lo que quede, a «Otros»' }).click()
+    await pagina.waitForTimeout(700)
+    const antesMano = (await leerMes()).variables.length
+    await pagina.getByRole('button', { name: 'Aceptar', exact: true }).click()
+    await pagina.waitForTimeout(2500)
+
+    const trasMano = await leerMes()
+    comprobar(
+      trasMano.variables.length === antesMano + 1,
+      'y al aceptar se apunta la compra como cualquier otra',
+      `${antesMano} → ${trasMano.variables.length}`,
+    )
+  }
+
+  // -------------------------------------------------------------------------
+  console.log('\nAnalítica entra por el mes en curso')
+  // -------------------------------------------------------------------------
+  //
+  // Es la pregunta de casi todos los días —«¿cómo voy este mes?»— y era justo
+  // la que no se podía hacer sin abrir el rango libre y elegir el mismo mes dos
+  // veces.
+  {
+    await abrirApp()
+    await pagina.getByRole('button', { name: 'Analítica', exact: true }).first().click()
+    await pagina.waitForSelector('.selector-rango', { timeout: 10000 })
+    await pagina.waitForTimeout(800)
+
+    const activo = await pagina.locator('.selector-rango .chip.activo').innerText()
+    comprobar(activo === 'Este mes', 'se entra con el mes en curso elegido', activo)
+
+    const NOMBRES = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+    ]
+    const subtitulo = await pagina.locator('.cabecera-sub').innerText()
+    comprobar(
+      subtitulo.includes(`${NOMBRES[MES - 1]} ${ANIO}`),
+      'y la cabecera dice de qué mes habla',
+      subtitulo,
+    )
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nConceptos: activar, colorear y ordenar')
   // -------------------------------------------------------------------------
   {

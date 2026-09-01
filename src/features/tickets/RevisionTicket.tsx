@@ -15,7 +15,7 @@ import {
   Chip,
   MenuFila,
 } from '../../components/ui/Basicos'
-import { CampoImporte } from '../../components/ui/Campos'
+import { CampoImporte, CampoTexto } from '../../components/ui/Campos'
 import { Acciones } from '../../components/ui/Navegacion'
 import { useAvisos } from '../../components/ui/Toast'
 import {
@@ -62,7 +62,14 @@ const esOtros = (v: Variante) => v.producto === 'Otros' && v.nombre === 'Sin cla
 export function RevisionTicket({ propuesta, onCancelar, onGuardado }: Props) {
   const { avisar, avisarError } = useAvisos()
 
-  const [cabecera] = useState(propuesta.cabecera)
+  const [cabecera, setCabecera] = useState(propuesta.cabecera)
+  /*
+   * Un ticket escrito a mano no tiene un total impreso que respetar: el total
+   * ES lo que suman las cosas que se apuntan. Deja de seguir a la suma en
+   * cuanto alguien escribe un total, que es lo que se hace cuando se recuerda
+   * lo que se pagó pero no todo lo que se compró.
+   */
+  const [totalASuma, setTotalASuma] = useState(propuesta.origen === 'manual')
   const [lineas, setLineas] = useState<LineaTicket[]>(propuesta.lineas)
   const [variantes, setVariantes] = useState<Variante[]>([])
   const [categorias, setCategorias] = useState<CategoriaProducto[]>([])
@@ -132,6 +139,23 @@ export function RevisionTicket({ propuesta, onCancelar, onGuardado }: Props) {
       }))
       .sort((a, b) => b.importe - a.importe)
   }, [lineas, variantes, categorias])
+
+  /** Una línea más, en blanco, al final. */
+  const anadirLinea = () =>
+    setLineas((actuales) => [
+      ...actuales,
+      {
+        orden: Math.max(-1, ...actuales.map((l) => l.orden)) + 1,
+        textoTicket: '',
+        cantidad: 1,
+        unidad: 'ud',
+        precioUnitario: null,
+        importe: 0,
+        varianteId: null,
+        origenAsignacion: 'ninguno',
+        dudosa: false,
+      },
+    ])
 
   const cambiar = (orden: number, cambios: Partial<LineaTicket>) =>
     setLineas((actuales) => actuales.map((l) => (l.orden === orden ? { ...l, ...cambios } : l)))
@@ -230,6 +254,12 @@ export function RevisionTicket({ propuesta, onCancelar, onGuardado }: Props) {
     avisar(`${cuantos(cuantas, 'línea')} a «Otros». Se pueden afinar cuando quieras.`)
   }
 
+  useEffect(() => {
+    if (!totalASuma) return
+    const suma = Math.round(lineas.reduce((t, l) => t + (l.importe ?? 0), 0) * 100) / 100
+    setCabecera((c) => (c.total === suma ? c : { ...c, total: suma }))
+  }, [lineas, totalASuma])
+
   const guardar = async () => {
     setGuardando(true)
     setError('')
@@ -311,7 +341,22 @@ export function RevisionTicket({ propuesta, onCancelar, onGuardado }: Props) {
 
       <Card titulo="Lo que dice el ticket">
         <div className="fila-campos" style={{ gap: 24, flexWrap: 'wrap' }}>
-          <Dato etiqueta="Total">{euros(cabecera.total)}</Dato>
+          <Dato etiqueta="Total">
+            {/*
+              Editable: la IA se equivoca leyendo el total de un ticket
+              arrugado, y en uno escrito a mano no hay total que leer.
+            */}
+            <span style={{ width: 120, display: 'block' }}>
+              <CampoImporte
+                valor={cabecera.total}
+                etiqueta="Total del ticket"
+                onGuardar={(v) => {
+                  setTotalASuma(false)
+                  setCabecera((c) => ({ ...c, total: v ?? 0 }))
+                }}
+              />
+            </span>
+          </Dato>
           <Dato etiqueta="Líneas">{lineas.length}</Dato>
           <Dato etiqueta="Suman">{euros(cuadre.suma)}</Dato>
           {cabecera.ultimos4 ? <Dato etiqueta="Tarjeta">···{cabecera.ultimos4}</Dato> : null}
@@ -386,13 +431,22 @@ export function RevisionTicket({ propuesta, onCancelar, onGuardado }: Props) {
             titulo="Sin asignar"
             ayuda="Lo que falta por decidir. Al asignar una, las que ponen lo mismo se asignan solas."
             derecha={
-              pendientes.length > 0 ? (
-                <BotonTexto onClick={resolverElResto}>Lo que quede, a «Otros»</BotonTexto>
-              ) : null
+              <span className="fila-campos">
+                <BotonTexto icono="mas" onClick={anadirLinea}>
+                  Añadir una línea
+                </BotonTexto>
+                {pendientes.length > 0 ? (
+                  <BotonTexto onClick={resolverElResto}>Lo que quede, a «Otros»</BotonTexto>
+                ) : null}
+              </span>
             }
           >
             {pendientes.length === 0 ? (
-              <p className="muted-3">Ninguna: todo tiene su sitio.</p>
+              <p className="muted-3">
+                {lineas.length === 0
+                  ? 'Todavía no has apuntado nada: añade la primera línea.'
+                  : 'Ninguna: todo tiene su sitio.'}
+              </p>
             ) : (
               <>
                 <div className="atajos">
@@ -492,7 +546,14 @@ function FilaTicket({
         onCambiar={onSeleccionar}
       />
       <span className="celda-concepto">
-        <span className="row-titulo">{linea.textoTicket}</span>
+        {/* Editable: en un ticket escrito a mano empieza en blanco. */}
+        <CampoTexto
+          valor={linea.textoTicket}
+          etiqueta="Qué pone en el ticket"
+          placeholder="Qué es…"
+          maxLength={200}
+          onGuardar={(texto) => onCambiar({ textoTicket: texto })}
+        />
         <span className="d">
           {linea.cantidad !== 1 || linea.unidad !== 'ud'
             ? `${cantidad(linea.cantidad)} ${linea.unidad}${linea.precioUnitario ? ` × ${euros(linea.precioUnitario)}` : ''}`

@@ -551,6 +551,10 @@ siempre se sabe de dónde salieron.
 La foto del ticket del súper, desde el botón de la cámara del mes o desde
 **Importar › Tickets**. También vale un PDF o el texto pegado.
 
+Y si se ha perdido el papel, **«Apuntarlo a mano»**: se escribe dónde se compró
+y las cosas una a una. No hay total impreso que respetar, así que el total sale
+de sumarlas, que es justo lo que se recuerda de una compra sin ticket.
+
 Un ticket es **un** apunte del sobre Comida con su total, como siempre. Lo que
 se añade es lo que hay dentro, y eso es lo que permite preguntar después en qué
 se va la comida, cuánto se gasta en pollo o cuánto ha subido el aceite. Las
