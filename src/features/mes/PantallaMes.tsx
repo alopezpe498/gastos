@@ -3,7 +3,7 @@ import { api, ErrorApi, mensajeDeError } from '../../lib/api'
 import type { Concepto, MesCompleto, MesPorAbrir, Movimiento, PanelMes } from '../../lib/tipos'
 import { cuantos, euros, hoyIso, NOMBRES_MESES, redondo } from '../../lib/formato'
 import { iconoDe, paletaDeId, registrarConceptos } from '../../lib/conceptos'
-import { BotonPrimario, BotonTexto, Card, Check, IconoConcepto, MenuFila, Tile, Vacio } from '../../components/ui/Basicos'
+import { BotonIcono, BotonPrimario, BotonTexto, Card, Check, IconoConcepto, MenuFila, Tile, Vacio } from '../../components/ui/Basicos'
 import { CampoImporte, CampoTexto, SelectorConcepto, ValorEditable } from '../../components/ui/Campos'
 import { Dialogo } from '../../components/ui/Dialogo'
 import {
@@ -16,7 +16,8 @@ import {
   SegmentBar,
   Sparkline,
 } from '../../components/ui/Graficos'
-import { Fila, GrupoFilas, Importe } from '../../components/ui/Fila'
+import { Fila, GrupoFilas, Importe, TramoLista } from '../../components/ui/Fila'
+import { Desglose } from '../../components/ui/Desglose'
 import { Acciones } from '../../components/ui/Navegacion'
 import { SelectorDeMes } from '../../components/ui/SelectorDeMes'
 import { useAvisos } from '../../components/ui/Toast'
@@ -52,6 +53,8 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onB
   const [abriendo, setAbriendo] = useState(false)
   const [menuAbierto, setMenuAbierto] = useState(false)
   const [pedirApunte, setPedirApunte] = useState(0)
+  /** El fijo cuyo desglose está abierto. Solo uno: si no, la lista se dispara. */
+  const [fijoAbierto, setFijoAbierto] = useState<number | null>(null)
 
   const cargar = useCallback(async () => {
     setError('')
@@ -277,7 +280,18 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onB
 
   const cobrados = panel.fijos.filter((f) => f.cobrado).length
   const excesoComida = panel.comida.gastado > panel.comida.presupuesto && panel.comida.presupuesto > 0
-  const porDia = agruparPorDia(mes.variables)
+  /*
+   * Extras y comida se apuntan igual y venían en la misma lista, así que el
+   * total de la cabecera —«12 · 340 €»— no era el de ninguno de los dos: el de
+   * extras salía mezclado con la compra del super. Cada uno con su tramo y su
+   * suma; los totales de arriba no cambian.
+   */
+  const extras = mes.variables.filter((m) => m.tipo !== 'sobre')
+  const comida = mes.variables.filter((m) => m.tipo === 'sobre')
+  const tramos = [
+    { clave: 'extras', titulo: 'Extras', color: 'var(--extras)', lista: extras },
+    { clave: 'comida', titulo: 'Comida', color: 'var(--comida)', lista: comida },
+  ].filter((t) => t.lista.length > 0)
 
   return (
     <>
@@ -469,24 +483,35 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onB
               onAccion={() => onImportarExtracto(mes.id)}
             />
           ) : (
-            porDia.map(([etiqueta, movimientos]) => (
-              <div key={etiqueta}>
-                <GrupoFilas>{etiqueta}</GrupoFilas>
-                {movimientos.map((m) => (
-                  <FilaMovimiento
-                    key={m.id}
-                    movimiento={m}
-                    conceptos={conceptos}
-                    onCambiar={cambiarMovimiento}
-                    onBorrar={borrar}
-                    onDuplicar={() =>
-                      apuntar({
-                        conceptoId: m.conceptoId,
-                        importe: m.importe,
-                        descripcion: m.descripcion,
-                      })
-                    }
-                  />
+            tramos.map((tramo) => (
+              <div key={tramo.clave}>
+                <TramoLista
+                  titulo={tramo.titulo}
+                  color={tramo.color}
+                  derecha={`${tramo.lista.length} · ${redondo(
+                    tramo.lista.reduce((t, v) => t + v.importe, 0),
+                  )}`}
+                />
+                {agruparPorDia(tramo.lista).map(([etiqueta, movimientos]) => (
+                  <div key={etiqueta}>
+                    <GrupoFilas>{etiqueta}</GrupoFilas>
+                    {movimientos.map((m) => (
+                      <FilaMovimiento
+                        key={m.id}
+                        movimiento={m}
+                        conceptos={conceptos}
+                        onCambiar={cambiarMovimiento}
+                        onBorrar={borrar}
+                        onDuplicar={() =>
+                          apuntar({
+                            conceptoId: m.conceptoId,
+                            importe: m.importe,
+                            descripcion: m.descripcion,
+                          })
+                        }
+                      />
+                    ))}
+                  </div>
                 ))}
               </div>
             ))
@@ -502,29 +527,15 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onB
           }
         >
           {panel.fijos.map((f) => (
-            <Fila
+            <FilaFijo
               key={f.movimientoId}
-              izquierda={
-                <Check
-                  marcado={f.cobrado}
-                  tarde={f.tarde}
-                  etiqueta={`${f.cobrado ? 'Desmarcar' : 'Marcar como cobrado'} ${f.concepto}`}
-                  onClick={() => void alternarCobro(f.movimientoId)}
-                />
+              fijo={f}
+              abierto={fijoAbierto === f.movimientoId}
+              onAbrir={() =>
+                setFijoAbierto((actual) => (actual === f.movimientoId ? null : f.movimientoId))
               }
-              titulo={f.concepto}
-              detalle={detalleFijo(f)}
-              detalleTarde={f.tarde}
-              importe={
-                <span style={{ width: 104, marginLeft: 'auto' }}>
-                  <CampoImporte
-                    valor={f.importe}
-                    etiqueta={`Importe de ${f.concepto}`}
-                    apagado={!f.cobrado}
-                    onGuardar={(v) => void cambiarMovimiento(f.movimientoId, { importe: v })}
-                  />
-                </span>
-              }
+              onCobro={() => void alternarCobro(f.movimientoId)}
+              onCambiar={(cambio) => cambiarMovimiento(f.movimientoId, cambio)}
             />
           ))}
         </Card>
@@ -551,6 +562,74 @@ export function PantallaMes({ mesElegido, onCambioDeMes, onImportarExtracto, onB
 // ---------------------------------------------------------------------------
 // Piezas de la pantalla
 // ---------------------------------------------------------------------------
+
+/**
+ * Un fijo de la lista, que se abre si quieres mirar lo que lleva dentro.
+ *
+ * La mayoría son una sola cosa y no hay nada que abrir, pero Suscripciones son
+ * seis cargos distintos y el mes que viene siete. Cuando hay desglose, el
+ * importe deja de escribirse aquí: es la suma de las líneas.
+ */
+function FilaFijo({
+  fijo,
+  abierto,
+  onAbrir,
+  onCobro,
+  onCambiar,
+}: {
+  fijo: PanelMes['fijos'][number]
+  abierto: boolean
+  onAbrir: () => void
+  onCobro: () => void
+  onCambiar: (cambios: Record<string, unknown>) => Promise<void>
+}) {
+  const lineas = fijo.detalle ?? []
+  const tiene = lineas.length > 0
+
+  return (
+    <>
+      <Fila
+        izquierda={
+          <Check
+            marcado={fijo.cobrado}
+            tarde={fijo.tarde}
+            etiqueta={`${fijo.cobrado ? 'Desmarcar' : 'Marcar como cobrado'} ${fijo.concepto}`}
+            onClick={onCobro}
+          />
+        }
+        titulo={fijo.concepto}
+        detalle={tiene ? `${detalleFijo(fijo)} · ${cuantos(lineas.length, 'cosa', 'cosas')}` : detalleFijo(fijo)}
+        detalleTarde={fijo.tarde}
+        importe={
+          <span style={{ width: 104, marginLeft: 'auto', display: 'block', textAlign: 'right' }}>
+            {tiene ? (
+              /* Con desglose el importe es la suma, así que aquí no se escribe. */
+              <Importe apagado={!fijo.cobrado}>{euros(fijo.importe)}</Importe>
+            ) : (
+              <CampoImporte
+                valor={fijo.importe}
+                etiqueta={`Importe de ${fijo.concepto}`}
+                apagado={!fijo.cobrado}
+                onGuardar={(v) => void onCambiar({ importe: v })}
+              />
+            )}
+          </span>
+        }
+        acciones={
+          <BotonIcono
+            icono={abierto ? 'abajo' : 'chevron'}
+            etiqueta={`${abierto ? 'Cerrar' : 'Ver'} el desglose de ${fijo.concepto}`}
+            expandido={abierto}
+            onClick={onAbrir}
+          />
+        }
+      />
+      {abierto ? (
+        <Desglose lineas={lineas} onGuardar={(nuevas) => onCambiar({ detalle: nuevas })} />
+      ) : null}
+    </>
+  )
+}
 
 function FilaMovimiento({
   movimiento,

@@ -18,7 +18,8 @@ import {
 import { CampoArea, CampoImporte, CampoTexto, SelectorConcepto, SelectorMes, ValorEditable } from './Campos'
 import { Anillos, BarraProgreso, BarrasPorDia, CifraQueCuenta, Leyenda, LeyendaItem, Puntos, SegmentBar, Sparkline } from './Graficos'
 import { AccionDialogo, ConfirmacionDialogo, Dialogo } from './Dialogo'
-import { Asa, Fila, GrupoFilas, Importe } from './Fila'
+import { Asa, Fila, GrupoFilas, Importe, TramoLista } from './Fila'
+import { Desglose } from './Desglose'
 import { Celda, Fila as FilaTabla, Tabla } from './Tabla'
 import { Dropzone } from './Dropzone'
 import { Icono, ICONOS_DE_CONCEPTO } from './Icono'
@@ -47,6 +48,11 @@ export function Kit() {
   const [tab, setTab] = useState('uno')
   const [check, setCheck] = useState(true)
   const [interruptor, setInterruptor] = useState(true)
+  const [desglose, setDesglose] = useState([
+    { nombre: 'Netflix', importe: 12.99 },
+    { nombre: 'Spotify', importe: 10.99 },
+    { nombre: 'Anthropic', importe: 21.99 },
+  ])
   const [concepto, setConcepto] = useState<number | null>(3)
   const [importe, setImporte] = useState<number | null>(56)
   const [texto, setTexto] = useState('Mercadona Rambla')
@@ -237,6 +243,7 @@ export function Kit() {
         {/* ---------------- filas ---------------- */}
         <div className="dos-columnas">
           <Card titulo="Movimientos" derecha={<span className="muted">5 · 238 €</span>}>
+            <TramoLista titulo="Extras" color="var(--extras)" derecha="3 · 148 €" />
             <GrupoFilas>Hoy</GrupoFilas>
             <Fila
               izquierda={
@@ -302,6 +309,16 @@ export function Kit() {
               detalle="día 5"
               importe={<Importe apagado>{euros(28.45)}</Importe>}
             />
+            <Fila
+              izquierda={<Check marcado etiqueta="Suscripciones" />}
+              titulo="Suscripciones"
+              detalle="cobrado el 30 · 3 cosas"
+              importe={<Importe>{euros(45.97)}</Importe>}
+              acciones={
+                <BotonIcono icono="abajo" etiqueta="Cerrar el desglose" expandido onClick={() => undefined} />
+              }
+            />
+            <Desglose lineas={desglose} onGuardar={setDesglose} />
             <Fila
               izquierda={<Asa />}
               titulo="Concepto arrastrable"

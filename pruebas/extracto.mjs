@@ -116,7 +116,7 @@ try {
       cuerpo: { descripcion: 'COMPRA TARJ. 5402XXXXXXXX4010 Compra de Prime Video-MADRID' },
     })
     comprobar(
-      prime.datos.ganadora?.concepto === 'Netflix etc',
+      prime.datos.ganadora?.concepto === 'Suscripciones',
       'PRIME se evalúa antes que AMAZON: Prime Video es una suscripción',
       prime.datos.ganadora?.concepto,
     )

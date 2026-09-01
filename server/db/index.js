@@ -340,5 +340,37 @@ anadirColumnaSiFalta('conceptos', 'color', 'TEXT')
  */
 anadirColumnaSiFalta('conceptos', 'icono', 'TEXT')
 
+/*
+ * El desglose de un movimiento, en JSON: [{ nombre, importe }].
+ *
+ * Un fijo puede ser en realidad muchas cosas —Suscripciones son Netflix, Spotify
+ * y seis mas— y el extracto ya las trae separadas. Antes se pegaban en la
+ * descripcion como un texto y el importe era solo la suma: se veia el total pero
+ * no se podia mirar dentro ni anadir una a mano.
+ *
+ * El total sigue en `importe`, asi que ningun calculo cambia por esto.
+ */
+anadirColumnaSiFalta('movimientos', 'detalle', 'TEXT')
+
+/*
+ * «Netflix etc» pasa a llamarse Suscripciones.
+ *
+ * El nombre venia del Excel, de cuando el recibo era Netflix y poco mas; ahora
+ * son seis cosas y ninguna se llama Netflix. Se cambia solo si el concepto
+ * existe con ese nombre exacto y todavia no hay un Suscripciones: renombrar es
+ * seguro —el id no se mueve, asi que los movimientos, las reglas y el historico
+ * siguen colgando de el— pero pisar un concepto que ya existiera no lo seria.
+ */
+const viejoNetflix = bd
+  .prepare("SELECT id FROM conceptos WHERE nombre = 'Netflix etc'")
+  .get()
+if (viejoNetflix) {
+  const yaHay = bd.prepare("SELECT id FROM conceptos WHERE nombre = 'Suscripciones'").get()
+  if (!yaHay) {
+    bd.prepare("UPDATE conceptos SET nombre = 'Suscripciones' WHERE id = ?").run(viejoNetflix.id)
+    console.log('[gastos] «Netflix etc» ahora se llama Suscripciones')
+  }
+}
+
 anadirColumnaSiFalta('meses', 'fecha_inicio', 'TEXT')
 anadirColumnaSiFalta('meses', 'fecha_fin', 'TEXT')

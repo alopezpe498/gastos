@@ -46,7 +46,7 @@ const aImporteDeApp = (importeBanco) => redondear(-importeBanco)
 
 /**
  * Un fijo del mes puede recibir varias lineas: tres facturas de luz, gas y
- * agua, o cinco suscripciones que caen todas en "Netflix etc". Se suman.
+ * agua, o cinco suscripciones que caen todas en "Suscripciones". Se suman.
  */
 function agruparFijos(lineas, fijosDelMes) {
   const porConcepto = new Map()

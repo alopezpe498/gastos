@@ -159,6 +159,8 @@ export function panel(mes, ajustes) {
       tarde: !m.cobrado && yaPaso(m.diaPrevisto, hoy, dentro),
       /* Lo que costo el mes pasado: «176 € el mes pasado» dice si es normal. */
       importeMesAnterior: delMesAnterior.get(m.conceptoId) ?? null,
+      /* El desglose, para poder mirar dentro sin salir de la pantalla. */
+      detalle: m.detalle ?? [],
     }))
     // Por dia previsto, que es como se leen.
     .sort((a, b) => primerDia(a.diaPrevisto) - primerDia(b.diaPrevisto))

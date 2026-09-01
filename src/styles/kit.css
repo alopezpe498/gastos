@@ -659,6 +659,105 @@ a {
   margin-top: 0;
 }
 
+/* La cabecera de un tramo de lista: pesa más que el separador de días. */
+.row-tramo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 20px 0 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--linea);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.row-tramo:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.row-tramo-nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.row-tramo-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.row-tramo-cifra {
+  color: var(--tinta-2);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
+ * Desglose: lo que hay dentro de un apunte que agrupa varias cosas
+ * ------------------------------------------------------------------------- */
+
+.desglose {
+  padding: 4px 0 10px 46px;
+}
+
+.desglose-vacio {
+  color: var(--tinta-3);
+  font-size: 13px;
+  margin: 0 0 8px;
+  max-width: 46ch;
+}
+
+.desglose-linea {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.desglose-nombre {
+  flex: 1;
+  min-width: 0;
+}
+
+.desglose-importe {
+  width: 92px;
+  flex: none;
+  text-align: right;
+}
+
+.desglose-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.desglose-nuevo {
+  flex: 1;
+  min-width: 0;
+  max-width: 240px;
+}
+
+.desglose-suma {
+  color: var(--tinta-2);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+  .desglose {
+    padding-left: 12px;
+  }
+}
+
 /* Fila que está preguntando si la borras: la pregunta va donde está la cosa. */
 .row.confirmando {
   background: var(--comida-suave);

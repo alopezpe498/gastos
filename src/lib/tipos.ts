@@ -125,6 +125,9 @@ export type ConceptoDetalle = Concepto & {
   movimientos: number
 }
 
+/** Una línea del desglose de un fijo que agrupa varias cosas. */
+export type LineaDetalle = { nombre: string; importe: number }
+
 export type Movimiento = {
   id: number
   mesId: number
@@ -140,6 +143,8 @@ export type Movimiento = {
   cobrado: boolean
   descripcion: string
   origen: Origen
+  /** El desglose, si lo tiene: Suscripciones son Netflix, Spotify… */
+  detalle: LineaDetalle[]
 }
 
 export type ResumenMes = {
@@ -590,6 +595,8 @@ export type PanelMes = {
     tarde: boolean
     /** Lo que costó ese mismo fijo el mes pasado, si se cobró. */
     importeMesAnterior: number | null
+    /** El desglose, si agrupa varias cosas. */
+    detalle: LineaDetalle[]
   }[]
   pendientes: number
   nombresPendientes: string[]

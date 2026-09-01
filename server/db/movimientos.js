@@ -2,6 +2,42 @@ import { bd } from './index.js'
 import { ahora } from '../lib/fechas.js'
 import { redondear } from '../lib/http.js'
 
+/**
+ * El desglose guardado, siempre como lista.
+ *
+ * Se lee a la defensiva: es JSON en una columna de texto, y si alguna vez llega
+ * roto vale mas quedarse sin desglose que tirar la pantalla entera.
+ */
+function leerDetalle(texto) {
+  if (!texto) return []
+  try {
+    const lista = JSON.parse(texto)
+    if (!Array.isArray(lista)) return []
+    return lista
+      .filter((l) => l && typeof l.nombre === 'string')
+      .map((l) => ({ nombre: l.nombre, importe: redondear(Number(l.importe) || 0) }))
+  } catch {
+    return []
+  }
+}
+
+/** Lo que se guarda: null si no hay lineas, para no llenar la tabla de «[]». */
+function escribirDetalle(lista) {
+  if (!Array.isArray(lista) || lista.length === 0) return null
+  const limpias = lista
+    .filter((l) => l && String(l.nombre ?? '').trim())
+    .map((l) => ({
+      nombre: String(l.nombre).trim().slice(0, 80),
+      importe: redondear(Number(l.importe) || 0),
+    }))
+  return limpias.length > 0 ? JSON.stringify(limpias) : null
+}
+
+/** La suma de las lineas: es el importe del movimiento cuando hay desglose. */
+export function sumaDelDetalle(lista) {
+  return redondear((lista ?? []).reduce((t, l) => t + (Number(l.importe) || 0), 0))
+}
+
 function aMovimiento(m) {
   return {
     id: m.id,
@@ -15,6 +51,8 @@ function aMovimiento(m) {
     importePrevisto: m.importe_previsto,
     diaPrevisto: m.dia_previsto,
     fechaCobro: m.fecha_cobro,
+    // Las lineas de un fijo que agrupa varias cosas. [] si no tiene.
+    detalle: leerDetalle(m.detalle),
     cobrado: !!m.fecha_cobro,
     descripcion: m.descripcion ?? '',
     origen: m.origen,
@@ -74,6 +112,7 @@ export function crear({
   diaPrevisto = null,
   fechaCobro = null,
   descripcion = '',
+  detalle = null,
   origen = 'manual',
 }) {
   const sello = ahora()
@@ -81,9 +120,9 @@ export function crear({
     .prepare(
       `INSERT INTO movimientos
          (mes_id, concepto_id, importe, importe_previsto, dia_previsto, fecha_cobro,
-          descripcion, origen, fecha_creacion, fecha_modificacion)
-       VALUES (@mesId, @conceptoId, @importe, @previsto, @dia, @cobro, @descripcion, @origen,
-               @sello, @sello)`,
+          descripcion, detalle, origen, fecha_creacion, fecha_modificacion)
+       VALUES (@mesId, @conceptoId, @importe, @previsto, @dia, @cobro, @descripcion, @detalle,
+               @origen, @sello, @sello)`,
     )
     .run({
       mesId,
@@ -93,6 +132,7 @@ export function crear({
       dia: diaPrevisto === null ? null : String(diaPrevisto),
       cobro: fechaCobro,
       descripcion: String(descripcion ?? ''),
+      detalle: escribirDetalle(detalle),
       origen,
       sello,
     })
@@ -110,6 +150,7 @@ export function actualizar(id, cambios) {
        dia_previsto = @dia,
        fecha_cobro = @cobro,
        descripcion = @descripcion,
+       detalle = @detalle,
        fecha_modificacion = @sello
      WHERE id = @id`,
   ).run({
@@ -121,6 +162,8 @@ export function actualizar(id, cambios) {
     cobro: cambios.fechaCobro === undefined ? actual.fechaCobro : cambios.fechaCobro,
     descripcion:
       cambios.descripcion === undefined ? actual.descripcion : String(cambios.descripcion),
+    detalle:
+      cambios.detalle === undefined ? escribirDetalle(actual.detalle) : escribirDetalle(cambios.detalle),
     sello: ahora(),
   })
   return obtener(id)

@@ -214,6 +214,19 @@ export const aceptar = bd.transaction(
         continue
       }
 
+      /*
+       * El desglose, guardado como lista y no como frase.
+       *
+       * Un fijo que agrupa varias cosas —Suscripciones son Netflix, Spotify y
+       * seis mas— llega del extracto ya separado. Antes se pegaba en la
+       * descripcion como un texto: se veia el total pero no se podia mirar
+       * dentro ni anadir una a mano. El importe sigue siendo la suma, asi que
+       * ningun total cambia.
+       */
+      const desglose = (c.detalleLineas ?? []).length > 1
+        ? c.detalleLineas.map((l) => ({ nombre: l.descripcion, importe: l.importe }))
+        : null
+
       if (c.accion === 'crear' || !movimientoId) {
         const nuevo = movimientosBd.crear({
           mesId: mes.id,
@@ -221,7 +234,8 @@ export const aceptar = bd.transaction(
           importe: c.importe,
           importePrevisto: c.importePrevisto ?? c.importe,
           fechaCobro: c.fecha,
-          descripcion: c.detalle || '',
+          descripcion: '',
+          detalle: desglose,
           origen: 'extracto',
         })
         movimientoId = nuevo.id
@@ -230,7 +244,7 @@ export const aceptar = bd.transaction(
         movimientosBd.actualizar(movimientoId, {
           importe: c.importe,
           fechaCobro: c.fecha,
-          ...(c.detalle ? { descripcion: c.detalle } : {}),
+          ...(desglose ? { detalle: desglose } : {}),
         })
         if (c.accion === 'actualizar') actualizados += 1
         else cobrados += 1

@@ -10,7 +10,7 @@ import * as configBd from './config.js'
  * clasificacion funcione. Tres cosas dependen de el:
  *
  *   1. Los FIJOS van antes que la COMIDA, y la comida antes que los VARIABLES.
- *      Asi "AMAZON PRIME" cae en Netflix etc (fijo) y no en Amazon (variable).
+ *      Asi "AMAZON PRIME" cae en Suscripciones (fijo) y no en Amazon (variable).
  *   2. Dentro de los fijos, el orden es el de la hoja de siempre.
  *   3. BIZUM va justo antes de los variables y NO clasifica: un Bizum puede ser
  *      cualquier cosa, asi que siempre pasa por revision.
@@ -57,7 +57,7 @@ const FIJOS = [
   // Las gasolineras van al variable Gasolina: repostar es un gasto suelto.
   ['Coche', ['AUTOPISTA']],
   [
-    'Netflix etc',
+    'Suscripciones',
     [
       'NETFLIX',
       'SPOTIFY',

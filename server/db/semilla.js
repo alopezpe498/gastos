@@ -31,11 +31,12 @@ const FIJOS = [
   { nombre: 'Gatos', clasificacion: 'necesario', dia: '1', importe: 30 },
   { nombre: 'Coche', clasificacion: 'necesario', dia: '1', importe: 0 },
   {
-    nombre: 'Netflix etc',
+    nombre: 'Suscripciones',
     clasificacion: 'prescindible',
     dia: '30,13,23',
     importe: 0,
-    alias: ['Netflix etcc'],
+    // Como se llamaba en el Excel, para que el historico siga cayendo aqui.
+    alias: ['Netflix etc', 'Netflix etcc'],
   },
   { nombre: 'Gimnasio', clasificacion: 'prescindible', dia: '1', importe: 19.99, alias: ['Gimasio'] },
   { nombre: 'Ahorro', clasificacion: 'ahorro', dia: null, importe: 0, esObjetivo: true },

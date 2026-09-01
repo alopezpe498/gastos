@@ -162,6 +162,87 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nEl desglose de un apunte')
+  // -------------------------------------------------------------------------
+  //
+  // Suscripciones son ocho cargos distintos y el extracto ya los trae
+  // separados. La regla que se comprueba aqui es una: **el importe es la suma
+  // de las lineas**. Si se pudieran guardar unas lineas que suman 60 en un
+  // apunte que dice 45, el mes cuadraria con el numero equivocado.
+  {
+    const { datos: mesDesglose } = await llamar('/meses/2027/1')
+    const fijoDesglose = mesDesglose.fijos[0]
+
+    comprobar(
+      Array.isArray(fijoDesglose.detalle) && fijoDesglose.detalle.length === 0,
+      'un apunte nace sin desglose',
+    )
+
+    const conDesglose = await llamar(`/movimientos/${fijoDesglose.id}`, {
+      metodo: 'PATCH',
+      cuerpo: {
+        detalle: [
+          { nombre: 'Netflix', importe: 12.99 },
+          { nombre: 'Spotify', importe: '10,99' },
+        ],
+      },
+    })
+    comprobar(conDesglose.datos.detalle.length === 2, 'se guardan las dos lineas')
+    comprobar(
+      igualEnCentimos(conDesglose.datos.importe, 23.98),
+      'el importe pasa a ser la suma de las lineas',
+      `da ${conDesglose.datos.importe}`,
+    )
+    comprobar(
+      igualEnCentimos(conDesglose.datos.detalle[1].importe, 10.99),
+      'los importes en espanol tambien valen dentro del desglose',
+    )
+
+    // Lo que se mande como importe se ignora: manda el desglose.
+    const conAmbos = await llamar(`/movimientos/${fijoDesglose.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { importe: 500, detalle: [{ nombre: 'Netflix', importe: 12.99 }] },
+    })
+    comprobar(
+      igualEnCentimos(conAmbos.datos.importe, 12.99),
+      'con desglose, un importe suelto no puede contradecirlo',
+      `da ${conAmbos.datos.importe}`,
+    )
+
+    const sinNombre = await llamar(`/movimientos/${fijoDesglose.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { detalle: [{ nombre: '  ', importe: 5 }] },
+    })
+    comprobar(sinNombre.estado === 400, 'una linea sin nombre se rechaza')
+
+    const importeMalo = await llamar(`/movimientos/${fijoDesglose.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { detalle: [{ nombre: 'Netflix', importe: 'dos euros' }] },
+    })
+    comprobar(importeMalo.estado === 400, 'una linea con un importe ilegible se rechaza')
+
+    const vaciado = await llamar(`/movimientos/${fijoDesglose.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { detalle: [] },
+    })
+    comprobar(vaciado.datos.detalle.length === 0, 'se puede quitar el desglose entero')
+    comprobar(
+      igualEnCentimos(vaciado.datos.importe, 12.99),
+      'y el importe se queda donde estaba, no en cero',
+      `da ${vaciado.datos.importe}`,
+    )
+
+    const suelto = await llamar(`/movimientos/${fijoDesglose.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { importe: 40 },
+    })
+    comprobar(
+      igualEnCentimos(suelto.datos.importe, 40),
+      'sin desglose, el importe vuelve a escribirse a mano',
+    )
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nAbrir meses')
   // -------------------------------------------------------------------------
   {

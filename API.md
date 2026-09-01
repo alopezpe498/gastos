@@ -364,7 +364,7 @@ los distingue es el tipo de su concepto.
 | Método | Ruta | Notas |
 | --- | --- | --- |
 | `POST` | `/movimientos` | `{ mesId, conceptoId, importe, fechaCobro?, descripcion? }`. Sin `fechaCobro` se pone la de hoy. |
-| `PATCH` | `/movimientos/:id` | `{ conceptoId?, importe?, fechaCobro?, diaPrevisto?, descripcion? }`. `fechaCobro: null` lo devuelve a pendiente. |
+| `PATCH` | `/movimientos/:id` | `{ conceptoId?, importe?, fechaCobro?, diaPrevisto?, descripcion?, detalle? }`. `fechaCobro: null` lo devuelve a pendiente. |
 | `POST` | `/movimientos/:id/cobro` | `{ fecha? }`. Sin fecha, hoy. |
 | `DELETE` | `/movimientos/:id/cobro` | Lo devuelve a pendiente. |
 | `DELETE` | `/movimientos/:id` | |
@@ -376,6 +376,32 @@ los distingue es el tipo de su concepto.
 - El campo `importe` acepta número o texto en formato español (`"1.234,56"`).
 - `origen` dice de dónde salió el apunte: `manual`, `excel`, y —reservados para
   la fase 3— `extracto`, `foto`, `portapapeles`.
+
+### El desglose de un apunte
+
+Un fijo puede ser en realidad varias cosas: Suscripciones son Netflix, Spotify y
+seis cargos más, y el extracto ya los trae separados. `detalle` los guarda como
+lista en lugar de pegarlos en la descripción:
+
+```jsonc
+"detalle": [
+  { "nombre": "NETFLIX.COM", "importe": 21.99 },
+  { "nombre": "SPOTIFY", "importe": 10.99 }
+]
+```
+
+- Un apunte sin desglose devuelve `detalle: []`.
+- **Con desglose, `importe` es la suma de las líneas.** El `PATCH` lo recalcula e
+  ignora cualquier `importe` que venga en el mismo cuerpo: si no, podrían
+  guardarse unas líneas que suman 60 en un apunte que dice 45 y el mes cuadraría
+  con el número equivocado.
+- Cada línea necesita `nombre` (hasta 80 caracteres) e `importe`; una línea sin
+  nombre o con un importe ilegible devuelve `400`. Máximo 60 líneas.
+- `detalle: []` quita el desglose y deja el importe donde estaba: a partir de ahí
+  se vuelve a escribir a mano.
+- Al importar un extracto, un concepto que agrupa **más de una** línea del banco
+  se guarda con su desglose. El total no cambia, así que ningún cálculo del mes
+  depende de esto.
 
 ---
 

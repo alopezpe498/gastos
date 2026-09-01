@@ -75,6 +75,32 @@ rutasMovimientos.patch(
       cambios.descripcion = textoDe(req.body.descripcion, { max: 200 })
     }
 
+    /*
+     * El desglose de un fijo que agrupa varias cosas.
+     *
+     * Cuando hay desglose, el importe DEJA DE SER un dato suelto y pasa a ser la
+     * suma de las lineas: si no, se pueden guardar unas suscripciones que suman
+     * 60 en un movimiento que dice 45, y el mes cuadraria con el numero
+     * equivocado. Una sola fuente de verdad.
+     */
+    if (req.body?.detalle !== undefined) {
+      const lista = Array.isArray(req.body.detalle) ? req.body.detalle : []
+      if (lista.length > 60) return fallo(res, 400, 'Son demasiadas lineas para un solo apunte.')
+
+      const lineas = []
+      for (const linea of lista) {
+        const nombre = textoDe(linea?.nombre ?? '', { max: 80 })
+        const importe = importeDe(linea?.importe)
+        if (!nombre) return fallo(res, 400, 'Cada linea del desglose necesita un nombre.')
+        if (importe === null) return fallo(res, 400, `El importe de "${nombre}" no se entiende.`)
+        lineas.push({ nombre, importe })
+      }
+
+      cambios.detalle = lineas
+      // El importe pasa a ser la suma; lo que venga en el cuerpo se ignora.
+      if (lineas.length > 0) cambios.importe = movimientosBd.sumaDelDetalle(lineas)
+    }
+
     return res.json(movimientosBd.actualizar(id, cambios))
   }),
 )

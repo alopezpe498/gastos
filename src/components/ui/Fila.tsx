@@ -107,6 +107,34 @@ export function GrupoFilas({ children }: { children: ReactNode }) {
   return <div className="row-grupo">{children}</div>
 }
 
+/**
+ * La cabecera de un tramo dentro de una lista, con su propio sumatorio.
+ *
+ * Extras y comida se apuntan igual, pero no son la misma pregunta: uno es «en
+ * qué me lo he gastado» y el otro «cuánto llevo del sobre». Mezclados en una
+ * sola lista, el total de arriba no describía ninguno de los dos.
+ */
+export function TramoLista({
+  titulo,
+  color,
+  derecha,
+}: {
+  titulo: ReactNode
+  /** El punto del color del tramo. */
+  color?: string
+  derecha?: ReactNode
+}) {
+  return (
+    <div className="row-tramo">
+      <span className="row-tramo-nombre">
+        {color ? <span className="row-tramo-punto" style={{ background: color }} /> : null}
+        {titulo}
+      </span>
+      {derecha ? <span className="row-tramo-cifra">{derecha}</span> : null}
+    </div>
+  )
+}
+
 /** El asa de arrastrar, gris hasta que pasas por la fila. */
 export function Asa() {
   return (

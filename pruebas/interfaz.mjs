@@ -282,6 +282,81 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nLa lista separa los extras de la comida')
+  // -------------------------------------------------------------------------
+  //
+  // Mezclados en una sola lista, el total de la cabecera no era el de ninguno
+  // de los dos: en «Extras» salia la compra del super.
+  {
+    const mes = await leerMes()
+    const { datos: conceptos } = await llamar('/conceptos?activos=1')
+    const sobre = conceptos.find((c) => c.tipo === 'sobre')
+    await llamar('/movimientos', {
+      metodo: 'POST',
+      cuerpo: {
+        mesId: mes.id,
+        conceptoId: sobre.id,
+        importe: 41,
+        descripcion: 'Compra',
+        fechaCobro: `${ANIO}-${String(MES).padStart(2, '0')}-06`,
+      },
+    })
+    await crearVariable(mes.id, 30)
+    await abrirApp()
+
+    const tramos = await pagina.locator('.row-tramo').allTextContents()
+    comprobar(tramos.length === 2, 'la lista se parte en dos tramos', tramos.join(' / '))
+    comprobar(tramos[0].includes('Extras'), 'el primero es Extras')
+    comprobar(tramos[1].includes('Comida'), 'y el segundo, Comida')
+    comprobar(tramos[1].includes('41'), 'cada tramo lleva su propio sumatorio', tramos[1])
+    comprobar(
+      !tramos[0].includes('41') && !tramos[0].includes('71'),
+      'y el de extras ya no arrastra la comida',
+      tramos[0],
+    )
+  }
+
+  // -------------------------------------------------------------------------
+  console.log('\nEl desglose de un fijo')
+  // -------------------------------------------------------------------------
+  //
+  // Suscripciones son seis cargos y el mes que viene siete. Se despliega la
+  // fila, se añade una cosa y el importe del fijo pasa a ser la suma.
+  {
+    await abrirApp()
+    const antes = await leerMes()
+    const fijo = antes.fijos[0]
+
+    await pagina
+      .getByRole('button', { name: `Ver el desglose de ${fijo.concepto}` })
+      .click()
+    await pagina.waitForTimeout(400)
+    comprobar(await pagina.locator('.desglose').isVisible(), 'la fila se abre y enseña el desglose')
+
+    await pagina.getByRole('button', { name: 'Añadir' }).click()
+    await pagina.waitForTimeout(300)
+    await pagina.getByLabel('Nombre de la cosa nueva').fill('Netflix')
+    await pagina.keyboard.press('Enter')
+    await pagina.waitForTimeout(1200)
+
+    await pagina.getByLabel('Importe de Netflix').click()
+    await pagina.waitForTimeout(200)
+    await pagina.getByLabel('Importe de Netflix').fill('12,99')
+    await pagina.keyboard.press('Enter')
+    await pagina.waitForTimeout(1400)
+
+    const despues = await leerMes()
+    const cambiado = despues.fijos.find((f) => f.id === fijo.id)
+    comprobar(cambiado.detalle.length === 1, 'la linea se guarda de verdad')
+    comprobar(cambiado.detalle[0].nombre === 'Netflix', 'con el nombre que se escribió')
+    comprobar(
+      Math.abs(cambiado.importe - 12.99) < 0.005,
+      'y el importe del fijo pasa a ser la suma del desglose',
+      `da ${cambiado.importe}`,
+    )
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nRegenerar desde la plantilla')
   // -------------------------------------------------------------------------
   {
