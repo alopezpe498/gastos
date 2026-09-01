@@ -65,6 +65,9 @@ export const FILAS = [
   ['12/08/2026', `${TARJ}13AUG BVK11V8J-Barcelona`, '15/08/2026', -32.68, 982.91, '', ''],
   ['10/08/2026', 'PAGO BIZUM NOMBRE A. B.', '10/08/2026', -190, 1015.59, '', '000000000001'],
   ['03/08/2026', 'REINTEGRO CAJERO AUTOMATICO 5402XXXXXXXX4010 03.08', '03/08/2026', -800, 1205.59, '', ''],
+  // El banco cobrandose lo suyo: no lo reconoce ninguna regla y va a sin
+  // clasificar, que es donde los atajos de seleccion tienen que encontrarlo.
+  ['05/08/2026', 'COMISION MANTENIMIENTO CUENTA', '05/08/2026', -3.5, 1209.09, '', ''],
 
   // --- abonos: el banco ingresa dinero ---
   // Una devolucion que una regla SI reconoce: entra como variable en negativo.
@@ -89,8 +92,8 @@ export const FILAS = [
 /** Lo que tiene que salir de este fichero, para comprobarlo en las pruebas. */
 export const ESPERADO = {
   filaCabecera: 8, // base 0
-  movimientos: 21,
-  gastos: 18,
+  movimientos: 22,
+  gastos: 19,
   // La nomina y dos abonos.
   abonos: 3,
   // El periodo que define el mes: del primer movimiento al ultimo.

@@ -230,6 +230,16 @@ a {
   margin-bottom: 14px;
 }
 
+/*
+ * Un hijo de flex no baja de lo ancho que tenga dentro salvo que se le diga.
+ * Sin esto, las tres pestanas de Importar estiraban la cabecera y la pagina
+ * entera se desplazaba de lado en un movil, en vez de desplazarse ellas —que
+ * para eso llevan su propio overflow.
+ */
+.cabecera > * {
+  min-width: 0;
+}
+
 .cabecera-titulo {
   font-size: 22px;
   font-weight: 800;

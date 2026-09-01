@@ -553,6 +553,7 @@ export function RevisionExtracto({
         onAlternar={() => setAbiertos((a) => ({ ...a, sin: !a.sin }))}
         vacio="Ninguno: todo tiene concepto."
       >
+        <AtajosDeSeleccion lineas={sinClasificar} seleccion={seleccion} onCambiar={setSeleccion} />
         {sinClasificar.map((linea) => (
           <FilaExtracto
             key={linea.id}
@@ -734,6 +735,132 @@ export function RevisionExtracto({
           />
         </Dialogo>
       ) : null}
+    </div>
+  )
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Atajos de selección
+ * ---------------------------------------------------------------------------
+ *
+ * Lo que queda sin clasificar no es una lista variada: son treinta líneas y la
+ * mitad son la misma cosa —bizums a la misma persona, abonos, comisiones del
+ * banco— que van todas al mismo concepto o todas a la basura. Marcarlas una a
+ * una es el trabajo aburrido de cada importación.
+ *
+ * Estos grupos solo SELECCIONAN. No clasifican ni deciden nada: lo que se hace
+ * con lo seleccionado sigue siendo cosa tuya, en la barra de arriba. Por eso
+ * pueden ser generosos sin riesgo — si un grupo se lleva una línea de más, se
+ * desmarca y ya está.
+ */
+
+/** Todo lo que se puede leer de una línea, en minúsculas y sin acentos. */
+function textoDeLinea(linea: LineaExtracto): string {
+  return `${linea.descripcionOriginal} ${linea.descripcionLimpia}`
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+}
+
+const GRUPOS: {
+  id: string
+  nombre: string
+  /** En singular cuando solo hay una: «1 abono», no «1 abonos». */
+  singular: string
+  coincide: (linea: LineaExtracto) => boolean
+}[] = [
+  // El abono no se busca en el texto: el banco ya dice si el dinero entra.
+  { id: 'abonos', nombre: 'Abonos', singular: 'Abono', coincide: (l) => !!l.esAbono },
+  {
+    id: 'bizum',
+    nombre: 'Bizums',
+    singular: 'Bizum',
+    coincide: (l) => textoDeLinea(l).includes('bizum'),
+  },
+  {
+    id: 'transferencias',
+    nombre: 'Transferencias',
+    singular: 'Transferencia',
+    // «TRANSF.» abreviado lo escriben algunos bancos; «traspaso», entre cuentas.
+    coincide: (l) => /transferencia|transf\.|traspaso/.test(textoDeLinea(l)),
+  },
+  {
+    id: 'comisiones',
+    nombre: 'Comisiones',
+    singular: 'Comisión',
+    /*
+     * «mantenimiento» a secas no vale: el ascensor de la comunidad también lo
+     * lleva. Se pide junto a la palabra que lo convierte en cargo del banco.
+     */
+    coincide: (l) =>
+      /comision|cuota (anual|de mantenimiento|servicio)|mantenimiento (de )?(tarjeta|cuenta)|gastos adm/.test(
+        textoDeLinea(l),
+      ),
+  },
+]
+
+/**
+ * La fila de atajos: «Todo lo pendiente», y un grupo por cada cosa repetida.
+ *
+ * Un grupo que no encuentra nada no se enseña: una fila de chips apagados no
+ * ayuda, solo ocupa. Y pulsar un grupo ya seleccionado entero lo deselecciona,
+ * que es lo que espera cualquiera que se haya equivocado de chip.
+ */
+function AtajosDeSeleccion({
+  lineas,
+  seleccion,
+  onCambiar,
+}: {
+  lineas: LineaExtracto[]
+  seleccion: Set<number>
+  onCambiar: (nueva: Set<number>) => void
+}) {
+  if (lineas.length === 0) return null
+
+  const alternar = (ids: number[]) => {
+    const nueva = new Set(seleccion)
+    const todasDentro = ids.every((id) => seleccion.has(id))
+    for (const id of ids) {
+      if (todasDentro) nueva.delete(id)
+      else nueva.add(id)
+    }
+    onCambiar(nueva)
+  }
+
+  const grupos = [
+    {
+      id: 'todo',
+      etiqueta: `Todo lo pendiente (${lineas.length})`,
+      ids: lineas.map((l) => l.id),
+    },
+    ...GRUPOS.map((g) => {
+      const suyas = lineas.filter(g.coincide)
+      return {
+        id: g.id,
+        etiqueta: `${suyas.length === 1 ? g.singular : g.nombre} (${suyas.length})`,
+        ids: suyas.map((l) => l.id),
+      }
+    }).filter((g) => g.ids.length > 0),
+  ]
+
+  return (
+    <div className="atajos">
+      <span className="muted">Seleccionar</span>
+      {grupos.map((g) => {
+        const activo = g.ids.every((id) => seleccion.has(id))
+        return (
+          <Chip
+            key={g.id}
+            etiqueta={`${activo ? 'Quitar de la selección' : 'Seleccionar'}: ${g.etiqueta}`}
+            color={activo ? '#fff' : undefined}
+            suave={activo ? 'var(--tinta)' : undefined}
+            onClick={() => alternar(g.ids)}
+          >
+            {g.etiqueta}
+          </Chip>
+        )
+      })}
     </div>
   )
 }

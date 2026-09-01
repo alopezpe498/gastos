@@ -13,6 +13,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { chromium } from 'playwright'
 import { levantar, crearLlamar, crearComprobador, PIN, RAIZ } from './entorno.mjs'
+import { comoTexto } from './fixtures/extractoEjemplo.mjs'
 
 if (!fs.existsSync(path.join(RAIZ, 'dist', 'index.html'))) {
   console.log('\n  No hay dist/. Ejecuta "npm run build" antes de esta suite.\n')
@@ -470,6 +471,83 @@ try {
 
     const { estado: codigo } = await llamar(`/meses/${ANIO}/${MES}`)
     comprobar(codigo === 404, 'el mes deja de existir')
+  }
+
+  // -------------------------------------------------------------------------
+  console.log('\nAtajos de selección en el extracto')
+  // -------------------------------------------------------------------------
+  //
+  // Lo que queda sin clasificar es casi siempre lo mismo repetido —bizums,
+  // abonos, comisiones del banco— y marcarlo de uno en uno era el trabajo
+  // aburrido de cada importación. Los atajos solo SELECCIONAN: lo que se hace
+  // después sigue siendo cosa de la barra de arriba, así que aquí se comprueban
+  // las dos mitades, seleccionar y luego actuar.
+  {
+    // El bloque anterior borra el mes, y sin mes abierto no hay donde importar.
+    await prepararMes()
+    await abrirApp()
+    await pagina.getByRole('button', { name: 'Importar', exact: true }).first().click()
+    await pagina.waitForTimeout(700)
+    await pagina.getByRole('button', { name: 'Pegar una tabla' }).click()
+    await pagina.waitForTimeout(300)
+    await pagina.getByLabel('Tabla pegada').fill(comoTexto())
+    // El área de texto guarda al salir, no al escribir.
+    await pagina.getByLabel('Tabla pegada').blur()
+    await pagina.waitForTimeout(300)
+    await pagina.getByRole('button', { name: 'Leer lo pegado' }).click()
+    await pagina.waitForSelector('.atajos', { timeout: 20000 })
+    await pagina.waitForTimeout(800)
+
+    const atajos = await pagina.locator('.atajos .chip').allTextContents()
+    comprobar(atajos.length >= 4, 'salen los atajos de selección', atajos.join(' / '))
+    comprobar(
+      atajos.some((t) => t.startsWith('Todo lo pendiente')),
+      'el primero es todo lo pendiente',
+    )
+    comprobar(
+      atajos.some((t) => /^Comisi/.test(t)),
+      'y el banco cobrándose lo suyo tiene el suyo',
+      atajos.join(' / '),
+    )
+
+    // Un grupo pequeño: el Bizum del extracto de ejemplo.
+    const bizum = pagina.locator('.atajos .chip', { hasText: /^Bizum/ })
+    comprobar((await bizum.count()) === 1, 'hay un atajo para los bizums')
+    await bizum.click()
+    await pagina.waitForTimeout(400)
+    comprobar(
+      (await pagina.locator('.barra-seleccion').textContent()).includes('1 seleccionado'),
+      'pulsarlo selecciona su línea',
+      await pagina.locator('.barra-seleccion').textContent(),
+    )
+
+    // Y pulsarlo otra vez la suelta: es el mismo botón.
+    await bizum.click()
+    await pagina.waitForTimeout(400)
+    comprobar(
+      (await pagina.locator('.barra-seleccion').count()) === 0,
+      'y pulsarlo de nuevo deshace la selección',
+    )
+
+    // Todo lo pendiente, y a la basura de una vez.
+    const sinClasificarAntes = await pagina.locator('.atajos .chip').first().textContent()
+    const cuantos = Number(sinClasificarAntes.match(/\((\d+)\)/)[1])
+    comprobar(cuantos > 3, 'quedan varias líneas sin clasificar', String(cuantos))
+
+    await pagina.locator('.atajos .chip').first().click()
+    await pagina.waitForTimeout(400)
+    comprobar(
+      (await pagina.locator('.barra-seleccion').textContent()).includes(`${cuantos} seleccionado`),
+      'todo lo pendiente las selecciona todas',
+      await pagina.locator('.barra-seleccion').textContent(),
+    )
+
+    await pagina.getByRole('button', { name: 'Descartar', exact: true }).click()
+    await pagina.waitForTimeout(900)
+    comprobar(
+      (await pagina.locator('.atajos').count()) === 0,
+      'y descartarlas en bloque vacía el bloque de sin clasificar',
+    )
   }
 
   // -------------------------------------------------------------------------

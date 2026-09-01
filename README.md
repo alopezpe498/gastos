@@ -338,6 +338,18 @@ Debajo, los bloques:
   para **deshacer** (o `Ctrl+Z`). Si hay más movimientos con la misma
   descripción, se clasifican solos.
 
+  Encima de la lista, los **atajos de selección**: *Todo lo pendiente*, y un
+  grupo por cada cosa que se repite —*Abonos*, *Bizums*, *Transferencias*,
+  *Comisiones*— con cuántas ha encontrado de cada. Pulsar uno las marca todas;
+  pulsarlo otra vez las suelta. Lo que queda sin clasificar rara vez es variado:
+  son quince bizums a la misma persona y cuatro comisiones del banco, y marcar
+  eso de uno en uno era el trabajo aburrido de cada importación.
+
+  Los atajos **solo seleccionan**. Lo que se hace con lo seleccionado sigue
+  decidiéndose en la barra negra de arriba —asignar un concepto o descartar—,
+  que ahora se queda pegada al desplazar. Por eso los grupos pueden ser
+  generosos: si uno se lleva una línea de más, se desmarca y ya está.
+
   **La IA se pide sola** al abrir la revisión, en una única llamada con todo lo
   que las reglas no han reconocido. Su propuesta aparece **ya puesta en el
   desplegable** con una etiqueta lila; un clic la confirma, y al pasar el ratón
