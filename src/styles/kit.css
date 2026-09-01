@@ -2589,3 +2589,54 @@ input.casilla {
   background: var(--fondo);
   font-size: 14px;
 }
+
+/*
+ * El campo de fecha. El texto lo escribe la aplicacion —dd/mm/aaaa siempre— y
+ * el calendario del sistema vive encima del icono, transparente: un input de
+ * fecha escondido no puede abrir su propio calendario, hay que pulsarlo.
+ */
+.campo-fecha {
+  position: relative;
+  display: block;
+}
+
+.campo-fecha .campo {
+  padding-right: 34px;
+}
+
+.campo-fecha-boton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  color: var(--tinta-3);
+  pointer-events: none;
+}
+
+.campo-fecha-boton input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  opacity: 0;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* El icono nativo del navegador ocupa todo el hueco, para poder pulsarlo. */
+.campo-fecha-boton input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}

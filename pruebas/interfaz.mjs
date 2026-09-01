@@ -799,6 +799,72 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nLa fecha se escribe siempre en dd/mm/aaaa')
+  // -------------------------------------------------------------------------
+  //
+  // Un `input type="date"` a secas se pinta con el idioma del NAVEGADOR, no con
+  // el de la página: en uno en inglés salía 10/01/2026 —el mismo día escrito al
+  // revés— mientras el resto de la aplicación decía otra cosa. Por eso esta
+  // pestaña se abre a propósito en inglés: es donde fallaba.
+  {
+    const enIngles = await navegador.newContext({ locale: 'en-US' })
+    const otra = await enIngles.newPage()
+    try {
+      await otra.goto(WEB)
+      await otra.evaluate((token) => localStorage.setItem('gastos.token', token), entorno.token)
+      await otra.goto(WEB, { waitUntil: 'networkidle' })
+      await otra.waitForSelector('.hero', { timeout: 15000 })
+
+      await otra.getByRole('button', { name: 'Importar', exact: true }).first().click()
+      await otra.waitForTimeout(700)
+      await otra.getByRole('tab', { name: 'Tickets', exact: true }).click()
+      await otra.waitForTimeout(600)
+      await otra.getByRole('button', { name: 'Apunta la compra a mano' }).click()
+      await otra.waitForTimeout(500)
+
+      const campo = otra.getByLabel('Fecha de la compra', { exact: true })
+      const hoy = new Date()
+      const dia = String(hoy.getDate()).padStart(2, '0')
+      const mesDeHoy = String(hoy.getMonth() + 1).padStart(2, '0')
+      comprobar(
+        (await campo.inputValue()) === `${dia}/${mesDeHoy}/${hoy.getFullYear()}`,
+        'en un navegador en inglés, la fecha sale igual en dd/mm/aaaa',
+        await campo.inputValue(),
+      )
+
+      await campo.fill('15/10/2026')
+      await campo.press('Enter')
+      await otra.waitForTimeout(400)
+      comprobar(
+        (await otra.locator('.campo-fecha-boton input').inputValue()) === '2026-10-15',
+        'se escribe en dd/mm/aaaa y por dentro se guarda en ISO',
+      )
+
+      // Una fecha que no existe se rechaza y se vuelve a la que había.
+      await campo.fill('31/02/2026')
+      await campo.press('Enter')
+      await otra.waitForTimeout(400)
+      comprobar(
+        (await campo.inputValue()) === '15/10/2026',
+        'y el 31 de febrero no se traga: vuelve a la anterior',
+        await campo.inputValue(),
+      )
+
+      // Y el calendario del sistema sigue estando, encima del icono.
+      const calendario = otra.locator('.campo-fecha-boton input')
+      await calendario.fill('2026-10-22')
+      await otra.waitForTimeout(400)
+      comprobar(
+        (await campo.inputValue()) === '22/10/2026',
+        'y elegir en el calendario también funciona',
+        await campo.inputValue(),
+      )
+    } finally {
+      await enIngles.close()
+    }
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nAnalítica entra por el mes en curso')
   // -------------------------------------------------------------------------
   //

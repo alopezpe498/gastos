@@ -181,6 +181,36 @@ export function CampoTexto({
  * dentro sigue siendo AAAA-MM-DD, que es lo que entiende la API. Un campo de
  * texto pidiendo «AAAA-MM-DD» es pedirle al que lo usa que haga de traductor.
  */
+/** De AAAA-MM-DD a 01/10/2026. Cadena vacía si no hay fecha. */
+function comoSeEscribe(iso: string): string {
+  const encaja = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso ?? '')
+  return encaja ? `${encaja[3]}/${encaja[2]}/${encaja[1]}` : ''
+}
+
+/** Y de vuelta. Admite «5/10/2026» y «05-10-2026»; null si no se entiende. */
+function comoSeGuarda(texto: string): string | null {
+  const encaja = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/.exec((texto ?? '').trim())
+  if (!encaja) return null
+  const dia = encaja[1].padStart(2, '0')
+  const mes = encaja[2].padStart(2, '0')
+  const iso = `${encaja[3]}-${mes}-${dia}`
+  // Que exista de verdad: el 31 de febrero se escribe igual de bien.
+  const fecha = new Date(`${iso}T00:00:00Z`)
+  return Number.isFinite(fecha.getTime()) && fecha.toISOString().slice(0, 10) === iso ? iso : null
+}
+
+/**
+ * Una fecha, escrita como se escribe aquí: 01/10/2026.
+ *
+ * El `input type="date"` a secas no vale: se pinta con el idioma del NAVEGADOR,
+ * no con el de la página, así que en un navegador en inglés salía 10/01/2026 —
+ * el mismo día escrito al revés— mientras el resto de la aplicación decía otra
+ * cosa. Y eso no se puede cambiar ni con CSS ni con `lang`.
+ *
+ * Así que el texto lo escribe la aplicación, y el calendario del sistema sigue
+ * estando: el `input type="date"` de verdad está encima del icono, transparente.
+ * Al pulsarlo se abre el calendario nativo, que es lo que se quiere de él.
+ */
 export function CampoFecha({
   valor,
   onGuardar,
@@ -197,17 +227,62 @@ export function CampoFecha({
   maximo?: string
   disabled?: boolean
 }) {
+  const [borrador, setBorrador] = useState(() => comoSeEscribe(valor))
+  const [enFoco, setEnFoco] = useState(false)
+
+  // Mientras se escribe manda lo escrito; el resto del tiempo, el valor.
+  useEffect(() => {
+    if (!enFoco) setBorrador(comoSeEscribe(valor))
+  }, [valor, enFoco])
+
+  const confirmar = () => {
+    setEnFoco(false)
+    const iso = comoSeGuarda(borrador)
+    // Lo que no se entiende no se guarda: se vuelve a lo que había.
+    if (iso === null) setBorrador(comoSeEscribe(valor))
+    else if (iso !== valor) onGuardar(iso)
+  }
+
   return (
-    <input
-      className="campo visible"
-      type="date"
-      aria-label={etiqueta}
-      value={valor}
-      min={minimo}
-      max={maximo}
-      disabled={disabled}
-      onChange={(e) => onGuardar(e.target.value)}
-    />
+    <span className="campo-fecha">
+      <input
+        className="campo visible"
+        inputMode="numeric"
+        aria-label={etiqueta}
+        placeholder="dd/mm/aaaa"
+        value={borrador}
+        disabled={disabled}
+        onFocus={() => setEnFoco(true)}
+        onChange={(e) => setBorrador(e.target.value)}
+        onBlur={confirmar}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur()
+          if (e.key === 'Escape') {
+            setBorrador(comoSeEscribe(valor))
+            e.currentTarget.blur()
+          }
+        }}
+      />
+
+      {/*
+        El calendario del sistema. Va encima del icono y transparente porque un
+        `input type="date"` escondido no puede abrir su propio calendario: hay
+        que pulsarlo de verdad.
+      */}
+      <span className="campo-fecha-boton" aria-hidden="true">
+        <Icono nombre="calendario" size={15} />
+        <input
+          type="date"
+          tabIndex={-1}
+          aria-label={`${etiqueta}: elegir en el calendario`}
+          value={valor}
+          min={minimo}
+          max={maximo}
+          disabled={disabled}
+          onChange={(e) => e.target.value && onGuardar(e.target.value)}
+        />
+      </span>
+    </span>
   )
 }
 
