@@ -257,11 +257,9 @@ textarea.texto {
 .fila,
 .fila-ajuste,
 .linea-simple,
-.detalle-fijo,
 .ranking-fila,
 .comparativa-fila,
 .regla-fila,
-.conciliacion-fila,
 .previa-fila,
 .probador-fila,
 .resumen-linea {
@@ -279,7 +277,6 @@ textarea.texto {
 .ranking-fila:first-of-type,
 .comparativa-fila:first-of-type,
 .regla-fila:first-of-type,
-.conciliacion-fila:first-of-type,
 .previa-fila:first-of-type,
 .resumen-linea:first-of-type {
   border-top: 0;
@@ -298,7 +295,6 @@ textarea.texto {
 .linea-limpia,
 .ranking-nombre,
 .comparativa-nombre,
-.conciliacion-concepto,
 .previa-concepto-nombre {
   font-weight: 600;
   overflow: hidden;
@@ -311,7 +307,6 @@ textarea.texto {
 .previa-concepto-destino,
 .regla-usos,
 .regla-orden,
-.estado-fijo,
 .previa-marca,
 .variacion,
 .comparativa-variacion,
@@ -398,7 +393,6 @@ textarea.texto {
 .tabla-regla,
 .tabla-ranking,
 .tabla-comparativa,
-.tabla-conciliacion,
 .tabla-previa,
 .informe-tabla {
   width: 100%;
@@ -410,7 +404,6 @@ textarea.texto {
 .tabla-regla th,
 .tabla-ranking th,
 .tabla-comparativa th,
-.tabla-conciliacion th,
 .tabla-previa th,
 .informe-tabla th {
   font-size: 12px;
@@ -424,7 +417,6 @@ textarea.texto {
 .tabla-regla td,
 .tabla-ranking td,
 .tabla-comparativa td,
-.tabla-conciliacion td,
 .tabla-previa td,
 .informe-tabla td {
   padding: 9px 10px;

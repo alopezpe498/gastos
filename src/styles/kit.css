@@ -1339,6 +1339,24 @@ textarea.campo {
   vertical-align: middle;
 }
 
+/*
+ * El hueco de un chevron en una tabla que se despliega. Se reserva en todas
+ * las filas, tengan o no algo que abrir: si solo lo llevan unas, los nombres
+ * de la columna quedan a dos alturas y la tabla deja de leerse en vertical.
+ */
+.celda-abrir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  flex: none;
+}
+
+.celda-abrir .btn-icono {
+  width: 24px;
+  height: 24px;
+}
+
 .tabla th.num,
 .tabla td.num {
   text-align: right;

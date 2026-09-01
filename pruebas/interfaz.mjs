@@ -551,6 +551,55 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nLos fijos del extracto salen en una tabla de verdad')
+  // -------------------------------------------------------------------------
+  //
+  // Antes eran cinco columnas fingidas con un flex: la cabecera decía
+  // «Previsto · Real · Diferencia» y debajo cada fila ponía sus cifras donde le
+  // cabían. Lo que se comprueba es lo único que garantiza que se alineen: que
+  // sea una tabla y que todas las filas declaren tantas columnas como la
+  // cabecera, contando las que se extienden.
+  {
+    const tabla = pagina.locator('.tabla').first()
+    comprobar((await tabla.count()) === 1, 'los fijos se pintan con una tabla')
+
+    const columnas = await tabla.locator('thead th').count()
+    comprobar(columnas === 5, 'con sus cinco columnas', String(columnas))
+
+    const anchuras = await tabla.evaluate((t) =>
+      [...t.querySelectorAll('tbody tr')].map((fila) =>
+        [...fila.children].reduce((n, c) => n + (c.colSpan || 1), 0),
+      ),
+    )
+    comprobar(anchuras.length > 3, 'hay fijos que mirar', String(anchuras.length))
+    comprobar(
+      anchuras.every((n) => n === columnas),
+      'y ninguna fila se sale de la rejilla',
+      [...new Set(anchuras)].join(', '),
+    )
+
+    // Un fijo que suma varias líneas del banco se abre y las enseña.
+    const abrir = tabla.locator('.btn-icono').first()
+    comprobar((await abrir.count()) === 1, 'un fijo con varias líneas se puede desplegar')
+    const antes = await tabla.locator('tbody tr').count()
+    await abrir.click()
+    await pagina.waitForTimeout(500)
+    const despues = await tabla.locator('tbody tr').count()
+    comprobar(despues > antes, 'y al abrirlo salen sus líneas', `${antes} → ${despues}`)
+
+    const conDetalle = await tabla.evaluate((t) =>
+      [...t.querySelectorAll('tbody tr')].map((fila) =>
+        [...fila.children].reduce((n, c) => n + (c.colSpan || 1), 0),
+      ),
+    )
+    comprobar(
+      conDetalle.every((n) => n === columnas),
+      'las líneas de detalle tampoco',
+      [...new Set(conDetalle)].join(', '),
+    )
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nConceptos: activar, colorear y ordenar')
   // -------------------------------------------------------------------------
   {

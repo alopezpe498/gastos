@@ -11,10 +11,19 @@ import type {
   ReglaNueva,
   SugerenciaIa,
 } from '../../lib/tipos'
-import { BotonPrimario, BotonTexto, Cabecera, Card, Chip, MenuFila } from '../../components/ui/Basicos'
+import {
+  BotonIcono,
+  BotonPrimario,
+  BotonTexto,
+  Cabecera,
+  Card,
+  Chip,
+  MenuFila,
+} from '../../components/ui/Basicos'
 import { CampoImporte, CampoTexto, SelectorConcepto } from '../../components/ui/Campos'
 import { ConfirmacionDialogo, Dialogo } from '../../components/ui/Dialogo'
 import { Importe } from '../../components/ui/Fila'
+import { Celda, Fila as FilaTabla, Tabla } from '../../components/ui/Tabla'
 import { Icono } from '../../components/ui/Icono'
 import { useAvisos } from '../../components/ui/Toast'
 import {
@@ -622,18 +631,27 @@ export function RevisionExtracto({
         onAlternar={() => setAbiertos((a) => ({ ...a, fijos: !a.fijos }))}
         vacio="El extracto no trae ningún fijo reconocido."
       >
-        <div className="tabla-conciliacion">
-          <div className="conciliacion-fila cabecera" aria-hidden="true">
-            <span>Concepto</span>
-            <span>Previsto</span>
-            <span>Real</span>
-            <span>Diferencia</span>
-            <span>Estado</span>
-          </div>
+        {/*
+          Una tabla de verdad, no cinco columnas fingidas con un flex: la
+          cabecera decia «Previsto · Real · Diferencia» y debajo cada fila
+          ponia sus cifras donde le cabian, asi que no habia forma de leer
+          una columna de arriba abajo. Con la tabla de la caja, ademas, la
+          primera columna se queda quieta al desplazar de lado en el movil.
+        */}
+        <Tabla
+          etiqueta="Fijos que trae el extracto"
+          columnas={[
+            { clave: 'concepto', titulo: 'Concepto' },
+            { clave: 'previsto', titulo: 'Previsto', num: true, ancho: 104 },
+            { clave: 'real', titulo: 'Real', num: true, ancho: 104 },
+            { clave: 'diferencia', titulo: 'Diferencia', num: true, ancho: 110 },
+            { clave: 'estado', titulo: 'Estado', ancho: 168 },
+          ]}
+        >
           {conciliaciones.map((c) => (
             <FilaConciliacion key={c.conceptoId} conciliacion={c} />
           ))}
-        </div>
+        </Tabla>
 
         {propuesta.fijosSinEncontrar.length > 0 ? (
           <p className="pista">
@@ -1152,38 +1170,66 @@ function FilaConciliacion({ conciliacion }: { conciliacion: Conciliacion }) {
   const diferencia = previsto === null ? null : conciliacion.importe - previsto
   const desviado = diferencia !== null && previsto ? Math.abs(diferencia / previsto) > 0.1 : false
 
+  const varias = conciliacion.cuantasLineas > 1
+
   return (
     <>
-      <div className="conciliacion-fila">
-        <span className="conciliacion-concepto">
-          {conciliacion.cuantasLineas > 1 ? (
-            <button className="boton boton-texto boton-compacto" onClick={() => setAbierta((a) => !a)}>
-              {abierta ? '−' : '+'} {conciliacion.concepto}
-            </button>
-          ) : (
-            conciliacion.concepto
-          )}
-          {conciliacion.cuantasLineas > 1 ? (
-            <span className="linea-nota">{conciliacion.cuantasLineas} líneas sumadas</span>
-          ) : null}
-        </span>
-        <span className="dinero apagado">{previsto === null ? '—' : euros(previsto)}</span>
-        <span className="dinero">{euros(conciliacion.importe)}</span>
-        <span className={`dinero${desviado ? ' negativo' : ''}`}>
-          {diferencia === null ? '—' : (diferencia > 0 ? '+' : '') + euros(diferencia)}
-        </span>
-        <span className={`estado-fijo ${conciliacion.accion}`}>
-          {ETIQUETAS_ACCION[conciliacion.accion]}
-        </span>
-      </div>
+      <FilaTabla>
+        <Celda>
+          {/*
+            El hueco del chevron se reserva SIEMPRE, se pueda desplegar o no:
+            si solo lo llevan unas filas, los nombres de la columna quedan a
+            dos alturas distintas y la tabla deja de leerse de arriba abajo.
+          */}
+          <span className="fila-campos" style={{ gap: 6, flexWrap: 'nowrap' }}>
+            <span className="celda-abrir">
+              {varias ? (
+                <BotonIcono
+                  icono={abierta ? 'abajo' : 'chevron'}
+                  etiqueta={`${abierta ? 'Ocultar' : 'Ver'} las líneas de ${conciliacion.concepto}`}
+                  size={14}
+                  expandido={abierta}
+                  onClick={() => setAbierta((a) => !a)}
+                />
+              ) : null}
+            </span>
+            <span className="celda-concepto">
+              <span className="row-titulo">{conciliacion.concepto}</span>
+              {varias ? (
+                <span className="d">{cuantos(conciliacion.cuantasLineas, 'línea sumada', 'líneas sumadas')}</span>
+              ) : null}
+            </span>
+          </span>
+        </Celda>
+        <Celda num apagado>{previsto === null ? '—' : euros(previsto)}</Celda>
+        <Celda num>{euros(conciliacion.importe)}</Celda>
+        <Celda num>
+          <span className={desviado ? 'negativo' : undefined}>
+            {diferencia === null ? '—' : (diferencia > 0 ? '+' : '') + euros(diferencia)}
+          </span>
+        </Celda>
+        <Celda>
+          <span className="d">{ETIQUETAS_ACCION[conciliacion.accion]}</span>
+        </Celda>
+      </FilaTabla>
 
+      {/* Las lineas del banco que suman ese fijo, bajo la columna «Real». */}
       {abierta
         ? conciliacion.detalleLineas.map((d, i) => (
-            <div className="linea-simple detalle-fijo" key={i}>
-              <span className="linea-fecha">{d.fecha ? fechaCorta(d.fecha) : '—'}</span>
-              <span className="linea-limpia">{d.descripcion}</span>
-              <span className="dinero">{euros(d.importe)}</span>
-            </div>
+            <FilaTabla key={i}>
+              <Celda>
+                <span className="fila-campos" style={{ gap: 6, flexWrap: 'nowrap' }}>
+                  <span className="celda-abrir" />
+                  <span className="d">
+                    {d.fecha ? `${fechaCorta(d.fecha)} · ` : ''}
+                    {d.descripcion}
+                  </span>
+                </span>
+              </Celda>
+              <Celda />
+              <Celda num apagado>{euros(d.importe)}</Celda>
+              <Celda colSpan={2} />
+            </FilaTabla>
           ))
         : null}
     </>
