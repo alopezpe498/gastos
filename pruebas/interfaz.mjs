@@ -212,6 +212,62 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nCuadrar con el banco')
+  // -------------------------------------------------------------------------
+  //
+  // Lo comprometido son recibos que TODAVÍA no han salido de la cuenta, así que
+  // ese dinero sigue en el banco: lo que debería haber es lo libre más lo
+  // comprometido. Comparar eso con el saldo anotado es lo que convierte la
+  // pantalla en algo que se puede verificar contra la realidad.
+  {
+    const mes = await leerMes()
+    const { datos: panel } = await llamar(`/meses/${mes.id}/panel`)
+    const deberia = Math.round((panel.libre + panel.comprometido) * 100) / 100
+
+    // Sin saldo anotado no hay nada que cuadrar, y no se enseña nada.
+    await llamar(`/meses/${mes.id}`, { metodo: 'PATCH', cuerpo: { dineroEnCuenta: null } })
+    await abrirApp()
+    comprobar(
+      (await pagina.locator('.cuadre-banco').count()) === 0,
+      'sin saldo anotado no se enseña la comparación',
+    )
+
+    // Con el saldo que toca, cuadra.
+    await llamar(`/meses/${mes.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { dineroEnCuenta: deberia },
+    })
+    await abrirApp()
+    const cuadrando = await pagina.locator('.cuadre-banco').innerText()
+    comprobar(
+      cuadrando.includes('cuadra'),
+      'con el saldo que toca, dice que cuadra',
+      cuadrando,
+    )
+
+    // Y con quince euros de menos, lo dice y no lo llama error.
+    await llamar(`/meses/${mes.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { dineroEnCuenta: deberia - 15.44 },
+    })
+    await abrirApp()
+    const difiriendo = await pagina.locator('.cuadre-banco').innerText()
+    comprobar(
+      // El espacio antes del € es un no-separable: se compara sin atarse a él.
+      /15,44\s?€ de diferencia/.test(difiriendo),
+      'y con el saldo desviado, dice cuánto se desvía',
+      difiriendo,
+    )
+    comprobar(
+      (await pagina.locator('.cuadre-banco-ojo').count()) === 1,
+      'en ámbar: una diferencia puede ser dinero del mes anterior, no un error',
+    )
+
+    // Se deja el saldo sin poner: la prueba de al lado cuenta con eso.
+    await llamar(`/meses/${mes.id}`, { metodo: 'PATCH', cuerpo: { dineroEnCuenta: null } })
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nLa nómina y el saldo se cambian donde se leen')
   // -------------------------------------------------------------------------
   {

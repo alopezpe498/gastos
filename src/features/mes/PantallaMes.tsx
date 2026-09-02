@@ -317,6 +317,16 @@ export function PantallaMes({
    */
   const parteUsada = mes.ingreso > 0 ? (panel.pagado + panel.comprometido) / mes.ingreso : 0
 
+  /*
+   * Lo que debería quedar en la cuenta: lo libre más lo comprometido, porque
+   * lo comprometido todavía no ha salido del banco. Es lo que se compara con
+   * el saldo anotado a mano.
+   */
+  const alCentimo = (n: number) => Math.round(n * 100) / 100
+  const deberiaHaber = alCentimo(panel.libre + panel.comprometido)
+  const diferenciaBanco = alCentimo((mes.resumen.dineroEnCuenta ?? 0) - deberiaHaber)
+  const cuadraElBanco = Math.abs(diferenciaBanco) < 0.005
+
   const cobrados = panel.fijos.filter((f) => f.cobrado).length
   const excesoComida = panel.comida.gastado > panel.comida.presupuesto && panel.comida.presupuesto > 0
   /*
@@ -406,6 +416,32 @@ export function PantallaMes({
               />
             </span>
           </Leyenda>
+
+          {/*
+            Cuadrar con el banco.
+
+            Lo comprometido son recibos que todavía NO han salido de la cuenta,
+            así que el dinero sigue ahí: lo que debería quedar en el banco es lo
+            libre MÁS lo comprometido. Esa es la cifra que se compara con el
+            saldo, y la que hace de esta pantalla algo que se puede verificar.
+
+            Se enseña solo cuando hay saldo anotado —si no, no hay nada que
+            cuadrar— y una diferencia no es un error: puede ser dinero que venía
+            del mes anterior. Por eso dice «de diferencia» y no «te falta».
+          */}
+          {mes.resumen.dineroEnCuenta !== null ? (
+            <p className="cuadre-banco">
+              Sin lo comprometido, en el banco deberían quedar{' '}
+              <b>{redondo(deberiaHaber)}</b> · tienes <b>{redondo(mes.resumen.dineroEnCuenta)}</b>
+              {cuadraElBanco ? (
+                <span className="cuadre-banco-ok"> · cuadra</span>
+              ) : (
+                <span className="cuadre-banco-ojo">
+                  {' '}· {euros(Math.abs(diferenciaBanco))} de diferencia
+                </span>
+              )}
+            </p>
+          ) : null}
         </div>
 
         <Anillos

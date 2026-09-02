@@ -564,8 +564,12 @@ a {
   margin-right: 6px;
 }
 
+/* La nomina y el saldo, uno al lado del otro: sin separacion salian pegados. */
 .leg-derecha {
   margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 14px;
 }
 
 .dot {
@@ -2639,4 +2643,33 @@ input.casilla {
   margin: 0;
   padding: 0;
   cursor: pointer;
+}
+
+/*
+ * La linea de cuadrar con el banco, dentro del bloque principal de Mes. Va en
+ * gris y pequena a proposito: es una comprobacion, no una de las cifras que se
+ * miran cada dia.
+ */
+.cuadre-banco {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--tinta-2);
+}
+
+.cuadre-banco b {
+  font-weight: 700;
+  color: var(--tinta);
+  font-variant-numeric: tabular-nums;
+}
+
+.cuadre-banco-ok {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+/* Una diferencia no es un error: puede ser dinero del mes anterior. Ambar. */
+.cuadre-banco-ojo {
+  color: var(--ambar);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }

@@ -525,6 +525,19 @@ Lo que se acepte se guarda como alias y la próxima importación ya no pregunta.
 anuales (la del mes en curso, por ejemplo), el error ofrece «Probar a leerla con
 IA» y el resultado pasa por la misma vista previa de siempre.
 
+**Cuadrar con el banco.** Lo comprometido son recibos que **todavía no han
+salido** de la cuenta, así que ese dinero sigue en el banco: lo que debería
+haber es lo libre **más** lo comprometido. En cuanto se anota el saldo, el
+bloque principal lo dice en una línea —«en el banco deberían quedar 3.220 € ·
+tienes 3.205 € · 15,44 € de diferencia»— y eso convierte la pantalla en algo que
+se puede verificar contra la realidad.
+
+La diferencia va en ámbar y no en rojo a propósito: **no es un error**. Puede ser
+dinero que venía del mes anterior. Sin saldo anotado no se enseña nada, que es
+lo mismo que decir que no hay nada que cuadrar.
+
+---
+
 **Apuntar desde una foto, un texto pegado o un PDF.** Desde el botón de alta
 rápida del mes:
 
