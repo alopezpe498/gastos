@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { LineaDetalle } from '../../lib/tipos'
 import { euros } from '../../lib/formato'
 import { BotonIcono, BotonTexto } from './Basicos'
@@ -29,27 +29,78 @@ export function Desglose({
   const [anadiendo, setAnadiendo] = useState(false)
   const [nombre, setNombre] = useState('')
 
-  const cambiar = (indice: number, cambio: Partial<LineaDetalle>) =>
-    onGuardar(lineas.map((l, i) => (i === indice ? { ...l, ...cambio } : l)))
+  /*
+   * La lista con la que se trabaja, aquí dentro.
+   *
+   * Cada cambio manda al servidor la lista ENTERA, así que construirla a
+   * partir de lo que había cuando se pintó la pantalla es una carrera: se
+   * cambia el importe de una línea, se añade otra antes de que llegue la
+   * respuesta, y la segunda petición viaja con la foto vieja y borra a la
+   * primera. En local no se nota porque el servidor contesta en dos
+   * milisegundos; contra el servidor de verdad, se come una línea.
+   *
+   * Por eso lo último vive en una `ref`: cada operación se calcula sobre lo
+   * último que se sabe, no sobre lo último que se pintó.
+   */
+  const [locales, setLocales] = useState<LineaDetalle[]>(lineas)
+  const ultimas = useRef<LineaDetalle[]>(lineas)
+  const enVuelo = useRef(0)
+  const cola = useRef<Promise<unknown>>(Promise.resolve())
 
-  const quitar = (indice: number) => onGuardar(lineas.filter((_, i) => i !== indice))
+  /*
+   * Cuando el servidor manda algo nuevo se adopta, salvo que haya algo
+   * guardándose: en ese momento el servidor todavía no sabe lo que acabamos
+   * de hacer, y hacerle caso desharía el cambio a medio camino.
+   */
+  const firma = JSON.stringify(lineas)
+  useEffect(() => {
+    if (enVuelo.current > 0) return
+    ultimas.current = lineas
+    setLocales(lineas)
+    // La firma basta: es el contenido, no la identidad del array.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firma])
+
+  /** Aplica un cambio sobre lo último, lo pinta y lo guarda. */
+  const aplicar = (transformar: (actuales: LineaDetalle[]) => LineaDetalle[]) => {
+    const nuevas = transformar(ultimas.current)
+    ultimas.current = nuevas
+    setLocales(nuevas)
+    /*
+     * En fila de uno en uno. Si dos cambios salen a la vez, el que llegue el
+     * ultimo manda —y por la red no siempre llega el ultimo que salio—, asi que
+     * cada uno espera a que el anterior conteste.
+     */
+    enVuelo.current += 1
+    cola.current = cola.current
+      .catch(() => undefined)
+      .then(() => onGuardar(nuevas))
+      .finally(() => {
+        enVuelo.current -= 1
+      })
+  }
+
+  const cambiar = (indice: number, cambio: Partial<LineaDetalle>) =>
+    aplicar((actuales) => actuales.map((l, i) => (i === indice ? { ...l, ...cambio } : l)))
+
+  const quitar = (indice: number) => aplicar((actuales) => actuales.filter((_, i) => i !== indice))
 
   const anadir = (texto: string) => {
     const limpio = texto.trim()
     setNombre('')
     setAnadiendo(false)
-    if (limpio) void onGuardar([...lineas, { nombre: limpio, importe: 0 }])
+    if (limpio) aplicar((actuales) => [...actuales, { nombre: limpio, importe: 0 }])
   }
 
   return (
     <div className="desglose">
-      {lineas.length === 0 && !anadiendo ? (
+      {locales.length === 0 && !anadiendo ? (
         <p className="desglose-vacio">
           Sin desglose. Añade lo que agrupa este apunte y el importe pasará a ser la suma.
         </p>
       ) : null}
 
-      {lineas.map((linea, indice) => (
+      {locales.map((linea, indice) => (
         <div className="desglose-linea" key={`${linea.nombre}-${indice}`}>
           <span className="desglose-nombre">
             <CampoTexto
@@ -101,10 +152,10 @@ export function Desglose({
           </BotonTexto>
         )}
 
-        {lineas.length > 0 ? (
+        {locales.length > 0 ? (
           <span className="desglose-suma">
             {/* Al céntimo, no redondeado: está justo debajo del importe de la fila. */}
-            {lineas.length} · {euros(lineas.reduce((t, l) => t + l.importe, 0))}
+            {locales.length} · {euros(locales.reduce((t, l) => t + l.importe, 0))}
           </span>
         ) : null}
       </div>

@@ -425,6 +425,101 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nDos cambios seguidos en el desglose, con la red lenta')
+  // -------------------------------------------------------------------------
+  //
+  // «Le doy añadir y al dar a intro, el otro lo elimina y solo queda el nuevo».
+  //
+  // Cada cambio del desglose manda la lista ENTERA. Mientras se construyera a
+  // partir de lo que había cuando se pintó la pantalla, dos cambios seguidos
+  // eran una carrera: el segundo viajaba con la foto vieja y borraba al
+  // primero. En local no se veía —el servidor contesta en dos milisegundos—,
+  // así que aquí se le pone a la red el retardo que tiene de verdad.
+  {
+    await pagina.route('**/api/**', async (ruta) => {
+      await new Promise((r) => setTimeout(r, 500))
+      await ruta.continue()
+    })
+    try {
+      await abrirApp()
+      await pagina.waitForTimeout(1200)
+      const antes = await leerMes()
+      const fijo = antes.fijos.find((f) => (f.detalle ?? []).length > 0)
+      comprobar(!!fijo, 'se parte de un fijo que ya tiene una línea')
+      const vieja = fijo.detalle[0].nombre
+
+      await pagina.getByRole('button', { name: `Ver el desglose de ${fijo.concepto}` }).click()
+      await pagina.waitForTimeout(600)
+
+      // Se toca el importe y, SIN esperar a que llegue, se añade otra línea.
+      const importe = pagina.getByLabel(`Importe de ${vieja}`)
+      await importe.click()
+      await importe.fill('25')
+      await pagina.getByRole('button', { name: 'Añadir' }).click()
+      await pagina.getByLabel('Nombre de la cosa nueva').fill('Luz')
+      await pagina.keyboard.press('Enter')
+      await pagina.waitForTimeout(4000)
+
+      const despues = (await leerMes()).fijos.find((f) => f.id === fijo.id)
+      const nombres = (despues.detalle ?? []).map((l) => l.nombre)
+      comprobar(
+        nombres.length === 2 && nombres.includes(vieja) && nombres.includes('Luz'),
+        'LA LÍNEA DE ANTES NO SE BORRA al añadir la nueva',
+        JSON.stringify(nombres),
+      )
+      comprobar(
+        Math.abs((despues.detalle.find((l) => l.nombre === vieja)?.importe ?? 0) - 25) < 0.005,
+        'y el importe que se estaba escribiendo tampoco se deshace',
+        JSON.stringify(despues.detalle),
+      )
+      comprobar(
+        despues.detalle.every((l) => l.importacionId === null || l.importacionId === undefined),
+        'una línea escrita a mano no dice venir de la importación número cero',
+        JSON.stringify(despues.detalle.map((l) => l.importacionId)),
+      )
+
+      /*
+       * Y al revés, que es como lo contó: primero se añade y enseguida se toca
+       * el importe de la que ya estaba. Aquí el que llega el último es el
+       * cambio del importe, y con la foto vieja venía sin la línea nueva: la
+       * borraba.
+       */
+      await llamar(`/movimientos/${fijo.id}`, {
+        metodo: 'PATCH',
+        cuerpo: { detalle: [{ nombre: vieja, importe: 12.99 }] },
+      })
+      await abrirApp()
+      await pagina.waitForTimeout(1200)
+      await pagina.getByRole('button', { name: `Ver el desglose de ${fijo.concepto}` }).click()
+      await pagina.waitForTimeout(600)
+
+      await pagina.getByRole('button', { name: 'Añadir' }).click()
+      await pagina.getByLabel('Nombre de la cosa nueva').fill('Gas')
+      await pagina.keyboard.press('Enter')
+      const otro = pagina.getByLabel(`Importe de ${vieja}`)
+      await otro.click()
+      await otro.fill('30')
+      await pagina.keyboard.press('Enter')
+      await pagina.waitForTimeout(4000)
+
+      const alReves = (await leerMes()).fijos.find((f) => f.id === fijo.id)
+      const suyos = (alReves.detalle ?? []).map((l) => l.nombre)
+      comprobar(
+        suyos.length === 2 && suyos.includes('Gas'),
+        'y tocando el importe justo después de añadir, la nueva tampoco se pierde',
+        JSON.stringify(suyos),
+      )
+      comprobar(
+        Math.abs((alReves.detalle.find((l) => l.nombre === vieja)?.importe ?? 0) - 30) < 0.005,
+        'con el importe nuevo puesto',
+        JSON.stringify(alReves.detalle),
+      )
+    } finally {
+      await pagina.unroute('**/api/**')
+    }
+  }
+
+  // -------------------------------------------------------------------------
   console.log('\nRegenerar desde la plantilla')
   // -------------------------------------------------------------------------
   {

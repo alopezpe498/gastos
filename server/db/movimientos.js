@@ -24,9 +24,9 @@ function leerDetalle(texto) {
          * pisar los que ya habia, y que deshacerlo se lleve solo los suyos.
          * Nulo en las lineas escritas a mano.
          */
-        importacionId: Number.isFinite(Number(l.importacionId))
-          ? Number(l.importacionId)
-          : null,
+        // Ojo: Number(null) es 0, y una linea escrita a mano no viene de la
+        // importacion numero cero. Solo cuenta un numero de verdad.
+        importacionId: typeof l.importacionId === 'number' ? l.importacionId : null,
       }))
   } catch {
     return []
@@ -41,7 +41,7 @@ function escribirDetalle(lista) {
     .map((l) => ({
       nombre: String(l.nombre).trim().slice(0, 80),
       importe: redondear(Number(l.importe) || 0),
-      importacionId: Number.isFinite(Number(l.importacionId)) ? Number(l.importacionId) : null,
+      importacionId: typeof l.importacionId === 'number' ? l.importacionId : null,
     }))
   return limpias.length > 0 ? JSON.stringify(limpias) : null
 }
