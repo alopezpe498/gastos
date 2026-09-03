@@ -262,18 +262,30 @@ export const aceptar = bd.transaction(
          *
          * Si no lo habia cobrado nadie, el importe del banco manda: lo que habia
          * era una prevision de la plantilla.
+         *
+         * LA PREGUNTA ES SI HAY DESGLOSE, no quien lo cobro. Esto se hacia antes
+         * mirando solo `importacion_id`, y tenia un agujero: ese campo se borra al
+         * deshacer una importacion, y las lineas guardadas antes de todo esto no
+         * traen de que importacion vienen. En los dos casos se caia en el lado de
+         * «sustituir» y quedaba un apunte de 3,99 € con un desglose que sumaba
+         * 146,88 €: el importe y su desglose diciendo cosas distintas.
+         *
+         * Con desglose, el importe es la suma. Esa es la regla, y aqui se respeta
+         * venga el desglose de donde venga.
          */
+        const detalleActual = actual?.detalle ?? []
+        const tieneDesglose = detalleActual.length > 0
         const yaLoCobroElBanco = !!actual?.importacionId
 
-        if (yaLoCobroElBanco) {
+        if (tieneDesglose || yaLoCobroElBanco) {
           /*
            * Si todavia no habia desglose —un fijo que se cobro de una sola vez—,
            * la primera linea es lo que ya habia cobrado, con el texto que puso
            * el banco. Sin eso, sumar el cargo nuevo perderia el anterior.
            */
           const base =
-            (actual.detalle ?? []).length > 0
-              ? actual.detalle
+            tieneDesglose
+              ? detalleActual
               : [
                   {
                     nombre: actual.descripcionOriginal || actual.concepto,

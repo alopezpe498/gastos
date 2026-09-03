@@ -430,10 +430,11 @@ lista en lugar de pegarlos en la descripción:
 ```
 
 - Un apunte sin desglose devuelve `detalle: []`.
-- **Con desglose, `importe` es la suma de las líneas.** El `PATCH` lo recalcula e
-  ignora cualquier `importe` que venga en el mismo cuerpo: si no, podrían
-  guardarse unas líneas que suman 60 en un apunte que dice 45 y el mes cuadraría
-  con el número equivocado.
+- **Con desglose, `importe` es la suma de las líneas.** No es una regla de una
+  ruta: se aplica al guardar cualquier cambio de un movimiento, venga de donde
+  venga. Un `PATCH` con `importe` sobre un apunte con desglose no lo tuerce, y
+  un extracto tampoco. Si un apunte quedó torcido por el fallo que había antes,
+  se endereza solo en cuanto algo lo toca.
 - Cada línea necesita `nombre` (hasta 80 caracteres) e `importe`; una línea sin
   nombre o con un importe ilegible devuelve `400`. Máximo 60 líneas.
 - `detalle: []` quita el desglose y deja el importe donde estaba: a partir de ahí

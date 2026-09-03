@@ -931,6 +931,122 @@ try {
     comprobar(limpio.cobrado === false, 'y lo deja pendiente otra vez')
   }
 
+  // -------------------------------------------------------------------------
+  console.log('\nUn desglose de antes tampoco se pisa')
+  // -------------------------------------------------------------------------
+  //
+  // El mismo fallo, por otra puerta. La primera vez se arregló mirando qué
+  // importación había cobrado el apunte, y eso tenía un agujero: ese dato se
+  // borra al deshacer una importación, y las líneas guardadas antes de todo
+  // esto no dicen de dónde vienen. Por ahí se colaba otra vez, y quedaba un
+  // apunte de 3,99 € con un desglose que sumaba 146,88 €.
+  //
+  // Lo que manda es el desglose: si lo hay, el importe es su suma.
+  {
+    const { datos: oct } = await llamar('/meses', { metodo: 'POST', cuerpo: { anio: 2026, mes: 10 } })
+    const { datos: mesOct } = await llamar('/meses/2026/10')
+    const susc = mesOct.fijos.find((f) => f.concepto === 'Suscripciones')
+
+    /*
+     * Se deja el apunte como lo dejó la versión anterior: con desglose, cobrado,
+     * y SIN saber de qué importación vienen sus líneas.
+     */
+    await llamar(`/movimientos/${susc.id}`, {
+      metodo: 'PATCH',
+      cuerpo: {
+        detalle: [
+          { nombre: 'NETFLIX.COM-Madrid', importe: 21.99 },
+          { nombre: 'ANTHROPIC* CLAUDE SUB', importe: 108.9 },
+        ],
+      },
+    })
+
+    const antes = (await llamar(`/meses/2026/10`)).datos.fijos.find(
+      (f) => f.concepto === 'Suscripciones',
+    )
+    comprobar(
+      igualEnCentimos(antes.importe, 130.89),
+      'el apunte parte de un desglose de 130,89',
+      String(antes.importe),
+    )
+
+    // Y llega un extracto con UNA suscripción más.
+    const { datos: p3 } = await llamar('/extracto/clasificar', {
+      metodo: 'POST',
+      cuerpo: {
+        mesId: oct.id,
+        texto: extractoDe(
+          [
+            ['30/10/2026', 'COMPRA TARJ. 5402XXXXXXXX4010 DISNEY PLUS-AMSTERDAM', '30/10/2026', -3.99, 300, '', ''],
+          ],
+          { desde: '01/10/2026', hasta: '31/10/2026' },
+        ),
+        nombreArchivo: 'una-mas.csv',
+      },
+    })
+    const lineas3 = p3.lineas.map((l) =>
+      l.destino === 'sinClasificar' ? { ...l, destino: 'descartado' } : l,
+    )
+    await llamar(`/extracto/${p3.importacion.id}/aceptar`, {
+      metodo: 'POST',
+      cuerpo: { lineas: lineas3, conciliaciones: p3.conciliaciones, periodo: p3.lectura.periodo },
+    })
+
+    const despues = (await llamar(`/meses/2026/10`)).datos.fijos.find(
+      (f) => f.concepto === 'Suscripciones',
+    )
+    comprobar(
+      despues.detalle.length === 3,
+      'la nueva se añade al desglose que ya había',
+      JSON.stringify(despues.detalle.map((l) => l.nombre)),
+    )
+    comprobar(
+      igualEnCentimos(despues.importe, 134.88),
+      'y el importe NO se queda en 3,99: es la suma de las tres',
+      String(despues.importe),
+    )
+    comprobar(
+      igualEnCentimos(
+        despues.detalle.reduce((t, l) => t + l.importe, 0),
+        despues.importe,
+      ),
+      'el importe y su desglose dicen lo mismo',
+    )
+  }
+
+  // -------------------------------------------------------------------------
+  console.log('\nUn importe no puede contradecir a su desglose')
+  // -------------------------------------------------------------------------
+  //
+  // La regla vive ahora donde pasan todos los cambios, así que ni siquiera
+  // haciendo trampa se puede dejar un apunte diciendo dos cosas distintas.
+  {
+    const { datos: mesOct } = await llamar(`/meses/2026/10`)
+    const susc = mesOct.fijos.find((f) => f.concepto === 'Suscripciones')
+
+    const r = await llamar(`/movimientos/${susc.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { importe: 3.99 },
+    })
+    comprobar(
+      igualEnCentimos(r.datos.importe, 134.88),
+      'poner un importe a mano sobre un apunte con desglose no lo tuerce',
+      String(r.datos.importe),
+    )
+
+    // Y sin desglose, el importe vuelve a ser lo que se escriba.
+    await llamar(`/movimientos/${susc.id}`, { metodo: 'PATCH', cuerpo: { detalle: [] } })
+    const suelto = await llamar(`/movimientos/${susc.id}`, {
+      metodo: 'PATCH',
+      cuerpo: { importe: 3.99 },
+    })
+    comprobar(
+      igualEnCentimos(suelto.datos.importe, 3.99),
+      'sin desglose, manda lo que se escribe',
+      String(suelto.datos.importe),
+    )
+  }
+
 } finally {
   await entorno.cerrar()
 }

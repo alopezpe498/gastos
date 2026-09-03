@@ -183,6 +183,21 @@ export function actualizar(id, cambios) {
   const actual = obtener(id)
   if (!actual) return null
 
+  /*
+   * CON DESGLOSE, EL IMPORTE ES LA SUMA. Aqui, y no solo en quien llama.
+   *
+   * La regla estaba escrita en la ruta PATCH y en el guardado de un ticket,
+   * pero no aqui, y bastaba un camino que no pasara por ellas para dejar un
+   * apunte de 3,99 € con un desglose que sumaba 146,88 €. Un numero que
+   * contradice a su propio detalle es peor que no tener detalle: parece bueno.
+   *
+   * Ponerla en el sitio por donde pasan todos los cambios cierra la puerta, y
+   * ademas repara solo lo que ya se hubiera torcido: en cuanto algo toca ese
+   * apunte, el importe vuelve a ser lo que suman sus lineas.
+   */
+  const detalleFinal = cambios.detalle === undefined ? actual.detalle : cambios.detalle
+  const conDesglose = Array.isArray(detalleFinal) && detalleFinal.length > 0
+
   bd.prepare(
     `UPDATE movimientos SET
        concepto_id = @conceptoId,
@@ -196,7 +211,11 @@ export function actualizar(id, cambios) {
   ).run({
     id,
     conceptoId: cambios.conceptoId ?? actual.conceptoId,
-    importe: cambios.importe === undefined ? actual.importe : redondear(Number(cambios.importe) || 0),
+    importe: conDesglose
+      ? sumaDelDetalle(detalleFinal)
+      : cambios.importe === undefined
+        ? actual.importe
+        : redondear(Number(cambios.importe) || 0),
     dia: cambios.diaPrevisto === undefined ? actual.diaPrevisto : cambios.diaPrevisto,
     // null explicito = desmarcar el cobro y volver a pendiente.
     cobro: cambios.fechaCobro === undefined ? actual.fechaCobro : cambios.fechaCobro,
