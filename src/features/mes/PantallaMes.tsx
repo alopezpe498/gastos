@@ -410,7 +410,12 @@ export function PantallaMes({
               <ValorEditable
                 valor={mes.resumen.dineroEnCuenta}
                 prefijo="Saldo"
-                vacio="Anotar el saldo del banco"
+                /*
+                  Lo que se ofrece es lo que se obtiene: anotarlo enciende la
+                  comparación de abajo. «Anotar el saldo del banco» no decía
+                  para qué servía, y quien lo pide no lo encuentra.
+                */
+                vacio="Anotar el saldo y cuadrar"
                 etiqueta="Saldo en cuenta"
                 onGuardar={(v) => cambiarMes({ dineroEnCuenta: v })}
               />

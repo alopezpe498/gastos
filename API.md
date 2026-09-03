@@ -441,6 +441,13 @@ lista en lugar de pegarlos en la descripción:
 - Al importar un extracto, un concepto que agrupa **más de una** línea del banco
   se guarda con su desglose. El total no cambia, así que ningún cálculo del mes
   depende de esto.
+- Si un extracto POSTERIOR trae otro cargo del mismo concepto en el mismo mes, se
+  **suma** al desglose que ya había: es un cargo más, no una corrección. Cada
+  línea recuerda de qué importación viene, así que deshacer esa importación se
+  lleva solo las suyas y deja las anteriores.
+- Solo se **sustituye** cuando ninguna importación había cobrado ese apunte
+  todavía: lo que había entonces era la previsión de la plantilla, y ahí manda el
+  banco.
 
 ---
 

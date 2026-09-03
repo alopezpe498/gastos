@@ -222,10 +222,16 @@ export const aceptar = bd.transaction(
        * descripcion como un texto: se veia el total pero no se podia mirar
        * dentro ni anadir una a mano. El importe sigue siendo la suma, asi que
        * ningun total cambia.
+       *
+       * Cada linea recuerda de que importacion viene: es lo que permite que un
+       * segundo extracto sume sus cargos y que deshacerlo se lleve solo los
+       * suyos.
        */
-      const desglose = (c.detalleLineas ?? []).length > 1
-        ? c.detalleLineas.map((l) => ({ nombre: l.descripcion, importe: l.importe }))
-        : null
+      const nuevasLineas = (c.detalleLineas ?? []).map((l) => ({
+        nombre: l.descripcion,
+        importe: l.importe,
+        importacionId,
+      }))
 
       if (c.accion === 'crear' || !movimientoId) {
         const nuevo = movimientosBd.crear({
@@ -235,17 +241,60 @@ export const aceptar = bd.transaction(
           importePrevisto: c.importePrevisto ?? c.importe,
           fechaCobro: c.fecha,
           descripcion: '',
-          detalle: desglose,
+          detalle: nuevasLineas.length > 1 ? nuevasLineas : null,
           origen: 'extracto',
         })
         movimientoId = nuevo.id
         creados += 1
       } else {
-        movimientosBd.actualizar(movimientoId, {
-          importe: c.importe,
-          fechaCobro: c.fecha,
-          ...(desglose ? { detalle: desglose } : {}),
-        })
+        const actual = movimientosBd.obtener(movimientoId)
+
+        /*
+         * ¿Es una CORRECCION o es un CARGO MAS?
+         *
+         * Si otra importacion ya cobro este fijo, lo que llega ahora es un cargo
+         * adicional del mismo concepto en el mismo mes: la segunda suscripcion
+         * del mes, el segundo recibo del agua. Se SUMA.
+         *
+         * Pisarlo era lo que hacia antes, y se comia el total: un mes con ocho
+         * suscripciones por 200 € se quedaba en los 9,99 de la ultima, y esa
+         * ultima ni siquiera entraba en el desglose.
+         *
+         * Si no lo habia cobrado nadie, el importe del banco manda: lo que habia
+         * era una prevision de la plantilla.
+         */
+        const yaLoCobroElBanco = !!actual?.importacionId
+
+        if (yaLoCobroElBanco) {
+          /*
+           * Si todavia no habia desglose —un fijo que se cobro de una sola vez—,
+           * la primera linea es lo que ya habia cobrado, con el texto que puso
+           * el banco. Sin eso, sumar el cargo nuevo perderia el anterior.
+           */
+          const base =
+            (actual.detalle ?? []).length > 0
+              ? actual.detalle
+              : [
+                  {
+                    nombre: actual.descripcionOriginal || actual.concepto,
+                    importe: actual.importe,
+                    importacionId: actual.importacionId,
+                  },
+                ]
+          const detalle = [...base, ...nuevasLineas]
+          movimientosBd.actualizar(movimientoId, {
+            detalle,
+            importe: movimientosBd.sumaDelDetalle(detalle),
+            fechaCobro: c.fecha,
+          })
+        } else {
+          movimientosBd.actualizar(movimientoId, {
+            importe: c.importe,
+            fechaCobro: c.fecha,
+            ...(nuevasLineas.length > 1 ? { detalle: nuevasLineas } : {}),
+          })
+        }
+
         if (c.accion === 'actualizar') actualizados += 1
         else cobrados += 1
       }
@@ -429,14 +478,46 @@ export const deshacer = bd.transaction((importacionId) => {
   for (const movimientoId of conciliados) {
     const movimiento = movimientosBd.obtener(movimientoId)
     if (!movimiento) continue
-    // A pendiente y a lo que decia la plantilla.
-    movimientosBd.actualizarPrevisto(movimientoId, {
-      importePrevisto: movimiento.importePrevisto ?? movimiento.importe,
-      importe: movimiento.importePrevisto ?? movimiento.importe,
-    })
-    bd.prepare(
-      'UPDATE movimientos SET fecha_cobro = NULL, importacion_id = NULL, descripcion = ? WHERE id = ?',
-    ).run('', movimientoId)
+
+    /*
+     * Del desglose se van SOLO las lineas de esta importacion.
+     *
+     * Un fijo puede haberse cobrado en dos extractos —ocho suscripciones en el
+     * primero y una mas en el segundo—, y deshacer el segundo no puede llevarse
+     * las ocho del primero. Las lineas escritas a mano tampoco: esas no las
+     * trajo ninguna importacion y no son de nadie mas.
+     */
+    const quedan = (movimiento.detalle ?? []).filter((l) => l.importacionId !== importacionId)
+    const deOtrasImportaciones = quedan.filter((l) => l.importacionId)
+
+    if (quedan.length > 0) {
+      // Queda algo: el importe vuelve a ser la suma de lo que queda.
+      movimientosBd.actualizar(movimientoId, {
+        detalle: quedan,
+        importe: movimientosBd.sumaDelDetalle(quedan),
+      })
+      if (deOtrasImportaciones.length > 0) {
+        // Sigue cobrado por una importacion anterior: se le devuelve la suya.
+        bd.prepare('UPDATE movimientos SET importacion_id = ? WHERE id = ?').run(
+          deOtrasImportaciones[deOtrasImportaciones.length - 1].importacionId,
+          movimientoId,
+        )
+      } else {
+        bd.prepare(
+          'UPDATE movimientos SET fecha_cobro = NULL, importacion_id = NULL, descripcion = ? WHERE id = ?',
+        ).run('', movimientoId)
+      }
+    } else {
+      // No queda nada del banco: a pendiente y a lo que decia la plantilla.
+      movimientosBd.actualizar(movimientoId, { detalle: [] })
+      movimientosBd.actualizarPrevisto(movimientoId, {
+        importePrevisto: movimiento.importePrevisto ?? movimiento.importe,
+        importe: movimiento.importePrevisto ?? movimiento.importe,
+      })
+      bd.prepare(
+        'UPDATE movimientos SET fecha_cobro = NULL, importacion_id = NULL, descripcion = ? WHERE id = ?',
+      ).run('', movimientoId)
+    }
     devueltos += 1
   }
 

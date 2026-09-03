@@ -280,7 +280,7 @@ try {
     comprobar(Math.abs((await leerMes()).ingreso - 3333) < 0.005, 'la nómina se guarda')
 
     await abrirApp()
-    await pagina.getByRole('button', { name: /saldo del banco/ }).first().click()
+    await pagina.getByRole('button', { name: /Anotar el saldo/ }).first().click()
     const saldo = pagina.getByLabel('Saldo en cuenta')
     await saldo.fill('1200')
     await saldo.press('Enter')

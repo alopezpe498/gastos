@@ -15,7 +15,19 @@ function leerDetalle(texto) {
     if (!Array.isArray(lista)) return []
     return lista
       .filter((l) => l && typeof l.nombre === 'string')
-      .map((l) => ({ nombre: l.nombre, importe: redondear(Number(l.importe) || 0) }))
+      .map((l) => ({
+        nombre: l.nombre,
+        importe: redondear(Number(l.importe) || 0),
+        /*
+         * De que importacion del banco salio esta linea, si salio de alguna.
+         * Es lo que permite que un segundo extracto SUME sus cargos en vez de
+         * pisar los que ya habia, y que deshacerlo se lleve solo los suyos.
+         * Nulo en las lineas escritas a mano.
+         */
+        importacionId: Number.isFinite(Number(l.importacionId))
+          ? Number(l.importacionId)
+          : null,
+      }))
   } catch {
     return []
   }
@@ -29,6 +41,7 @@ function escribirDetalle(lista) {
     .map((l) => ({
       nombre: String(l.nombre).trim().slice(0, 80),
       importe: redondear(Number(l.importe) || 0),
+      importacionId: Number.isFinite(Number(l.importacionId)) ? Number(l.importacionId) : null,
     }))
   return limpias.length > 0 ? JSON.stringify(limpias) : null
 }
@@ -55,6 +68,9 @@ function aMovimiento(m) {
     detalle: leerDetalle(m.detalle),
     cobrado: !!m.fecha_cobro,
     descripcion: m.descripcion ?? '',
+    // La descripcion tal cual la escribio el banco, y que importacion lo cobro.
+    descripcionOriginal: m.descripcion_original ?? null,
+    importacionId: m.importacion_id ?? null,
     origen: m.origen,
   }
 }

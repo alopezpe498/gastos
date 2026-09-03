@@ -13,11 +13,40 @@
 //   5. Que subir dos veces el mismo fichero no duplica nada.
 import ExcelJS from 'exceljs'
 import { levantar, crearLlamar, crearComprobador, igualEnCentimos } from './entorno.mjs'
-import { FILAS, ESPERADO, comoTexto } from './fixtures/extractoEjemplo.mjs'
+import { FILAS, CABECERA, ESPERADO, comoTexto } from './fixtures/extractoEjemplo.mjs'
 
 const entorno = await levantar('extracto')
 const llamar = crearLlamar(entorno)
 const { comprobar, estado } = crearComprobador()
+
+/**
+ * Un extracto pequeño, con la misma forma que el del banco: siete filas de
+ * morralla, la cabecera y las líneas que se le pasen.
+ *
+ * Sirve para las pruebas de DOS importaciones seguidas, que es donde se
+ * comprobó que un segundo cargo del mismo fijo se comía el primero.
+ */
+function extractoDe(filas, { desde, hasta }) {
+  const todas = [
+    ['Consulta de movimientos'],
+    ['03/09/2026 09:00:00'],
+    [],
+    ['Cuenta: ', 'ES00 0000 0000 0000 0000 0000'],
+    ['Divisa: ', 'EUR'],
+    ['Titular:', 'NOMBRE*APELLIDO APELLIDO'],
+    [`Selección:`, `Desde ${desde} hasta ${hasta}`],
+    [],
+    CABECERA,
+    ...filas,
+  ]
+  return todas
+    .map((fila) =>
+      fila
+        .map((celda) => (typeof celda === 'number' ? String(celda).replace('.', ',') : String(celda ?? '')))
+        .join('\t'),
+    )
+    .join('\n')
+}
 
 /** El fixture, convertido en un .xlsx de verdad y en base64. */
 async function comoXlsx() {
@@ -794,6 +823,114 @@ try {
     const vacio = await llamar('/extracto/leer', { metodo: 'POST', cuerpo: {} })
     comprobar(vacio.estado === 400, 'sin archivo ni texto, se rechaza')
   }
+  // -------------------------------------------------------------------------
+  console.log('\nDos extractos seguidos: el segundo SUMA, no pisa')
+  // -------------------------------------------------------------------------
+  //
+  // El caso que se rompía: en el primer extracto llegan varias suscripciones y
+  // se agrupan bien, con su desglose. En un extracto POSTERIOR llega una más, y
+  // lo que hacía era machacar el total con el importe de esa última y ni
+  // siquiera añadirla al desglose. Ocho suscripciones por 200 € se quedaban en
+  // los 9,99 de la novena.
+  {
+    const { datos: sept } = await llamar('/meses', { metodo: 'POST', cuerpo: { anio: 2026, mes: 9 } })
+
+    const aceptarExtracto = async (texto) => {
+      const { datos: p } = await llamar('/extracto/clasificar', {
+        metodo: 'POST',
+        cuerpo: { mesId: sept.id, texto, nombreArchivo: `mini-${Date.now()}.csv` },
+      })
+      const lineas = p.lineas.map((l) =>
+        l.destino === 'sinClasificar' ? { ...l, destino: 'descartado' } : l,
+      )
+      const r = await llamar(`/extracto/${p.importacion.id}/aceptar`, {
+        metodo: 'POST',
+        cuerpo: { lineas, conciliaciones: p.conciliaciones, periodo: p.lectura.periodo },
+      })
+      return { propuesta: p, respuesta: r }
+    }
+
+    const suscripciones = async () => {
+      const { datos: mes } = await llamar('/meses/2026/9')
+      return mes.fijos.find((f) => f.concepto === 'Suscripciones')
+    }
+
+    // --- primer extracto: dos suscripciones ---
+    const primero = await aceptarExtracto(
+      extractoDe(
+        [
+          ['02/09/2026', 'COMPRA TARJ. 5402XXXXXXXX4010 NETFLIX.COM-MADRID', '02/09/2026', -21.99, 500, '', ''],
+          ['03/09/2026', 'COMPRA TARJ. 5402XXXXXXXX4010 SPOTIFY-STOCKHOLM', '03/09/2026', -10.99, 489, '', ''],
+        ],
+        { desde: '01/09/2026', hasta: '10/09/2026' },
+      ),
+    )
+    comprobar(primero.respuesta.estado === 200, 'se acepta el primer extracto', JSON.stringify(primero.respuesta.datos?.detalle ?? ''))
+
+    const tras1 = await suscripciones()
+    comprobar(
+      igualEnCentimos(tras1.importe, 32.98),
+      'las dos suscripciones se agrupan en un solo apunte',
+      String(tras1.importe),
+    )
+    comprobar(tras1.detalle.length === 2, 'con su desglose de dos líneas', String(tras1.detalle.length))
+
+    // --- segundo extracto: una más ---
+    const segundo = await aceptarExtracto(
+      extractoDe(
+        [
+          ['20/09/2026', 'COMPRA TARJ. 5402XXXXXXXX4010 DISNEY PLUS-MADRID', '20/09/2026', -8.99, 400, '', ''],
+        ],
+        { desde: '11/09/2026', hasta: '25/09/2026' },
+      ),
+    )
+    comprobar(segundo.respuesta.estado === 200, 'y el segundo también')
+
+    const tras2 = await suscripciones()
+    comprobar(
+      igualEnCentimos(tras2.importe, 41.97),
+      'EL TOTAL SE SUMA: 32,98 + 8,99, no se queda en 8,99',
+      String(tras2.importe),
+    )
+    comprobar(
+      tras2.detalle.length === 3,
+      'y la nueva entra en el desglose, con las que ya había',
+      JSON.stringify(tras2.detalle.map((l) => l.nombre)),
+    )
+    comprobar(
+      tras2.detalle.some((l) => l.nombre.includes('DISNEY')),
+      'la de verdad, no una copia del total',
+    )
+    comprobar(
+      igualEnCentimos(
+        tras2.detalle.reduce((t, l) => t + l.importe, 0),
+        tras2.importe,
+      ),
+      'y el desglose sigue sumando el importe del apunte',
+    )
+
+    // --- deshacer el segundo: vuelve a lo del primero, no a cero ---
+    await llamar(`/extracto/${segundo.propuesta.importacion.id}/deshacer`, { metodo: 'POST' })
+    const trasDeshacer = await suscripciones()
+    comprobar(
+      igualEnCentimos(trasDeshacer.importe, 32.98),
+      'deshacer el segundo devuelve el total del primero',
+      String(trasDeshacer.importe),
+    )
+    comprobar(
+      trasDeshacer.detalle.length === 2,
+      'y se lleva solo su línea: las dos primeras siguen ahí',
+      JSON.stringify(trasDeshacer.detalle.map((l) => l.nombre)),
+    )
+    comprobar(trasDeshacer.cobrado === true, 'y el apunte sigue cobrado, que lo cobró el primero')
+
+    // --- y deshacer el primero lo deja como estaba ---
+    await llamar(`/extracto/${primero.propuesta.importacion.id}/deshacer`, { metodo: 'POST' })
+    const limpio = await suscripciones()
+    comprobar(limpio.detalle.length === 0, 'deshacer el primero se lleva el desglose entero')
+    comprobar(limpio.cobrado === false, 'y lo deja pendiente otra vez')
+  }
+
 } finally {
   await entorno.cerrar()
 }
