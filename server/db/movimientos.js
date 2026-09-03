@@ -228,6 +228,43 @@ export function actualizar(id, cambios) {
   return obtener(id)
 }
 
+/**
+ * Suma una linea al desglose de un fijo, en vez de crear otro fijo repetido.
+ *
+ * Un fijo del mes es UNO por concepto: Suscripciones son seis cargos, no seis
+ * filas de Suscripciones. Cuando llega uno mas —del banco o escrito a mano—,
+ * lo que hay que hacer es meterlo en el desglose del que ya esta.
+ *
+ * Que pasa con lo que ya habia depende de si era dinero de verdad:
+ *
+ *   - Si ya tenia desglose, la nueva linea se pone detras.
+ *   - Si no lo tenia pero estaba cobrado, ese importe era real: se convierte en
+ *     la primera linea para no perderlo.
+ *   - Si no lo tenia y seguia pendiente, era la prevision de la plantilla: la
+ *     linea nueva la sustituye, que es lo que hace el desglose de la pantalla.
+ *
+ * El importe sale solo: con desglose, el importe es la suma.
+ */
+export function anadirAlDesglose(id, linea) {
+  const actual = obtener(id)
+  if (!actual) return null
+
+  const base =
+    actual.detalle.length > 0
+      ? actual.detalle
+      : actual.cobrado
+        ? [
+            {
+              nombre: actual.descripcionOriginal || actual.descripcion || actual.concepto,
+              importe: actual.importe,
+              importacionId: actual.importacionId,
+            },
+          ]
+        : []
+
+  return actualizar(id, { detalle: [...base, linea] })
+}
+
 export function borrar(id) {
   bd.prepare('DELETE FROM movimientos WHERE id = ?').run(id)
 }

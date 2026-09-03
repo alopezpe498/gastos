@@ -25,13 +25,37 @@ rutasMovimientos.post(
       return fallo(res, 400, 'La fecha debe tener el formato AAAA-MM-DD.')
     }
 
+    const descripcion = textoDe(req.body?.descripcion ?? '', { max: 200 })
+
+    /*
+     * UN FIJO DEL MES ES UNO POR CONCEPTO.
+     *
+     * Apuntando a mano desde la izquierda se podia elegir un concepto fijo y
+     * salia una fila nueva de Suscripciones al lado de la que ya habia, cada una
+     * por su cuenta y sin sumar. Lo que se quiere es lo mismo que hace el
+     * extracto del banco: meter el cargo en el desglose del fijo que ya esta.
+     *
+     * El objetivo de ahorro se queda fuera: no es un gasto que se acumule.
+     */
+    if (concepto.tipo === 'fijo' && !concepto.esObjetivo) {
+      const yaEsta = movimientosBd.delMes(mesId).find((m) => m.conceptoId === conceptoId)
+      if (yaEsta) {
+        return res.json(
+          movimientosBd.anadirAlDesglose(yaEsta.id, {
+            nombre: descripcion || nombreDeApunte(fechaCobro),
+            importe,
+          }),
+        )
+      }
+    }
+
     return res.status(201).json(
       movimientosBd.crear({
         mesId,
         conceptoId,
         importe,
         fechaCobro,
-        descripcion: textoDe(req.body?.descripcion ?? '', { max: 200 }),
+        descripcion,
         origen: 'manual',
       }),
     )
@@ -138,3 +162,15 @@ rutasMovimientos.delete(
     return res.status(204).end()
   }),
 )
+
+/**
+ * Como se llama en el desglose un apunte que no traia descripcion.
+ *
+ * Una linea sin nombre no se guarda, y «Suscripciones» dentro de Suscripciones
+ * no dice nada; la fecha al menos deja saber cual es cual.
+ */
+function nombreDeApunte(fecha) {
+  const iso = esFechaIso(fecha) ? fecha : hoy()
+  const [, mes, dia] = iso.split('-')
+  return `Apunte del ${Number(dia)}/${Number(mes)}`
+}

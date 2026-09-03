@@ -32,6 +32,14 @@ export function AltaRapida({
   const [abierta, setAbierta] = useState(false)
   const [conceptoId, setConceptoId] = useState<number | null>(null)
   const [importe, setImporte] = useState<number | null>(null)
+  /*
+   * Lo que se escribio quitando el numero: «disney 9,99» deja «disney».
+   *
+   * Si el concepto es un fijo, el apunte no crea una fila nueva —se suma al
+   * fijo que ya esta— y esto es lo que le pone nombre a su linea del desglose.
+   * Cuando lo escrito es el propio concepto no aporta nada y se tira.
+   */
+  const [nota, setNota] = useState('')
 
   useEffect(() => {
     if (pedirApunte) {
@@ -48,6 +56,7 @@ export function AltaRapida({
     const resto = ultimo ? entrada.replace(ultimo, '').trim() : entrada.trim()
 
     if (valor !== null && Number.isFinite(valor)) setImporte(valor)
+    setNota(resto)
     if (resto) {
       const buscado = resto.toLowerCase()
       const encontrado =
@@ -60,8 +69,11 @@ export function AltaRapida({
 
   const apuntar = async () => {
     if (!conceptoId || importe === null) return
-    await onCrear({ conceptoId, importe, descripcion: '' })
+    const elegido = conceptos.find((c) => c.id === conceptoId)
+    const distinta = nota.toLowerCase() !== (elegido?.nombre ?? '').toLowerCase()
+    await onCrear({ conceptoId, importe, descripcion: distinta ? nota : '' })
     setTexto('')
+    setNota('')
     setImporte(null)
     setConceptoId(null)
     setAbierta(false)

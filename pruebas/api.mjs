@@ -916,6 +916,88 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nUn fijo apuntado a mano no se duplica')
+  // -------------------------------------------------------------------------
+  //
+  // Desde la izquierda se puede elegir cualquier concepto, tambien uno fijo, y
+  // lo que salia era otra fila de Suscripciones al lado de la que ya habia:
+  // repetida y sin sumar. Un fijo del mes es UNO por concepto.
+  {
+    await llamar('/meses', { metodo: 'POST', cuerpo: { anio: 2027, mes: 3 } })
+    const { datos: marzo } = await llamar('/meses/2027/3')
+    const fijo = marzo.fijos[0]
+    const cuantosHay = async (conceptoId) =>
+      (await llamar('/meses/2027/3')).datos.fijos.filter((f) => f.conceptoId === conceptoId).length
+
+    // --- pendiente y sin desglose: lo apuntado sustituye a la prevision ---
+    const primera = await llamar('/movimientos', {
+      metodo: 'POST',
+      cuerpo: {
+        mesId: marzo.id,
+        conceptoId: fijo.conceptoId,
+        importe: '9,99',
+        descripcion: 'Disney',
+        fechaCobro: '2027-03-04',
+      },
+    })
+    comprobar(primera.estado === 200, 'apuntar un fijo que ya esta no crea otro (200, no 201)', String(primera.estado))
+    comprobar(primera.datos.id === fijo.id, 'devuelve el fijo que ya habia')
+    comprobar(await cuantosHay(fijo.conceptoId) === 1, 'y en el mes sigue habiendo una sola fila suya')
+    comprobar(
+      primera.datos.detalle.length === 1 && primera.datos.detalle[0].nombre === 'Disney',
+      'lo apuntado entra en su desglose, con el nombre que se escribio',
+      JSON.stringify(primera.datos.detalle),
+    )
+    comprobar(
+      igualEnCentimos(primera.datos.importe, 9.99),
+      'y como estaba pendiente, el importe pasa a ser el apuntado',
+      String(primera.datos.importe),
+    )
+
+    // --- y la siguiente se acumula ---
+    const segunda = await llamar('/movimientos', {
+      metodo: 'POST',
+      cuerpo: { mesId: marzo.id, conceptoId: fijo.conceptoId, importe: '12,50', fechaCobro: '2027-03-09' },
+    })
+    comprobar(segunda.datos.detalle.length === 2, 'la segunda se pone detras, no encima')
+    comprobar(
+      igualEnCentimos(segunda.datos.importe, 22.49),
+      'EL IMPORTE SE ACUMULA: 9,99 + 12,50',
+      String(segunda.datos.importe),
+    )
+    comprobar(
+      segunda.datos.detalle[1].nombre === 'Apunte del 9/3',
+      'una linea sin descripcion se llama por su fecha',
+      segunda.datos.detalle[1].nombre,
+    )
+
+    // --- ya cobrado y sin desglose: ese importe era real, no se pierde ---
+    const otro = marzo.fijos[1]
+    await llamar(`/movimientos/${otro.id}/cobro`, { metodo: 'POST', cuerpo: { fecha: '2027-03-02' } })
+    const suma = await llamar('/movimientos', {
+      metodo: 'POST',
+      cuerpo: { mesId: marzo.id, conceptoId: otro.conceptoId, importe: 10, descripcion: 'Un extra' },
+    })
+    comprobar(suma.datos.detalle.length === 2, 'lo que ya estaba cobrado se convierte en la primera linea')
+    comprobar(
+      igualEnCentimos(suma.datos.importe, otro.importe + 10),
+      'y el total es lo que habia mas lo apuntado',
+      `${otro.importe} + 10 da ${suma.datos.importe}`,
+    )
+
+    // --- los variables siguen siendo una fila cada uno ---
+    const uno = await llamar('/movimientos', {
+      metodo: 'POST',
+      cuerpo: { mesId: marzo.id, conceptoId: idPeaje, importe: 3, fechaCobro: '2027-03-05' },
+    })
+    const dos = await llamar('/movimientos', {
+      metodo: 'POST',
+      cuerpo: { mesId: marzo.id, conceptoId: idPeaje, importe: 4, fechaCobro: '2027-03-06' },
+    })
+    comprobar(uno.estado === 201 && dos.estado === 201, 'dos peajes son dos apuntes')
+    comprobar(uno.datos.id !== dos.datos.id, 'cada uno con su fila, que para eso son variables')
+  }
+  // -------------------------------------------------------------------------
   console.log('\nErrores')
   // -------------------------------------------------------------------------
   {

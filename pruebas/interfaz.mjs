@@ -520,6 +520,42 @@ try {
   }
 
   // -------------------------------------------------------------------------
+  console.log('\nApuntar un fijo desde la izquierda')
+  // -------------------------------------------------------------------------
+  //
+  // «Elijo un gasto fijo y lo añade como uno nuevo, aunque duplique el
+  // concepto». La lista de apuntar deja elegir cualquier concepto, tambien los
+  // fijos, y salian dos Suscripciones cada una por su lado. Ahora hace lo mismo
+  // que el extracto: se suma al fijo que ya esta.
+  {
+    await abrirApp()
+    await pagina.waitForTimeout(800)
+    const fijo = (await leerMes()).fijos[1]
+    const cuantasLineas = fijo.detalle.length
+
+    await pagina.getByLabel('Apuntar un gasto').click()
+    await pagina.getByLabel('Apuntar un gasto').fill(`${fijo.concepto} 9,99`)
+    await pagina.waitForTimeout(300)
+    await pagina.keyboard.press('Enter')
+    await pagina.waitForTimeout(1500)
+
+    const suyos = (await leerMes()).fijos.filter((f) => f.conceptoId === fijo.conceptoId)
+    comprobar(
+      suyos.length === 1,
+      'NO SALE UN SEGUNDO fijo con el concepto repetido',
+      `hay ${suyos.length}`,
+    )
+    comprobar(
+      suyos[0].detalle.length === cuantasLineas + 1,
+      'lo apuntado entra en el desglose del que ya habia',
+      JSON.stringify(suyos[0].detalle.map((l) => l.nombre)),
+    )
+    comprobar(
+      await pagina.getByText(/Sumado a/).first().isVisible(),
+      'y se avisa, que si no parece que no ha pasado nada',
+    )
+  }
+  // -------------------------------------------------------------------------
   console.log('\nRegenerar desde la plantilla')
   // -------------------------------------------------------------------------
   {

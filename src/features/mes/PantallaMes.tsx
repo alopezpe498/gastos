@@ -163,11 +163,18 @@ export function PantallaMes({
   const apuntar = async (datos: { conceptoId: number; importe: number; descripcion: string }) => {
     if (!mes) return
     try {
-      await api('/movimientos', {
+      const creado = await api<Movimiento>('/movimientos', {
         metodo: 'POST',
         cuerpo: { mesId: mes.id, ...datos, fechaCobro: hoyIso() },
       })
       await recargar()
+      /*
+       * Un fijo no sale en esta lista: se ha ido al desglose del que ya estaba,
+       * a la derecha. Sin decirlo, parece que no ha pasado nada.
+       */
+      if (creado?.tipo === 'fijo') {
+        avisar(`Sumado a «${creado.concepto}»: ahora ${euros(creado.importe)}`)
+      }
     } catch (causa) {
       avisarError(mensajeDeError(causa))
     }
