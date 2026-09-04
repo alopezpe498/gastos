@@ -235,14 +235,38 @@ export function PantallaMes({
 
   // ---- estados que no son el mes ----
 
+  /*
+   * El selector, tambien cuando no hay mes que enseñar.
+   *
+   * Retrocediendo a un mes que todavia no existe se llegaba a una pantalla sin
+   * salida: decia que no estaba abierto y ahi te quedabas, sin forma de elegir
+   * otro. Habia que cerrar la aplicacion y volver a entrar. Si se ha llegado
+   * navegando, con lo que se navego se vuelve.
+   */
+  const volverAElegir = (donde: { anio: number; mes: number }) => (
+    <div className="hero-mes" style={{ marginBottom: 12 }}>
+      <SelectorDeMes
+        anio={donde.anio}
+        mes={donde.mes}
+        onIr={(anio, numeroMes) => onCambioDeMes({ anio, mes: numeroMes })}
+      />
+    </div>
+  )
+
   if (error) {
-    return <Vacio icono="aviso" frase={error} accion="Reintentar" onAccion={() => void cargar()} />
+    return (
+      <>
+        {mesElegido ? volverAElegir(mesElegido) : null}
+        <Vacio icono="aviso" frase={error} accion="Reintentar" onAccion={() => void cargar()} />
+      </>
+    )
   }
 
   if (porAbrir) {
     const nombre = NOMBRES_MESES[porAbrir.mes - 1]
     return (
       <Card>
+        {volverAElegir(porAbrir)}
         <div className="vacio">
           <span className="ico">
             <Icono nombre="calendario" size={16} />

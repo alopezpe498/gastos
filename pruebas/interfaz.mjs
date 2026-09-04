@@ -556,6 +556,49 @@ try {
     )
   }
   // -------------------------------------------------------------------------
+  console.log('\nUn mes sin abrir no es un callejon sin salida')
+  // -------------------------------------------------------------------------
+  //
+  // «Retrocedo a julio, no existe porque no he cargado el historico, me dice
+  // que no esta abierto y ya no tengo opcion de volver a seleccionar mes. He de
+  // cerrar la aplicacion y volver a abrir.»
+  {
+    await abrirApp()
+    await pagina.getByRole('button', { name: 'Mes anterior' }).click()
+    await pagina.waitForTimeout(1500)
+
+    const texto = await pagina.locator('.vacio-frase').first().textContent()
+    comprobar(
+      (texto ?? '').includes('todavía no está abierto'),
+      'el mes que no existe avisa de que no esta abierto',
+      texto ?? '',
+    )
+    comprobar(
+      await pagina.getByRole('button', { name: 'Mes siguiente' }).isVisible(),
+      'PERO EL SELECTOR SIGUE AHI: se puede elegir otro mes',
+    )
+
+    // Y con el se vuelve, sin cerrar la aplicacion.
+    await pagina.getByRole('button', { name: 'Mes siguiente' }).click()
+    await pagina.waitForSelector('.hero', { timeout: 15000 })
+    comprobar(await pagina.locator('.hero').isVisible(), 'y desde ahi se vuelve al mes que si existe')
+
+    // El calendario tambien abre desde esa pantalla, que es lo que se busca
+    // cuando lo que quieres es saltar a otro mes cualquiera.
+    await pagina.getByRole('button', { name: 'Mes anterior' }).click()
+    await pagina.waitForTimeout(1500)
+    await pagina.locator('.nombre-mes').first().click()
+    await pagina.waitForTimeout(300)
+    comprobar(
+      await pagina.getByRole('dialog', { name: 'Elegir mes' }).isVisible(),
+      'y el calendario de los doce meses tambien se abre',
+    )
+    await pagina.keyboard.press('Escape')
+    await pagina.getByRole('button', { name: 'Ir a hoy' }).click()
+    await pagina.waitForSelector('.hero', { timeout: 15000 })
+    comprobar(await pagina.locator('.hero').isVisible(), '«Ir a hoy» devuelve al mes en curso')
+  }
+  // -------------------------------------------------------------------------
   console.log('\nRegenerar desde la plantilla')
   // -------------------------------------------------------------------------
   {
